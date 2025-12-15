@@ -1,0 +1,135 @@
+name: 📈 Trading Strategy
+description: Neue Trading-Strategie oder Strategie-Optimierung vorschlagen
+title: "[STRATEGY] "
+labels: ["strategy", "research"]
+type: "Strategy"
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Template für Trading-Strategie Ideen, Backtests und Optimierungen.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Art der Anfrage
+      options:
+        - 🆕 Neue Strategie
+        - 🔄 Optimierung bestehender Strategie
+        - 🧪 Backtest-Anfrage
+        - 📊 Analyse / Research
+        - 🔧 Parameter-Tuning
+    validations:
+      required: true
+
+  - type: dropdown
+    id: market
+    attributes:
+      label: Markt / Instrument
+      multiple: true
+      options:
+        - Forex
+        - Indices (DAX, UK100, US500, etc.)
+        - Commodities
+        - Crypto
+        - Stocks
+        - Futures
+        - Options
+    validations:
+      required: true
+
+  - type: input
+    id: symbols
+    attributes:
+      label: Spezifische Symbole
+      placeholder: "z.B. EURUSD, UK100, XAUUSD"
+
+  - type: dropdown
+    id: timeframe
+    attributes:
+      label: Primärer Timeframe
+      options:
+        - M1 (1 Minute)
+        - M5 (5 Minuten)
+        - M15 (15 Minuten)
+        - M30 (30 Minuten)
+        - H1 (1 Stunde)
+        - H4 (4 Stunden)
+        - D1 (Daily)
+        - W1 (Weekly)
+        - Multi-Timeframe
+    validations:
+      required: true
+
+  - type: dropdown
+    id: style
+    attributes:
+      label: Trading-Stil
+      options:
+        - Scalping
+        - Day Trading
+        - Swing Trading
+        - Position Trading
+        - Algorithmic / Automated
+    validations:
+      required: true
+
+  - type: textarea
+    id: concept
+    attributes:
+      label: Strategie-Konzept
+      description: Beschreibe die grundlegende Idee der Strategie
+      placeholder: |
+        Entry-Logik:
+        Exit-Logik:
+        Filter/Bedingungen:
+    validations:
+      required: true
+
+  - type: textarea
+    id: indicators
+    attributes:
+      label: Verwendete Indikatoren / Konzepte
+      placeholder: |
+        - Asia Range / Session Times
+        - Moving Averages (EMA 20, SMA 200)
+        - RSI, MACD, ATR
+        - Order Blocks / Supply & Demand Zones
+        - etc.
+
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk Management
+      placeholder: |
+        - Stop Loss: ... pips / ATR-basiert
+        - Take Profit: ... RR
+        - Position Sizing: ... % Risk per Trade
+        - Max Drawdown: ...
+
+  - type: textarea
+    id: backtest
+    attributes:
+      label: Backtest-Anforderungen
+      placeholder: |
+        - Zeitraum: 2020-2024
+        - Datenquelle: ...
+        - Tool: QuantAnalyzer / MT5 Strategy Tester
+        - Metriken: Sharpe, Sortino, Max DD, etc.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Referenzen / Inspiration
+      description: Links zu Papers, Videos, oder ähnlichen Strategien
+
+  - type: checkboxes
+    id: automation
+    attributes:
+      label: Automatisierung
+      options:
+        - label: Soll als MQL5 Expert Advisor umgesetzt werden
+        - label: Soll in bestehendes System integriert werden
+        - label: Nur manuelle Ausführung geplant

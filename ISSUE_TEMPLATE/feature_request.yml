@@ -1,0 +1,90 @@
+name: ✨ Feature Request
+description: Neue Funktion oder Verbesserung vorschlagen
+title: "[FEATURE] "
+labels: ["enhancement"]
+type: "Feature"
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für deinen Vorschlag! Bitte beschreibe die gewünschte Funktion so klar wie möglich.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Kategorie
+      options:
+        - 📈 Trading / Strategy
+        - 🔌 Integration / API
+        - 📊 Analytics / Reporting
+        - 🎨 UI / UX
+        - ⚡ Performance
+        - 🔧 Developer Experience
+        - 📱 Mobile / Cross-Platform
+        - 🔒 Security
+        - Sonstiges
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Geschätzte Priorität
+      description: Wie wichtig ist dieses Feature für dich?
+      options:
+        - 🔴 Must Have – Kritisch für Nutzung
+        - 🟠 Should Have – Wichtig, aber nicht blockierend
+        - 🟡 Nice to Have – Wäre praktisch
+        - 🟢 Future – Langfristige Vision
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Motivation
+      description: Welches Problem löst dieses Feature?
+      placeholder: |
+        Derzeit muss ich... / Es fehlt die Möglichkeit...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Vorgeschlagene Lösung
+      description: Wie stellst du dir die Umsetzung vor?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativen
+      description: Welche anderen Lösungen hast du in Betracht gezogen?
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akzeptanzkriterien
+      description: Wann gilt das Feature als erfolgreich umgesetzt?
+      placeholder: |
+        - [ ] Kriterium 1
+        - [ ] Kriterium 2
+        - [ ] Kriterium 3
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Zusätzlicher Kontext
+      description: Screenshots, Mockups, Links zu ähnlichen Implementierungen
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Bereitschaft zur Mitarbeit
+      options:
+        - label: Ich wäre bereit, bei der Umsetzung zu helfen
+          required: false

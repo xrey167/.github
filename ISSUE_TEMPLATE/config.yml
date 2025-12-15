@@ -1,1 +1,10 @@
+blank_issues_enabled: false
 
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/ORG/REPO/discussions
+    about: Für allgemeine Fragen und Ideen-Austausch
+    
+  - name: 📚 Documentation
+    url: https://github.com/ORG/REPO/wiki
+    about: Projekt-Dokumentation und Guides

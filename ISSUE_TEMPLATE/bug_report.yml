@@ -1,0 +1,108 @@
+name: 🐛 Bug Report
+description: Fehler melden und zur Verbesserung beitragen
+title: "[BUG] "
+labels: ["bug", "triage"]
+type: "Bug"
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für das Melden dieses Bugs! Bitte fülle die folgenden Felder so detailliert wie möglich aus.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Betroffene Komponente
+      description: Welcher Bereich ist betroffen?
+      options:
+        - Trading Engine / Strategy
+        - MQL5 / Expert Advisor
+        - Data Processing / Import
+        - API / Integration
+        - UI / Dashboard
+        - Database / Backend
+        - DevOps / CI/CD
+        - Documentation
+        - Sonstiges
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Schweregrad
+      options:
+        - 🔴 Critical – System nicht nutzbar
+        - 🟠 High – Wichtige Funktion beeinträchtigt
+        - 🟡 Medium – Workaround vorhanden
+        - 🟢 Low – Kosmetisch / Minor
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Beschreibung
+      description: Was ist passiert?
+      placeholder: Klare Beschreibung des Problems...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      description: Was sollte stattdessen passieren?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Wie kann der Bug reproduziert werden?
+      placeholder: |
+        1. Gehe zu '...'
+        2. Klicke auf '...'
+        3. Scrolle zu '...'
+        4. Fehler erscheint
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Umgebung
+      description: Relevante technische Details
+      placeholder: |
+        - OS: Windows 11
+        - Browser: Chrome 120
+        - MT5 Build: 4150
+        - Broker: ...
+        - Node/Python Version: ...
+      render: markdown
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Fehlermeldungen
+      description: Relevante Log-Ausgaben oder Fehlermeldungen
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Aufnahmen
+      description: Falls hilfreich, Screenshots oder Bildschirmaufnahmen hinzufügen
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checkliste
+      options:
+        - label: Ich habe nach ähnlichen Issues gesucht
+          required: true
+        - label: Ich nutze die aktuelle Version
+          required: false

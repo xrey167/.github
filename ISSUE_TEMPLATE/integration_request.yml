@@ -1,0 +1,139 @@
+name: 🔌 Integration Request
+description: Neue API-Anbindung oder System-Integration anfragen
+title: "[INTEGRATION] "
+labels: ["integration", "enhancement"]
+type: "Integration"
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Template für neue Integrationen mit externen Systemen und APIs.
+
+  - type: dropdown
+    id: integration_type
+    attributes:
+      label: Art der Integration
+      options:
+        - 📡 API-Anbindung (REST/GraphQL)
+        - 🔄 Daten-Synchronisation
+        - 📤 Export-Funktion
+        - 📥 Import-Funktion
+        - 🔗 Webhook / Event-basiert
+        - 🗄️ Datenbank-Verbindung
+        - 📧 Notification (Email, Telegram, etc.)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: target_system
+    attributes:
+      label: Zielsystem / Plattform
+      options:
+        - MetaTrader 5
+        - Odoo ERP
+        - QuantAnalyzer
+        - TradingView
+        - Notion
+        - GitHub
+        - Broker API (Interactive Brokers, etc.)
+        - Market Data Provider
+        - Custom / Sonstiges
+    validations:
+      required: true
+
+  - type: input
+    id: system_name
+    attributes:
+      label: Spezifischer System-/API-Name
+      placeholder: "z.B. Alpaca API, Binance, Polymarket"
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case / Anwendungsfall
+      description: Wofür wird die Integration benötigt?
+      placeholder: |
+        Ich möchte...
+        Dies ermöglicht...
+    validations:
+      required: true
+
+  - type: textarea
+    id: data_flow
+    attributes:
+      label: Datenfluss
+      description: Welche Daten sollen wohin fließen?
+      placeholder: |
+        Quelle → Ziel:
+        - Trade History → Odoo Buchungen
+        - Symbol Specs → Datenbank
+        - Performance Metrics → Dashboard
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Synchronisations-Frequenz
+      options:
+        - ⚡ Realtime / Streaming
+        - 🔄 Minütlich
+        - ⏰ Stündlich
+        - 📅 Täglich
+        - 📆 Wöchentlich
+        - 🖱️ Manuell / On-Demand
+    validations:
+      required: true
+
+  - type: textarea
+    id: api_docs
+    attributes:
+      label: API-Dokumentation
+      description: Links zur offiziellen Dokumentation
+      placeholder: |
+        - Docs: https://...
+        - OpenAPI Spec: https://...
+        - SDK: https://...
+
+  - type: dropdown
+    id: auth
+    attributes:
+      label: Authentifizierung
+      options:
+        - API Key
+        - OAuth 2.0
+        - Basic Auth
+        - JWT Token
+        - mTLS / Zertifikate
+        - Keine / Public API
+        - Unbekannt
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Technische Anforderungen
+      placeholder: |
+        - Rate Limits: ...
+        - Benötigte Endpoints: ...
+        - Datenformat: JSON / CSV / XML
+        - Fehlerbehandlung: ...
+
+  - type: textarea
+    id: existing
+    attributes:
+      label: Bestehende Implementierungen
+      description: Gibt es bereits ähnliche Integrationen oder Libraries?
+      placeholder: |
+        - npm package: ...
+        - Python library: ...
+        - Existing code in: ...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Voraussetzungen
+      options:
+        - label: API-Zugang / Credentials vorhanden
+        - label: Dokumentation gesichtet
+        - label: Rate Limits sind akzeptabel
+        - label: Datenschutz / Compliance geprüft

@@ -1,0 +1,121 @@
+name: 📊 Data Issue
+description: Probleme mit Marktdaten, Datenqualität oder Datenverarbeitung melden
+title: "[DATA] "
+labels: ["data", "bug"]
+type: "Bug"
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Template für Datenqualitätsprobleme, fehlende Daten oder Datenverarbeitungsfehler.
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Art des Problems
+      options:
+        - ❌ Fehlende Daten
+        - 🔴 Fehlerhafte Daten
+        - ⚠️ Inkonsistente Daten
+        - 🐌 Performance / Ladezeit
+        - 🔄 Synchronisationsproblem
+        - 📁 Format / Parsing-Fehler
+        - 📈 Symbol-Spezifikationen
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data_source
+    attributes:
+      label: Datenquelle
+      options:
+        - MetaTrader 5
+        - Broker Feed
+        - CSV Import
+        - API (extern)
+        - Datenbank
+        - QuantAnalyzer Export
+        - Sonstige
+    validations:
+      required: true
+
+  - type: input
+    id: symbols_affected
+    attributes:
+      label: Betroffene Symbole
+      placeholder: "z.B. EURUSD, UK100, alle Forex-Paare"
+    validations:
+      required: true
+
+  - type: input
+    id: timeframe
+    attributes:
+      label: Betroffener Zeitraum
+      placeholder: "z.B. 2024-01-15 bis 2024-01-20, oder M15 Timeframe"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Beschreibung des Problems
+      placeholder: |
+        Was genau stimmt nicht mit den Daten?
+        Beispiele für fehlerhafte Werte?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartete Daten
+      placeholder: |
+        Wie sollten die korrekten Daten aussehen?
+        Referenzquelle für Vergleich?
+
+  - type: textarea
+    id: sample
+    attributes:
+      label: Beispieldaten
+      description: Auszug der problematischen Daten
+      render: shell
+      placeholder: |
+        Symbol,Date,Open,High,Low,Close,Volume
+        EURUSD,2024-01-15,1.0950,1.0980,1.0940,1.0975,12345
+        ...
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Auswirkungen
+      placeholder: |
+        - Backtest-Ergebnisse verfälscht
+        - Live-Trading betroffen
+        - Reporting fehlerhaft
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Schritte zur Reproduktion
+      placeholder: |
+        1. Daten laden von...
+        2. Filter anwenden...
+        3. Problem sichtbar bei...
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Dringlichkeit
+      options:
+        - 🔴 Kritisch – Live-Trading betroffen
+        - 🟠 Hoch – Wichtige Analyse blockiert
+        - 🟡 Mittel – Workaround verfügbar
+        - 🟢 Niedrig – Historische Daten
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Aktueller Workaround
+      description: Falls vorhanden, wie umgehst du das Problem derzeit?

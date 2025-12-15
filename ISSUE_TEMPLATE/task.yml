@@ -1,0 +1,180 @@
+name: 📋 Task
+description: Entwicklungsaufgabe mit strukturierter Planung
+title: "[TASK] "
+labels: ["task"]
+type: "Task"
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Überblick
+
+  - type: input
+    id: epic
+    attributes:
+      label: Epic
+      description: Übergeordnetes Epic oder Feature, falls vorhanden
+      placeholder: "#123 oder Epic-Name"
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch
+      description: Feature-Branch für diese Arbeit
+      placeholder: "feature/platform-alerts-entitlements"
+
+  - type: input
+    id: labels
+    attributes:
+      label: Labels
+      description: Zusätzliche Labels (kommasepariert)
+      placeholder: "backend, api, trading"
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Ziel
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Ziel
+      description: Was soll erreicht werden?
+      placeholder: |
+        Kurze, prägnante Beschreibung des Ziels.
+        
+        **User Story (optional):**
+        Als [Rolle] möchte ich [Funktion], damit [Nutzen].
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Lieferumfang
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Lieferumfang
+      description: Was ist im Scope, was nicht?
+      placeholder: |
+        **In Scope:**
+        - Komponente A
+        - Feature B
+        
+        **Out of Scope:**
+        - Feature X (separates Issue)
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Akzeptanzkriterien
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Akzeptanzkriterien
+      description: Wann gilt die Aufgabe als erfolgreich umgesetzt?
+      placeholder: |
+        - [ ] AC1: User kann...
+        - [ ] AC2: System zeigt...
+        - [ ] AC3: API liefert...
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Aufgaben
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Aufgaben
+      description: Einzelne Schritte zur Umsetzung
+      placeholder: |
+        - [ ] Schritt 1: ...
+        - [ ] Schritt 2: ...
+        - [ ] Schritt 3: ...
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Tests
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests
+      description: Welche Tests sind erforderlich?
+      placeholder: |
+        - [ ] Unit Test: ...
+        - [ ] Integration Test: ...
+        - [ ] Manual Test: ...
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Validierung
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validierung
+      description: Wie wird die korrekte Umsetzung validiert?
+      placeholder: |
+        - [ ] Feature funktioniert wie spezifiziert
+        - [ ] Code Review bestanden
+        - [ ] Edge Cases getestet
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Definition of Done
+
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Code implementiert und gepusht
+        - label: Tests geschrieben und bestanden
+        - label: Code Review approved
+        - label: Dokumentation aktualisiert
+        - label: Akzeptanzkriterien erfüllt
+        - label: Merged in main/develop
+        - label: Monitoring konfiguriert
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Monitoring
+
+  - type: textarea
+    id: monitoring
+    attributes:
+      label: Monitoring
+      description: Welches Monitoring/Alerting wird benötigt?
+      placeholder: |
+        - [ ] Alert konfiguriert für...
+        - [ ] Dashboard aktualisiert
+        - [ ] Logging implementiert
