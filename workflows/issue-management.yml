@@ -1,0 +1,274 @@
+name: Issue Management
+
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  auto-label:
+    name: Auto-label Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    steps:
+      - name: Auto-label based on template
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            const title = issue.title || '';
+            
+            let labelsToAdd = [];
+            
+            // Detect issue type from title
+            if (title.toLowerCase().includes('[bug]') || title.toLowerCase().includes('bug:')) {
+              labelsToAdd.push('bug');
+            }
+            if (title.toLowerCase().includes('[feature]') || title.toLowerCase().includes('feature:')) {
+              labelsToAdd.push('enhancement');
+            }
+            if (title.toLowerCase().includes('[task]') || title.toLowerCase().includes('task:')) {
+              labelsToAdd.push('task');
+            }
+            if (title.toLowerCase().includes('[data]')) {
+              labelsToAdd.push('data');
+            }
+            if (title.toLowerCase().includes('[integration]')) {
+              labelsToAdd.push('integration');
+            }
+            if (title.toLowerCase().includes('[strategy]')) {
+              labelsToAdd.push('strategy');
+            }
+            
+            // Detect priority from body
+            if (body.includes('Critical') || body.includes('🔴')) {
+              labelsToAdd.push('priority:critical');
+            } else if (body.includes('High') || body.includes('🟠')) {
+              labelsToAdd.push('priority:high');
+            }
+            
+            // Add labels if any found
+            if (labelsToAdd.length > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: labelsToAdd
+                });
+                core.info(`Added labels: ${labelsToAdd.join(', ')}`);
+              } catch (error) {
+                // Labels might not exist, that's okay
+                core.warning(`Could not add some labels: ${error.message}`);
+              }
+            }
+
+  triage-check:
+    name: Check for Triage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    steps:
+      - name: Add triage label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['triage']
+              });
+            } catch (error) {
+              // Label might not exist
+              core.warning('Could not add triage label');
+            }
+
+      - name: Comment triage instructions
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `## 🏷️ Issue Triage
+
+            Thank you for creating this issue! It will be reviewed by the team.
+
+            ### Next Steps
+            1. Team will review and prioritize
+            2. Labels will be updated accordingly
+            3. Issue may be assigned to team member
+            4. Additional information may be requested
+
+            ### Self-Service
+            - Add relevant labels to help with categorization
+            - Link related issues or PRs
+            - Update the issue description if you have more information
+
+            ---
+            *This issue has been marked for triage. Remove the \`triage\` label once reviewed.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  validate-issue:
+    name: Validate Issue Content
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    steps:
+      - name: Check issue completeness
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            const title = issue.title || '';
+            
+            let warnings = [];
+            
+            // Check title length
+            if (title.length < 10) {
+              warnings.push('- Issue title is very short. Consider adding more context.');
+            }
+            
+            // Check body length
+            if (body.length < 50) {
+              warnings.push('- Issue description is too short. Please provide more details.');
+            }
+            
+            // Check for common sections
+            if (!body.toLowerCase().includes('description') && 
+                !body.toLowerCase().includes('problem') &&
+                !body.toLowerCase().includes('expected')) {
+              warnings.push('- Consider adding sections: Description, Expected behavior, Actual behavior');
+            }
+            
+            // Check for empty checkboxes (uncompleted template)
+            const uncheckedBoxes = (body.match(/- \[ \]/g) || []).length;
+            const checkedBoxes = (body.match(/- \[x\]/gi) || []).length;
+            
+            if (uncheckedBoxes > 0 && checkedBoxes === 0) {
+              warnings.push(`- There are ${uncheckedBoxes} unchecked items. Did you complete the issue template?`);
+            }
+            
+            // Post warning comment if issues found
+            if (warnings.length > 0) {
+              const comment = `## ⚠️ Issue Quality Check
+
+            The following improvements would help with faster resolution:
+
+            ${warnings.join('\n')}
+
+            ### Tips for Better Issues
+            - Provide clear, detailed descriptions
+            - Include steps to reproduce (for bugs)
+            - Add acceptance criteria (for features)
+            - Complete all template sections
+            - Add relevant labels and links
+
+            *You can edit the issue to add more information.*`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: comment
+              });
+            }
+
+  handle-commands:
+    name: Handle Issue Commands
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment' && github.event.action == 'created'
+    steps:
+      - name: Process commands
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = context.payload.comment.body;
+            const issueNumber = context.issue.number;
+            
+            // Command: /assign @username
+            if (comment.startsWith('/assign')) {
+              const match = comment.match(/\/assign @?(\w+)/);
+              if (match) {
+                const assignee = match[1];
+                try {
+                  await github.rest.issues.addAssignees({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    assignees: [assignee]
+                  });
+                  core.info(`Assigned issue to ${assignee}`);
+                } catch (error) {
+                  core.warning(`Could not assign to ${assignee}: ${error.message}`);
+                }
+              }
+            }
+            
+            // Command: /label labelname
+            if (comment.startsWith('/label')) {
+              const match = comment.match(/\/label (.+)/);
+              if (match) {
+                const labels = match[1].split(',').map(l => l.trim());
+                try {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    labels: labels
+                  });
+                  core.info(`Added labels: ${labels.join(', ')}`);
+                } catch (error) {
+                  core.warning(`Could not add labels: ${error.message}`);
+                }
+              }
+            }
+            
+            // Command: /priority critical|high|medium|low
+            if (comment.startsWith('/priority')) {
+              const match = comment.match(/\/priority (critical|high|medium|low)/);
+              if (match) {
+                const priority = match[1];
+                try {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    labels: [`priority:${priority}`]
+                  });
+                  core.info(`Set priority to ${priority}`);
+                } catch (error) {
+                  core.warning(`Could not set priority: ${error.message}`);
+                }
+              }
+            }
+            
+            // Command: /close
+            if (comment.trim() === '/close') {
+              try {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  state: 'closed'
+                });
+                core.info('Closed issue');
+              } catch (error) {
+                core.warning(`Could not close issue: ${error.message}`);
+              }
+            }

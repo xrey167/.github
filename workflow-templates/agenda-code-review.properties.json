@@ -1,0 +1,13 @@
+{
+  "name": "Agenda Code Review Workflow",
+  "description": "Best practice workflow for structured code reviews with automatic reviewer assignment, quality checks, and review reminders",
+  "iconName": "check-circle",
+  "categories": [
+    "Code Review",
+    "Automation",
+    "Best Practices"
+  ],
+  "filePatterns": [
+    "^.github/workflows/.*\\.ya?ml$"
+  ]
+}
