@@ -7,7 +7,7 @@ console.log("Verifying Node.js SDK installations...\n");
 
 // Test Google Generative AI
 try {
-    const genai = require('@google/generative-ai');
+    require('@google/generative-ai');
     console.log("✓ Google Generative AI SDK installed successfully");
 } catch (e) {
     console.log(`✗ Google Generative AI SDK failed: ${e.message}`);
