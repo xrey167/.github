@@ -1,0 +1,117 @@
+name: Agent Task Manager
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: 'Agent to assign'
+        required: true
+        type: choice
+        options:
+          - codex
+          - copilot
+          - gemini
+      issue_number:
+        description: 'Issue number'
+        required: true
+        type: number
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - assign
+          - complete
+          - status
+
+jobs:
+  manage-agent-task:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Manage agent task
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const agent = '${{ github.event.inputs.agent }}';
+            const issueNumber = parseInt('${{ github.event.inputs.issue_number }}');
+            const action = '${{ github.event.inputs.action }}';
+            
+            const agentInfo = {
+              'codex': { icon: '🤖', name: 'Codex' },
+              'copilot': { icon: '🚁', name: 'GitHub Copilot' },
+              'gemini': { icon: '✨', name: 'Gemini' }
+            };
+            
+            const info = agentInfo[agent] || { icon: '🤖', name: agent };
+            
+            if (action === 'assign') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `${info.icon} **${info.name} Agent wurde manuell zugewiesen**\n\nDieser Agent wird sich um diese Aufgabe kümmern.`
+              });
+              
+              // Add label
+              const labelName = `agent:${agent}`;
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: [labelName, 'agent-assigned']
+                });
+              } catch (error) {
+                console.log('Error adding labels:', error);
+              }
+            } else if (action === 'complete') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `${info.icon} **${info.name} Agent - Aufgabe abgeschlossen** ✅\n\nDie Aufgabe wurde erfolgreich bearbeitet.`
+              });
+              
+              // Remove agent label and add completed label
+              const labelName = `agent:${agent}`;
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  name: labelName
+                });
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['agent-completed']
+                });
+              } catch (error) {
+                console.log('Error managing labels:', error);
+              }
+            } else if (action === 'status') {
+              const issue = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+              
+              const hasAgentLabel = issue.data.labels.some(label => 
+                label.name.startsWith('agent:')
+              );
+              
+              const status = hasAgentLabel 
+                ? `${info.icon} Agent ist aktiv zugewiesen` 
+                : 'Kein Agent zugewiesen';
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `**Agent Status Check**\n\n${status}`
+              });
+            }
