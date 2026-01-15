@@ -3,6 +3,8 @@
 # Git Status Helper - Enhanced git status with branch info
 # Usage: ./git-status.sh
 
+set -e
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,7 +17,7 @@ NC='\033[0m' # No Color
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # Get main branch name
-MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | cut -d' ' -f5 || echo "main")
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║         Git Repository Status          ║${NC}"

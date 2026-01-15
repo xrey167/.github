@@ -60,7 +60,7 @@ if git rev-parse --verify "$FULL_BRANCH_NAME" >/dev/null 2>&1; then
 fi
 
 # Update main/master branch
-MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin | grep 'HEAD branch' | cut -d' ' -f5 || echo "main")
 echo -e "${YELLOW}Updating $MAIN_BRANCH...${NC}"
 git fetch origin
 git checkout "$MAIN_BRANCH"

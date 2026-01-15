@@ -83,7 +83,7 @@ mkdir -p tests/{unit,integration,e2e}
 
 # Create .gitignore
 cat > .gitignore << 'EOF'
-# See https://github.com/xrey167/.github for more patterns
+# See the organization's .github repository for more patterns
 
 # Dependencies
 node_modules/
