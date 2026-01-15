@@ -4,6 +4,28 @@ Collection of bash scripts to streamline your git workflow.
 
 ## Available Scripts
 
+### 🛠️ git-utils.sh
+**Purpose:** Shared utility functions for all git scripts
+
+**Usage:**
+```bash
+# Source in other scripts
+source "$(dirname "$0")/git-utils.sh"
+```
+
+**Provides:**
+- `get_main_branch()` - Detect main/master branch
+- `get_current_branch()` - Get current branch name
+- `is_working_directory_clean()` - Check for uncommitted changes
+- `branch_exists_local()` - Check if branch exists locally
+- `branch_exists_remote()` - Check if branch exists on remote
+- Error/success/warning message helpers
+- Color constants for consistent output
+
+**When to use:** When creating new git helper scripts
+
+---
+
 ### 🚀 setup.sh
 **Purpose:** Initialize project and install dependencies
 
