@@ -43,7 +43,7 @@ if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
 fi
 
 # Allow custom project directory or use default
-PROJECT_BASE="${PROJECT_DIR:-$HOME/projects}"
+PROJECT_BASE="${CUSTOM_BASE_DIR:-$HOME/projects}"
 PROJECT_DIR="$PROJECT_BASE/$PROJECT_NAME"
 
 # Validate project type
