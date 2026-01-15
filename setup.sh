@@ -226,7 +226,7 @@ echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ -f .github/agents/cli-example.py ]; then
         print_info "Testing Python CLI..."
-        python3 .github/agents/cli-example.py --agent openai --prompt "Write a hello world function" 2>&1 | head -n 5
+        python3 .github/agents/cli-example.py --agent openai --prompt "Write a hello world function" 2>&1
         print_success "Test completed (check output above)"
     fi
 fi
