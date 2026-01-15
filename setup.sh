@@ -120,11 +120,14 @@ if command_exists npm && [ -f .github/agents/package.json ]; then
     echo "Installing Node.js dependencies..."
     echo ""
     
-    cd .github/agents
-    npm install
-    cd ../..
-    
-    print_success "Node.js dependencies installed"
+    if cd .github/agents; then
+        npm install
+        cd ../.. || exit 1
+        print_success "Node.js dependencies installed"
+    else
+        print_error "Failed to change to .github/agents directory"
+        exit 1
+    fi
     echo ""
 fi
 
@@ -148,8 +151,13 @@ echo "Verifying API key configuration..."
 echo ""
 
 if [ -f .env ]; then
-    # Source .env file
-    export $(grep -v '^#' .env | xargs)
+    # Safely source .env file
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+        # Export variable safely
+        export "$key"="$value"
+    done < <(grep -v '^#' .env | grep -v '^$')
     
     # Check OpenAI key
     if [ -n "$OPENAI_API_KEY" ] && [ "$OPENAI_API_KEY" != "sk-..." ]; then

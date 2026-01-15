@@ -180,6 +180,10 @@ class AIAgentManager {
 
     return results;
   }
+
+  getConfig(agentName: string): AgentConfig | undefined {
+    return this.configs[agentName];
+  }
 }
 
 // CLI Implementation
@@ -241,7 +245,8 @@ Environment Variables:
     console.log('='.repeat(80));
 
     for (const [agentName, result] of Object.entries(results)) {
-      console.log(`\n## ${manager['configs'][agentName].name}\n`);
+      const config = manager.getConfig(agentName);
+      console.log(`\n## ${config?.name || agentName}\n`);
       if (result) {
         console.log(result);
       } else {
