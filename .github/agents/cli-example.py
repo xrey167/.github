@@ -6,7 +6,7 @@ Demonstrates CLI usage with API key authentication
 
 import os
 import sys
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 from dataclasses import dataclass
 
 # Import AI SDKs
