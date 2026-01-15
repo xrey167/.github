@@ -1,0 +1,147 @@
+name: Agent Dispatcher
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  detect-agent-mention:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    outputs:
+      agent: ${{ steps.detect.outputs.agent }}
+      has_mention: ${{ steps.detect.outputs.has_mention }}
+    steps:
+      - name: Detect agent mention
+        id: detect
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Centralized list of supported agents - should match agent-config.yml
+            const supportedAgents = ['codex', 'copilot', 'gemini'];
+            let body = '';
+            
+            // Get the body text from either issue or comment
+            if (context.eventName === 'issues') {
+              body = context.payload.issue.body || '';
+            } else if (context.eventName === 'issue_comment') {
+              body = context.payload.comment.body || '';
+            }
+            
+            console.log('Checking body for agent mentions:', body);
+            
+            // Check for agent mentions - only first agent is activated
+            let detectedAgent = null;
+            for (const agent of supportedAgents) {
+              // Use escaped pattern with exact match on agent name from whitelist
+              const escapedAgent = agent.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const mentionPattern = new RegExp(`@${escapedAgent}\\b`, 'i');
+              if (mentionPattern.test(body)) {
+                detectedAgent = agent;
+                console.log(`Detected agent mention: @${agent}`);
+                break; // Only activate first mentioned agent
+              }
+            }
+            
+            if (detectedAgent) {
+              core.setOutput('agent', detectedAgent);
+              core.setOutput('has_mention', 'true');
+              
+              // Add a reaction to acknowledge the mention
+              if (context.eventName === 'issue_comment') {
+                await github.rest.reactions.createForIssueComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: context.payload.comment.id,
+                  content: 'rocket'
+                });
+              } else if (context.eventName === 'issues') {
+                await github.rest.reactions.createForIssue({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.issue.number,
+                  content: 'rocket'
+                });
+              }
+            } else {
+              core.setOutput('has_mention', 'false');
+            }
+
+  respond-with-agent:
+    needs: detect-agent-mention
+    if: needs.detect-agent-mention.outputs.has_mention == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Respond with agent
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const agent = '${{ needs.detect-agent-mention.outputs.agent }}';
+            const issueNumber = context.payload.issue.number;
+            
+            // NOTE: Agent information is duplicated here instead of loaded from agent-config.yml
+            // This is due to GitHub Actions limitations - actions/github-script cannot easily
+            // read YAML files without checking out the repo. For maintainability, keep this
+            // in sync with agent-config.yml when making changes.
+            
+            // Agent-specific responses - should match agent-config.yml
+            const agentResponses = {
+              'codex': '🤖 **Codex Agent aktiviert!**\n\nIch bin Codex und werde diese Aufgabe analysieren. Ich spezialisiere mich auf Code-Generierung und technische Lösungen.\n\n*Analysiere die Anforderungen...*',
+              'copilot': '🚁 **Copilot Agent aktiviert!**\n\nIch bin GitHub Copilot und werde diese Aufgabe bearbeiten. Ich helfe bei der Code-Entwicklung und Problem-Lösung.\n\n*Starte Aufgabenanalyse...*',
+              'gemini': '✨ **Gemini Agent aktiviert!**\n\nIch bin Gemini und werde diese Aufgabe übernehmen. Ich biete fortgeschrittene Analyse und kreative Lösungsansätze.\n\n*Beginne mit der Analyse...*'
+            };
+            
+            const response = agentResponses[agent] || `🤖 Agent @${agent} wurde aktiviert und wird sich um diese Aufgabe kümmern.`;
+            
+            // Post a comment as response
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: response
+            });
+            
+            // Add a label to indicate which agent is working on this
+            const labelName = `agent:${agent}`;
+            
+            // Try to create the label if it doesn't exist
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: [labelName]
+              });
+            } catch (error) {
+              console.log('Label might not exist, trying to create it first');
+              try {
+                // Label colors - should match agent-config.yml
+                const colors = {
+                  'codex': '0E8A16',
+                  'copilot': '0075CA',
+                  'gemini': 'D93F0B'
+                };
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: labelName,
+                  color: colors[agent] || '000000',
+                  description: `Issue being handled by ${agent} agent`
+                });
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: [labelName]
+                });
+              } catch (createError) {
+                console.log('Could not create or add label:', createError);
+              }
+            }

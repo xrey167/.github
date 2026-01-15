@@ -4,6 +4,17 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
+# Gitignore for AI Coding Agents
+
+# Environment variables with API keys
+.env
+.env.local
+.env.*.local
+
+# API keys and secrets
+*.key
+*.pem
+secrets.json
 
 # Python
 __pycache__/
@@ -15,6 +26,27 @@ env/
 venv/
 ENV/
 *.egg-info/
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+*.tsbuildinfo
 dist/
 build/
 
@@ -28,3 +60,17 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+.DS_Store
+
+# AI usage tracking (optional, keep if you want to track)
+# .ai-usage.json
+
+# Logs
+*.log
+logs/
+ai-agents.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
