@@ -1,0 +1,360 @@
+name: Agenda Code Review
+
+# This workflow implements best practices for code review processes
+# It helps teams maintain high code quality through structured reviews
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  # Job 1: PR Checklist Validation
+  pr-checklist:
+    name: Validate PR Checklist
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    steps:
+      - name: Check PR Description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+
+            // Check if PR has a description
+            if (body.trim().length < 50) {
+              core.setFailed('PR description is too short. Please provide a detailed description (min 50 characters).');
+              return;
+            }
+
+            // Check for required sections in PR template
+            const requiredSections = [
+              '## Description',
+              '## Type of Change',
+              '## Testing'
+            ];
+
+            const missingSections = requiredSections.filter(section =>
+              !body.includes(section)
+            );
+
+            if (missingSections.length > 0) {
+              core.warning(`PR is missing recommended sections: ${missingSections.join(', ')}`);
+            }
+
+            console.log('✅ PR description validation passed');
+
+  # Job 2: Assign Reviewers Based on Code Ownership
+  assign-reviewers:
+    name: Auto-assign Reviewers
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Auto-assign reviewers
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            // Skip if reviewers are already assigned
+            if (pr.requested_reviewers && pr.requested_reviewers.length > 0) {
+              console.log('Reviewers already assigned, skipping auto-assignment');
+              return;
+            }
+
+            // Get the PR author
+            const author = pr.user.login;
+
+            // Add labels based on PR size
+            const additions = pr.additions || 0;
+            const deletions = pr.deletions || 0;
+            const totalChanges = additions + deletions;
+
+            let sizeLabel = 'size/XS';
+            if (totalChanges > 500) sizeLabel = 'size/XL';
+            else if (totalChanges > 250) sizeLabel = 'size/L';
+            else if (totalChanges > 100) sizeLabel = 'size/M';
+            else if (totalChanges > 30) sizeLabel = 'size/S';
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: [sizeLabel, 'needs-review']
+            });
+
+            console.log(`✅ Added labels: ${sizeLabel}, needs-review`);
+
+  # Job 3: Code Review Quality Checks
+  review-quality:
+    name: Review Quality Checks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_review'
+    steps:
+      - name: Check review quality
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const review = context.payload.review;
+            const pr = context.payload.pull_request;
+
+            // Check if review has comments
+            if (review.state === 'APPROVED' && review.body.trim().length < 10) {
+              // Add a comment encouraging detailed reviews
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: '💡 **Tip**: Consider adding detailed feedback to help ' +
+                      'the author understand what worked well and what could be improved.'
+              });
+            }
+
+            // Update labels based on review state
+            if (review.state === 'APPROVED') {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                name: 'needs-review'
+              }).catch(() => console.log('Label not found'));
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['approved']
+              });
+            } else if (review.state === 'CHANGES_REQUESTED') {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                name: 'needs-review'
+              }).catch(() => console.log('Label not found'));
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['changes-requested']
+              });
+            }
+
+            console.log('✅ Review quality check completed');
+
+  # Job 4: Review Reminders
+  review-reminder:
+    name: Review Reminder
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Set review reminder
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            // Add initial comment with review guidelines
+            const guidelines = `## 📋 Code Review Agenda
+
+            Thank you for your contribution! Here's a review checklist for reviewers:
+
+            ### Functionality
+            - [ ] Code accomplishes its intended purpose
+            - [ ] Edge cases are handled appropriately
+            - [ ] No obvious bugs or logical errors
+
+            ### Code Quality
+            - [ ] Code is readable and well-structured
+            - [ ] Follows project conventions and style guide
+            - [ ] No unnecessary complexity
+            - [ ] Appropriate error handling
+
+            ### Testing
+            - [ ] Tests are included and meaningful
+            - [ ] Tests cover the main functionality
+            - [ ] Edge cases are tested
+
+            ### Documentation
+            - [ ] Code is adequately documented
+            - [ ] Complex logic is explained
+            - [ ] Public APIs are documented
+
+            ### Security & Performance
+            - [ ] No security vulnerabilities introduced
+            - [ ] No obvious performance issues
+            - [ ] Sensitive data is handled properly
+
+            ### Review Best Practices
+            - 🎯 Focus on significant issues first
+            - 💬 Be constructive and specific in feedback
+            - 🤝 Suggest alternatives when requesting changes
+            - ⏱️ Aim to complete review within 24-48 hours
+
+            ---
+            *This checklist helps ensure thorough and consistent code reviews.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: guidelines
+            });
+
+            console.log('✅ Review guidelines posted');
+
+  # Job 5: Track Review Metrics
+  review-metrics:
+    name: Track Review Metrics
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_review'
+    steps:
+      - name: Calculate review time
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const review = context.payload.review;
+
+            // Calculate time from PR creation to first review
+            const prCreated = new Date(pr.created_at);
+            const reviewSubmitted = new Date(review.submitted_at);
+            const reviewTimeHours = Math.round((reviewSubmitted - prCreated) / (1000 * 60 * 60));
+
+            console.log(`⏱️ Time to review: ${reviewTimeHours} hours`);
+
+            // Add comment with metrics if it took a while
+            if (reviewTimeHours > 72) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `⏱️ **Review Time**: This PR was reviewed ${reviewTimeHours} hours ` +
+                      `after creation. Consider reviewing PRs within 24-48 hours to ` +
+                      `maintain development velocity.`
+              });
+            }
+
+  # Job 6: Changes Requested Follow-up
+  changes-followup:
+    name: Track Changes Requested
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+    steps:
+      - name: Check if addressing review comments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            // Check if PR has 'changes-requested' label
+            const hasChangesLabel = pr.labels.some(label =>
+              label.name === 'changes-requested'
+            );
+
+            if (hasChangesLabel) {
+              // Remove changes-requested label and add needs-review
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                name: 'changes-requested'
+              }).catch(() => console.log('Label not found'));
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['needs-review']
+              });
+
+              // Comment to notify reviewers
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: '🔄 Changes have been pushed. This PR is ready for re-review.'
+              });
+
+              console.log('✅ Notified reviewers of updates');
+            }
+
+  # Job 7: Merge Readiness Check
+  merge-readiness:
+    name: Check Merge Readiness
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
+    steps:
+      - name: Evaluate merge readiness
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+
+            // Get PR details with reviews
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            // Get reviews
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            // Get check runs status
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: pr.head.sha
+            });
+
+            // Check merge readiness
+            const hasApproval = reviews.some(review =>
+              review.state === 'APPROVED'
+            );
+
+            const hasChangesRequested = reviews.some(review =>
+              review.state === 'CHANGES_REQUESTED'
+            );
+
+            const allChecksPassed = checkRuns.check_runs.every(check =>
+              check.conclusion === 'success' || check.conclusion === 'neutral' || check.conclusion === null
+            );
+
+            const isReadyToMerge = hasApproval && !hasChangesRequested && allChecksPassed && !pr.draft;
+
+            if (isReadyToMerge) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: ['ready-to-merge']
+              });
+              console.log('✅ PR is ready to merge');
+            } else {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: 'ready-to-merge'
+              }).catch(() => console.log('Label not found'));
+
+              console.log('⏳ PR is not yet ready to merge');
+            }
