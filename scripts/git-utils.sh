@@ -32,8 +32,18 @@ get_main_branch() {
         return
     fi
     
-    # Fallback to 'main'
-    echo "main"
+    # Fallback: verify common default branch names before returning
+    if branch_exists_local "main" || branch_exists_remote "main"; then
+        echo "main"
+        return
+    fi
+
+    if branch_exists_local "master" || branch_exists_remote "master"; then
+        echo "master"
+        return
+    fi
+
+    error_exit "Unable to determine main branch. Checked origin/HEAD, remote show, and common defaults (main, master)."
 }
 
 # Check if working directory is clean
