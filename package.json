@@ -22,6 +22,6 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "@anthropic-ai/claude-agent-sdk": "^0.2.7",
     "@modelcontextprotocol/sdk": "^1.25.2",
-    "openai": "^4.77.3"
+    "openai": "^4.104.0"
   }
 }
