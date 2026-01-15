@@ -1,0 +1,58 @@
+# Agent Configuration
+# Definiert die verfügbaren AI-Agenten und ihre Eigenschaften
+#
+# WICHTIG: Diese Datei ist die zentrale Quelle für Agent-Definitionen.
+# Bei Änderungen müssen die entsprechenden Werte auch in den Workflow-Dateien
+# aktualisiert werden (agent-dispatcher.yml, agent-task-manager.yml), da
+# GitHub Actions keine einfache YAML-File-Parsing-Unterstützung bietet.
+
+agents:
+  codex:
+    name: "Codex"
+    description: "Spezialisiert auf Code-Generierung und technische Lösungen"
+    icon: "🤖"
+    color: "0E8A16"
+    capabilities:
+      - Code-Generierung
+      - Bug-Fixes
+      - Code-Refactoring
+      - Technische Dokumentation
+      - API-Entwicklung
+    trigger: "@codex"
+    
+  copilot:
+    name: "GitHub Copilot"
+    description: "Hilft bei Code-Entwicklung und Problem-Lösung"
+    icon: "🚁"
+    color: "0075CA"
+    capabilities:
+      - Code-Entwicklung
+      - Code-Review
+      - Testing
+      - Debugging
+      - Best Practices
+    trigger: "@copilot"
+    
+  gemini:
+    name: "Gemini"
+    description: "Bietet fortgeschrittene Analyse und kreative Lösungsansätze"
+    icon: "✨"
+    color: "D93F0B"
+    capabilities:
+      - Komplexe Analyse
+      - Architektur-Design
+      - Strategische Planung
+      - Kreative Lösungen
+      - Multi-modale Aufgaben
+    trigger: "@gemini"
+
+# Verwendung:
+# Tagge einen Agent in einem Issue oder Kommentar, z.B.:
+# - "@codex bitte implementiere die Login-Funktion"
+# - "@copilot kannst du diesen Bug fixen?"
+# - "@gemini analysiere die Architektur"
+#
+# Der Agent wird automatisch:
+# 1. Mit einem Emoji auf die Erwähnung reagieren (🚀)
+# 2. Einen Kommentar erstellen, um die Aufgabe zu bestätigen
+# 3. Ein Label hinzufügen (agent:name) zur Verfolgung

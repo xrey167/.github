@@ -41,6 +41,17 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: agent
+    attributes:
+      label: AI-Agent für Implementierung
+      description: Optional - Wähle einen AI-Agent zur Unterstützung (oder erwähne @codex, @copilot, @gemini im Beschreibungstext)
+      options:
+        - Kein Agent
+        - "@codex - Code-Generierung & technische Lösungen"
+        - "@copilot - Code-Entwicklung & Problem-Lösung"
+        - "@gemini - Analyse & kreative Lösungsansätze"
+
   - type: textarea
     id: problem
     attributes:

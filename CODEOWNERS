@@ -1,0 +1,122 @@
+# CODEOWNERS
+# 
+# Dieses File definiert, wer für Code-Reviews in bestimmten Bereichen
+# des Repositories verantwortlich ist.
+#
+# Syntax: <pattern> <owner1> <owner2> ...
+# Patterns verwenden gitignore-Style Glob-Patterns
+#
+# Dokumentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# =============================================================================
+# GLOBAL OWNERS
+# =============================================================================
+# Diese Personen werden für ALLE PRs als Reviewer hinzugefügt
+# * @global-owner @team-lead
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+*.md @docs-team
+/docs/ @docs-team
+
+# =============================================================================
+# GITHUB CONFIGURATION
+# =============================================================================
+/.github/ @devops-team
+/.github/workflows/ @devops-team @ci-team
+CODEOWNERS @team-leads
+
+# =============================================================================
+# ISSUE TEMPLATES
+# =============================================================================
+/.github/ISSUE_TEMPLATE/ @product-team @team-leads
+
+# =============================================================================
+# SOURCE CODE
+# =============================================================================
+
+# Backend / API
+/backend/ @backend-team
+/api/ @backend-team @api-team
+/src/api/ @api-team
+/src/services/ @backend-team
+
+# Frontend
+/frontend/ @frontend-team
+/ui/ @frontend-team
+/src/components/ @frontend-team
+
+# Trading / Strategies
+/strategies/ @trading-team
+/trading/ @trading-team
+/mql5/ @mql5-team
+*.mq5 @mql5-team @trading-team
+
+# Data Processing
+/data/ @data-team
+/etl/ @data-team
+/pipelines/ @data-team
+
+# =============================================================================
+# INFRASTRUCTURE & DEVOPS
+# =============================================================================
+
+# CI/CD
+*.yml @devops-team
+*.yaml @devops-team
+Dockerfile* @devops-team
+docker-compose*.yml @devops-team
+
+# Infrastructure as Code
+/terraform/ @devops-team @infra-team
+/k8s/ @devops-team @infra-team
+/helm/ @devops-team
+
+# Configuration
+/config/ @devops-team @config-owners
+*.config.js @devops-team
+*.env.example @devops-team
+
+# =============================================================================
+# TESTING
+# =============================================================================
+/tests/ @qa-team
+*.test.* @qa-team
+*.spec.* @qa-team
+/e2e/ @qa-team
+
+# =============================================================================
+# DATABASE
+# =============================================================================
+/migrations/ @database-team @backend-team
+/sql/ @database-team
+*.sql @database-team
+
+# =============================================================================
+# SECURITY
+# =============================================================================
+SECURITY.md @security-team @team-leads
+/security/ @security-team
+
+# =============================================================================
+# BUILD & DEPENDENCIES
+# =============================================================================
+package.json @devops-team @tech-leads
+package-lock.json @devops-team
+requirements.txt @devops-team @backend-team
+Gemfile @devops-team @backend-team
+go.mod @devops-team @backend-team
+
+# =============================================================================
+# BEISPIEL: TEAM-DEFINITIONEN
+# =============================================================================
+# Ersetze die Team-Namen mit deinen tatsächlichen GitHub Teams oder Usernamen
+#
+# Teams werden mit @ referenziert: @org-name/team-name
+# Individuelle User: @username
+#
+# Beispiele:
+# @xrey167/backend-team
+# @xrey167/devops-team
+# @username1 @username2

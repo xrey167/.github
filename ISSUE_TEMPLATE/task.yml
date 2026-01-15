@@ -32,6 +32,17 @@ body:
       description: Zusätzliche Labels (kommasepariert)
       placeholder: "backend, api, trading"
 
+  - type: dropdown
+    id: agent
+    attributes:
+      label: AI-Agent
+      description: Optional - Wähle einen AI-Agent zur Unterstützung (oder erwähne @codex, @copilot, @gemini im Beschreibungstext)
+      options:
+        - Kein Agent
+        - "@codex - Code-Generierung & technische Lösungen"
+        - "@copilot - Code-Entwicklung & Problem-Lösung"
+        - "@gemini - Analyse & kreative Lösungsansätze"
+
   - type: markdown
     attributes:
       value: |
