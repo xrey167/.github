@@ -1,3 +1,9 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
 # Gitignore for AI Coding Agents
 
 # Environment variables with API keys
@@ -16,6 +22,10 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
+*.egg-info/
 venv/
 env/
 ENV/
@@ -46,6 +56,10 @@ build/
 *.swp
 *.swo
 *~
+
+# OS
+.DS_Store
+Thumbs.db
 .DS_Store
 
 # AI usage tracking (optional, keep if you want to track)

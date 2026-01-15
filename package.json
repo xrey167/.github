@@ -1,0 +1,27 @@
+{
+  "name": "github-config",
+  "version": "1.0.0",
+  "description": "GitHub repository configuration with AI SDK dependencies",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "github",
+    "ai",
+    "sdk",
+    "gemini",
+    "claude",
+    "openai",
+    "mcp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.7",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "openai": "^4.104.0"
+  }
+}
