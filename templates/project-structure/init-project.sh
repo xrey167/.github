@@ -35,7 +35,16 @@ fi
 
 PROJECT_NAME=$1
 PROJECT_TYPE=$2
-PROJECT_DIR="$HOME/projects/$PROJECT_NAME"
+
+# Validate project name (no spaces or special chars)
+if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo -e "${RED}Error: Project name can only contain letters, numbers, hyphens, and underscores${NC}"
+    exit 1
+fi
+
+# Allow custom project directory or use default
+PROJECT_BASE="${PROJECT_DIR:-$HOME/projects}"
+PROJECT_DIR="$PROJECT_BASE/$PROJECT_NAME"
 
 # Validate project type
 case $PROJECT_TYPE in
@@ -65,7 +74,7 @@ fi
 # Create project directory
 echo -e "${YELLOW}Creating project directory...${NC}"
 mkdir -p "$PROJECT_DIR"
-cd "$PROJECT_DIR"
+cd "$PROJECT_DIR" || error_exit "Failed to change to project directory"
 
 # Initialize git
 echo -e "${YELLOW}Initializing git repository...${NC}"
@@ -272,7 +281,7 @@ cat > scripts/setup.sh << 'EOFSCRIPT'
 # Basic setup script
 set -e
 echo "Running project setup..."
-chmod +x scripts/*.sh
+find scripts -type f -name "*.sh" -exec chmod +x {} \;
 if [ -f "package.json" ]; then npm install; fi
 if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi
 echo "✓ Setup complete!"
