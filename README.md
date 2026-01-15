@@ -50,7 +50,8 @@ cp -r .github/* /pfad/zu/deinem/projekt/.github/
 ├── workflows/               # GitHub Actions
 │   ├── pr-checks.yml        # PR Validierung
 │   ├── issue-management.yml # Issue Automatisierung
-│   └── auto-label.yml       # Automatisches Labeling
+│   ├── auto-label.yml       # Automatisches Labeling
+│   └── stale.yml            # Kennzeichnung & Schließen inaktiver Issues/PRs
 ├── pull_request_template.md # PR-Vorlage
 ├── CODEOWNERS              # Code Review Assignments
 ├── BRANCH_PROTECTION.md    # Branch Protection Regeln
