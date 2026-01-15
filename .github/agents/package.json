@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "lint": "eslint src/",
-    "format": "prettier --write src/"
+    "lint": "eslint .",
+    "format": "prettier --write ."
   }
 }
