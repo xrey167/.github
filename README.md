@@ -85,7 +85,7 @@ const openai = new OpenAI({ apiKey: 'your-api-key' });
 ## Documentation
 
 - [Google Gemini API Documentation](https://ai.google.dev/gemini-api/docs/interactions#sdk)
-- [Claude Agent SDK Documentation](https://github.com/anthropics/claude-agent-sdk-typescript)
+- [Claude Agent SDK Documentation](https://github.com/anthropic/claude-agent-sdk-typescript)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 
 ## Notes
