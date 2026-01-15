@@ -1,0 +1,215 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate-pr:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check PR title format
+        id: pr-title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          
+          # Check if PR title follows convention
+          # Format: [TYPE] Description or TYPE: Description
+          if [[ "$PR_TITLE" =~ ^(\[.+\]|[A-Z]+:).+ ]]; then
+            echo "✅ PR title follows convention"
+            echo "valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ PR title does not follow convention"
+            echo "Expected format: [TYPE] Description or TYPE: Description"
+            echo "Examples: [FEATURE] Add authentication, BUG: Fix login error"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Check for linked issues
+        id: linked-issues
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          
+          # Check if PR body contains issue references
+          if [[ "$PR_BODY" =~ (Closes|Fixes|Resolves|Related|Ref).*#[0-9]+ ]] || \
+             [[ "$PR_BODY" =~ https://github.com/.*/issues/[0-9]+ ]]; then
+            echo "✅ PR is linked to issue(s)"
+            echo "linked=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  No linked issues found"
+            echo "Consider linking related issues using: Closes #123, Related #456"
+            echo "linked=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check PR description
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          
+          if [ -z "$PR_BODY" ] || [ ${#PR_BODY} -lt 50 ]; then
+            echo "⚠️  PR description is too short or empty"
+            echo "Please provide a meaningful description of your changes"
+          else
+            echo "✅ PR description looks good"
+          fi
+
+      - name: Comment PR validation results
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `## 🔍 PR Validation Results
+
+            ❌ Some validation checks failed. Please address the following:
+
+            ### PR Title
+            - Expected format: \`[TYPE] Description\` or \`TYPE: Description\`
+            - Examples: \`[FEATURE] Add user authentication\`, \`BUG: Fix login error\`
+
+            ### Linked Issues
+            - Please link related issues using: \`Closes #123\`, \`Fixes #456\`, or \`Related #789\`
+
+            ### Description
+            - Provide a clear description of what changes were made and why
+
+            ---
+            *This is an automated check. See [PR Guidelines](.github/pull_request_template.md) for more information.*`;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  pr-size-check:
+    name: Check PR Size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR size
+        run: |
+          # Get number of changed lines
+          git fetch origin ${{ github.base_ref }}
+          CHANGED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -oP '\d+(?= insertion)' || echo 0)
+          DELETED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -oP '\d+(?= deletion)' || echo 0)
+          TOTAL_CHANGES=$((CHANGED_LINES + DELETED_LINES))
+          
+          echo "📊 PR Statistics:"
+          echo "- Insertions: $CHANGED_LINES"
+          echo "- Deletions: $DELETED_LINES"
+          echo "- Total changes: $TOTAL_CHANGES"
+          
+          # Warn if PR is too large
+          if [ $TOTAL_CHANGES -gt 500 ]; then
+            echo "⚠️  Large PR detected ($TOTAL_CHANGES lines changed)"
+            echo "Consider splitting into smaller PRs for easier review"
+          elif [ $TOTAL_CHANGES -gt 1000 ]; then
+            echo "❌ Very large PR detected ($TOTAL_CHANGES lines changed)"
+            echo "Please split into smaller, focused PRs"
+            exit 1
+          else
+            echo "✅ PR size is reasonable"
+          fi
+
+  review-checklist:
+    name: Post Review Checklist
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    steps:
+      - name: Post review checklist comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `## 👀 Review Checklist
+
+            ### For Reviewers
+
+            - [ ] Code follows project conventions and style guides
+            - [ ] Changes are well-documented
+            - [ ] Tests are included and passing
+            - [ ] No obvious security vulnerabilities
+            - [ ] Performance implications considered
+            - [ ] Breaking changes are documented
+            - [ ] Edge cases are handled
+
+            ### For Agent-Generated Code
+
+            - [ ] AI-generated code is reviewed by human
+            - [ ] Code makes logical sense in context
+            - [ ] No hardcoded values or magic numbers
+            - [ ] Error handling is appropriate
+            - [ ] Code is maintainable and readable
+
+            ---
+            *Check off items as you review. This helps ensure thorough code review.*`;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  conflict-check:
+    name: Check for Merge Conflicts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for conflicts
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          
+          # Try to merge (dry-run)
+          if git merge-tree $(git merge-base HEAD origin/${{ github.base_ref }}) HEAD origin/${{ github.base_ref }} | grep -q '<<<<<<<'; then
+            echo "❌ Merge conflicts detected"
+            echo "Please resolve conflicts with base branch"
+            exit 1
+          else
+            echo "✅ No merge conflicts detected"
+          fi
+
+  label-check:
+    name: Check Labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR has labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const labels = pullRequest.labels.map(l => l.name);
+            
+            if (labels.length === 0) {
+              core.warning('⚠️  PR has no labels. Consider adding labels for better organization.');
+            } else {
+              core.info(`✅ PR has ${labels.length} label(s): ${labels.join(', ')}`);
+            }
