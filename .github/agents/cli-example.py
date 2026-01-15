@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Example script for generating code with multiple AI agents
-Demonstrates CLI usage with OAuth/API key authentication
+Demonstrates CLI usage with API key authentication
 """
 
 import os
