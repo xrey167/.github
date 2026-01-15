@@ -1,2 +1,72 @@
 # .github
-.github
+
+GitHub repository configuration with AI SDK dependencies.
+
+## Installed SDKs
+
+This repository includes the following AI SDK dependencies:
+
+### Python SDKs
+
+Install Python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+- **Google Gemini / GenAI SDK** (`google-generativeai>=0.8.6`) - [Documentation](https://ai.google.dev/gemini-api/docs/interactions?hl=de&ua=chat#sdk)
+- **Anthropic Claude SDK** (`anthropic>=0.76.0`) - For Claude API interactions
+- **OpenAI SDK** (`openai>=2.15.0`) - For Codex and other OpenAI models
+- **Model Context Protocol SDK** (`mcp>=1.25.0`) - MCP Python implementation
+
+### Node.js SDKs
+
+Install Node.js dependencies:
+
+```bash
+npm install --legacy-peer-deps
+```
+
+- **Google Generative AI** (`@google/generative-ai`) - Google's Gemini API for Node.js
+- **Anthropic SDK** (`@anthropic-ai/sdk`) - Claude API for Node.js
+- **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) - Claude Agent SDK for building AI agents
+- **Model Context Protocol SDK** (`@modelcontextprotocol/sdk`) - MCP TypeScript implementation
+- **OpenAI SDK** (`openai`) - OpenAI API for Node.js including Codex support
+
+## Usage
+
+### Python Example
+
+```python
+import google.generativeai as genai
+from anthropic import Anthropic
+import openai
+
+# Configure Google Gemini
+genai.configure(api_key='your-api-key')
+
+# Initialize Anthropic client
+client = Anthropic(api_key='your-api-key')
+
+# Initialize OpenAI client
+openai.api_key = 'your-api-key'
+```
+
+### Node.js Example
+
+```javascript
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Anthropic = require('@anthropic-ai/sdk');
+const { OpenAI } = require('openai');
+
+// Initialize clients
+const genai = new GoogleGenerativeAI('your-api-key');
+const anthropic = new Anthropic({ apiKey: 'your-api-key' });
+const openai = new OpenAI({ apiKey: 'your-api-key' });
+```
+
+## Documentation
+
+- [Google Gemini API Documentation](https://ai.google.dev/gemini-api/docs/interactions?hl=de&ua=chat#sdk)
+- [Claude Agent SDK Documentation](https://github.com/anthropics/claude-agent-sdk-typescript)
+- [Model Context Protocol](https://modelcontextprotocol.io)

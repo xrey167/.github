@@ -1,0 +1,11 @@
+# Google Gemini / Google GenAI SDK
+google-generativeai>=0.8.6
+
+# Anthropic Claude SDK
+anthropic>=0.76.0
+
+# OpenAI SDK (for Codex)
+openai>=2.15.0
+
+# Model Context Protocol SDK (Python)
+mcp>=1.25.0
