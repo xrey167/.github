@@ -21,6 +21,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            // Centralized list of supported agents - should match agent-config.yml
             const supportedAgents = ['codex', 'copilot', 'gemini'];
             let body = '';
             
@@ -33,14 +34,16 @@ jobs:
             
             console.log('Checking body for agent mentions:', body);
             
-            // Check for agent mentions
+            // Check for agent mentions - only first agent is activated
             let detectedAgent = null;
             for (const agent of supportedAgents) {
-              const mentionPattern = new RegExp(`@${agent}\\b`, 'i');
+              // Use escaped pattern with exact match on agent name from whitelist
+              const escapedAgent = agent.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const mentionPattern = new RegExp(`@${escapedAgent}\\b`, 'i');
               if (mentionPattern.test(body)) {
                 detectedAgent = agent;
                 console.log(`Detected agent mention: @${agent}`);
-                break;
+                break; // Only activate first mentioned agent
               }
             }
             
@@ -83,7 +86,12 @@ jobs:
             const agent = '${{ needs.detect-agent-mention.outputs.agent }}';
             const issueNumber = context.payload.issue.number;
             
-            // Agent-specific responses
+            // NOTE: Agent information is duplicated here instead of loaded from agent-config.yml
+            // This is due to GitHub Actions limitations - actions/github-script cannot easily
+            // read YAML files without checking out the repo. For maintainability, keep this
+            // in sync with agent-config.yml when making changes.
+            
+            // Agent-specific responses - should match agent-config.yml
             const agentResponses = {
               'codex': '🤖 **Codex Agent aktiviert!**\n\nIch bin Codex und werde diese Aufgabe analysieren. Ich spezialisiere mich auf Code-Generierung und technische Lösungen.\n\n*Analysiere die Anforderungen...*',
               'copilot': '🚁 **Copilot Agent aktiviert!**\n\nIch bin GitHub Copilot und werde diese Aufgabe bearbeiten. Ich helfe bei der Code-Entwicklung und Problem-Lösung.\n\n*Starte Aufgabenanalyse...*',
@@ -114,6 +122,7 @@ jobs:
             } catch (error) {
               console.log('Label might not exist, trying to create it first');
               try {
+                // Label colors - should match agent-config.yml
                 const colors = {
                   'codex': '0E8A16',
                   'copilot': '0075CA',

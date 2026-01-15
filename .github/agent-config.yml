@@ -1,5 +1,10 @@
 # Agent Configuration
 # Definiert die verfügbaren AI-Agenten und ihre Eigenschaften
+#
+# WICHTIG: Diese Datei ist die zentrale Quelle für Agent-Definitionen.
+# Bei Änderungen müssen die entsprechenden Werte auch in den Workflow-Dateien
+# aktualisiert werden (agent-dispatcher.yml, agent-task-manager.yml), da
+# GitHub Actions keine einfache YAML-File-Parsing-Unterstützung bietet.
 
 agents:
   codex:
