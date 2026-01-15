@@ -1,6 +1,6 @@
 /**
  * Example TypeScript/Node.js script for using multiple AI coding agents
- * Demonstrates CLI usage with OAuth/API key authentication
+ * Demonstrates CLI usage with API key-based authentication
  */
 
 import OpenAI from 'openai';
