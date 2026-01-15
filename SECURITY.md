@@ -19,7 +19,7 @@ Wir bieten Sicherheitsupdates für folgende Versionen:
 | Version | Supported | End of Life |
 |---------|-----------|-------------|
 | 2.x.x   | ✅ Yes    | -           |
-| 1.x.x   | ✅ Yes    | 2025-12-31  |
+| 1.x.x   | ✅ Yes    | YYYY-MM-DD  |
 | < 1.0   | ❌ No     | Expired     |
 
 **Hinweis**: Wir empfehlen, immer die neueste stabile Version zu verwenden.
