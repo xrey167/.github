@@ -1,6 +1,6 @@
 # .github Repository
 
-Community Health Files & AI Assistant Instructions for xrey167
+**Community Health Files & AI Assistant Instructions for xrey167**
 
 ## Overview
 
@@ -33,7 +33,7 @@ This is the organization-wide `.github` repository that provides default communi
 
 The repository provides various issue templates for:
 - 🐛 Bug Reports
-- ✨ Feature Requests  
+- ✨ Feature Requests
 - 📋 Tasks
 - 📊 Data Issues
 - 🔌 Integration Requests
@@ -183,7 +183,7 @@ This repository provides organization-wide issue templates:
 
 ## 🔧 Configuration
 
-The agent configuration is located in `.github/agent-config.yml`. There you can add new agents or customize existing ones.
+Agent configuration can be managed through GitHub Actions workflows. See the **Actions** tab for available agent management workflows.
 
 ## Usage
 
