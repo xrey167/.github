@@ -108,8 +108,8 @@ jobs:
         run: |
           # Get number of changed lines
           git fetch origin ${{ github.base_ref }}
-          CHANGED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -oP '\d+(?= insertion)' || echo 0)
-          DELETED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -oP '\d+(?= deletion)' || echo 0)
+          CHANGED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -Eo '[0-9]+ insertion' | grep -Eo '[0-9]+' || echo 0)
+          DELETED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -Eo '[0-9]+ deletion' | grep -Eo '[0-9]+' || echo 0)
           TOTAL_CHANGES=$((CHANGED_LINES + DELETED_LINES))
           
           echo "📊 PR Statistics:"
