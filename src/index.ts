@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 /**
  * Example MCP Client Setup
@@ -79,14 +80,18 @@ export class OpenAIAgent {
   /**
    * Create a chat completion
    */
-  async chat(messages: Array<{ role: string; content: string }>) {
+  async chat(messages: ChatCompletionMessageParam[]) {
     try {
       const completion = await this.client.chat.completions.create({
         model: "gpt-4",
-        messages: messages as any,
+        messages: messages,
       });
 
-      return completion.choices[0]?.message;
+      if (!completion.choices[0]?.message) {
+        throw new Error("No response received from OpenAI");
+      }
+
+      return completion.choices[0].message;
     } catch (error) {
       throw new Error(`Failed to create chat completion: ${error}`);
     }
