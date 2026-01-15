@@ -42,6 +42,7 @@ The repository includes structured templates for:
 - **Bug Report** (`bug_report.yml`): Bug tracking with severity levels
 - **Data Issue** (`data_issue.yml`): Market data quality and processing issues
 - **Integration Request** (`integration_request.yml`): API and system integrations
+- **Config** (`config.yml`): Issue template configuration
 
 ### Template Structure Guidelines
 When modifying or creating issue templates:
@@ -96,7 +97,7 @@ For production changes:
 
 ## File Organization
 
-- Issue templates in `/ISSUE_TEMPLATE/` directory
+- Issue templates in `ISSUE_TEMPLATE/` directory
 - All templates use `.yml` format
 - Configuration files follow GitHub standards
 - Maintain existing directory structure
