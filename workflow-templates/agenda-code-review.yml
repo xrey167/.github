@@ -108,7 +108,7 @@ jobs:
             const pr = context.payload.pull_request;
 
             // Check if review has comments (min 10 chars for meaningful feedback)
-            if (review.state === 'APPROVED' && review.body.trim().length < 10) {
+            if (review.state === 'APPROVED' && (!review.body || review.body.trim().length < 10)) {
               // Add a comment encouraging detailed reviews
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
