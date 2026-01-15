@@ -322,7 +322,8 @@ jobs:
             const { data: checkRuns } = await github.rest.checks.listForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: pr.head.sha
+              ref: pr.head.sha,
+              per_page: 100
             });
 
             // Check merge readiness
@@ -334,9 +335,11 @@ jobs:
               review.state === 'CHANGES_REQUESTED'
             );
 
-            const allChecksPassed = checkRuns.check_runs.every(check =>
-              check.conclusion === 'success' || check.conclusion === 'neutral' || check.conclusion === null
-            );
+            const allChecksPassed = checkRuns.check_runs.length === 0 ||
+              checkRuns.check_runs.every(check =>
+                check.status === 'completed' &&
+                (check.conclusion === 'success' || check.conclusion === 'neutral')
+              );
 
             const isReadyToMerge = hasApproval && !hasChangesRequested && allChecksPassed && !pr.draft;
 
