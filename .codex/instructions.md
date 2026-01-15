@@ -223,7 +223,7 @@ ls -la <directory>
 
 **Subject Guidelines:**
 - Use imperative mood ("add", not "added")
-- Start subject with lowercase letter
+- Use lowercase for first letter of description
 - No period at the end
 - Maximum 72 characters
 

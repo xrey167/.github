@@ -9,7 +9,7 @@ This is the organization-wide `.github` repository that provides default communi
 ## Repository Structure
 
 ```
-.github/
+xrey167/.github/                  # Root repository
 ├── .claude/                      # Claude AI instructions
 │   └── instructions.md
 ├── .codex/                       # OpenAI Codex instructions
