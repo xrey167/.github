@@ -67,6 +67,23 @@ cp -r .github/* /pfad/zu/deinem/projekt/.github/
 ├── AGENT_ARCHITECTURE.md   # Agent System Architecture
 └── AGENT_EXAMPLES.md       # Agent Usage Examples
 ```
+# .github
+
+Community Health Files & Agent System für xrey167
+
+## Übersicht
+
+Dieses Repository enthält die Standard-Community-Health-Dateien und das AI-Agent-System für alle Repositories der Organisation.
+
+## 📋 Issue Templates
+
+Das Repository bietet verschiedene Issue-Templates für:
+- 🐛 Bug Reports
+- ✨ Feature Requests  
+- 📋 Tasks
+- 📊 Data Issues
+- 🔌 Integration Requests
+- 📈 Trading Strategies
 
 ## 🤖 AI-Agent-System
 
@@ -331,6 +348,10 @@ Siehe [CONTRIBUTING.md](CONTRIBUTING.md) für:
 - [GitHub Projects Documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [GitHub Community Health Files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file)
+## 📚 Weitere Ressourcen
+
+- [GitHub Community Health Files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file)
+- [GitHub Actions](https://docs.github.com/en/actions)
 
 ## 🔧 Konfiguration
 
