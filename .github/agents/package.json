@@ -6,7 +6,9 @@
     "openai": "^4.0.0",
     "@anthropic-ai/sdk": "^0.18.0",
     "@google/generative-ai": "^0.3.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "@modelcontextprotocol/server-filesystem": "^0.1.0",
+    "@modelcontextprotocol/server-git": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
