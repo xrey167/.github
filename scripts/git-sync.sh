@@ -16,7 +16,7 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 MAIN_BRANCH=$(get_main_branch)
 
 # Check if we're on main branch
-if [ "$CURRENT_BRANCH" == "$MAIN_BRANCH" ]; then
+if [ "$CURRENT_BRANCH" = "$MAIN_BRANCH" ]; then
     echo -e "${YELLOW}You are on $MAIN_BRANCH. Pulling latest changes...${NC}"
     git pull origin "$MAIN_BRANCH"
     echo -e "${GREEN}✓ $MAIN_BRANCH updated!${NC}"
@@ -54,8 +54,19 @@ echo ""
 echo "How do you want to sync?"
 echo "  1) Rebase (recommended for clean history)"
 echo "  2) Merge (preserves branch history)"
-read -p "Choose (1 or 2): " -n 1 -r
-echo
+
+# Read and validate user choice; only accept "1" or "2"
+while true; do
+    read -p "Choose (1 or 2): " -n 1 -r
+    echo
+
+    # Basic validation to ensure input is exactly "1" or "2"
+    if [[ "$REPLY" == "1" || "$REPLY" == "2" ]]; then
+        break
+    fi
+
+    echo -e "${RED}Invalid choice. Please enter 1 or 2.${NC}"
+done
 
 if [[ $REPLY == "1" ]]; then
     echo -e "${YELLOW}Rebasing...${NC}"

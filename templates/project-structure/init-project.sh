@@ -13,6 +13,12 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Error exit function
+error_exit() {
+    echo -e "${RED}Error: $1${NC}" >&2
+    exit 1
+}
+
 # Function to display usage
 usage() {
     echo "Usage: $0 <project-name> <project-type>"
@@ -324,7 +330,7 @@ echo -e "${YELLOW}Creating initial commit...${NC}"
 git add .
 git commit -m "feat: initial project setup
 
-Initialize project structure for $PROJECT_TYPE template with basic configuration files and git helper scripts"
+Initialize $PROJECT_TYPE project structure with basic configuration files and git helper scripts"
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"
