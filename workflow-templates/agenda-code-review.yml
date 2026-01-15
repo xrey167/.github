@@ -110,7 +110,7 @@ jobs:
             const review = context.payload.review;
             const pr = context.payload.pull_request;
 
-            // Check if review has comments
+            // Check if review has comments (min 10 chars for meaningful feedback)
             if (review.state === 'APPROVED' && review.body.trim().length < 10) {
               // Add a comment encouraging detailed reviews
               await github.rest.issues.createComment({
@@ -236,7 +236,8 @@ jobs:
 
             console.log(`⏱️ Time to review: ${reviewTimeHours} hours`);
 
-            // Add comment with metrics if it took a while
+            // Add comment if review took longer than 72 hours (3 days)
+            // Customize this threshold in the workflow to match your team's expectations
             if (reviewTimeHours > 72) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -335,6 +336,9 @@ jobs:
               review.state === 'CHANGES_REQUESTED'
             );
 
+            // Check if all checks have passed
+            // If no checks are configured (length === 0), consider it as passed
+            // Otherwise, ensure all checks are completed with success or neutral status
             const allChecksPassed = checkRuns.check_runs.length === 0 ||
               checkRuns.check_runs.every(check =>
                 check.status === 'completed' &&

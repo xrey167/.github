@@ -93,6 +93,9 @@ const requiredSections = [
 ### Review Checklist
 Customize the review guidelines in the `review-reminder` job to match your team's priorities.
 
+### Check Runs Pagination
+The merge readiness check retrieves up to 100 check runs. For repositories with more than 100 checks configured, consider implementing custom pagination logic or filtering to specific required checks.
+
 ## Labels Used
 
 The workflow automatically manages these labels:
