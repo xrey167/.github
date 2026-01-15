@@ -15,6 +15,7 @@ pip install -r requirements.txt
 ```
 
 - **Google Gemini / GenAI SDK** (`google-generativeai>=0.8.6`) - [Documentation](https://ai.google.dev/gemini-api/docs/interactions?hl=de&ua=chat#sdk)
+  - **Note**: The `google-generativeai` package is deprecated. Consider migrating to `google-genai` for new projects.
 - **Anthropic Claude SDK** (`anthropic>=0.76.0`) - For Claude API interactions
 - **OpenAI SDK** (`openai>=2.15.0`) - For Codex and other OpenAI models
 - **Model Context Protocol SDK** (`mcp>=1.25.0`) - MCP Python implementation
@@ -33,6 +34,22 @@ npm install --legacy-peer-deps
 - **Model Context Protocol SDK** (`@modelcontextprotocol/sdk`) - MCP TypeScript implementation
 - **OpenAI SDK** (`openai`) - OpenAI API for Node.js including Codex support
 
+## Verification
+
+Run the verification scripts to ensure all SDKs are properly installed:
+
+### Python Verification
+
+```bash
+python3 verify_python_sdks.py
+```
+
+### Node.js Verification
+
+```bash
+node verify_node_sdks.js
+```
+
 ## Usage
 
 ### Python Example
@@ -40,16 +57,16 @@ npm install --legacy-peer-deps
 ```python
 import google.generativeai as genai
 from anthropic import Anthropic
-import openai
+from openai import OpenAI
 
 # Configure Google Gemini
 genai.configure(api_key='your-api-key')
 
 # Initialize Anthropic client
-client = Anthropic(api_key='your-api-key')
+anthropic_client = Anthropic(api_key='your-api-key')
 
 # Initialize OpenAI client
-openai.api_key = 'your-api-key'
+openai_client = OpenAI(api_key='your-api-key')
 ```
 
 ### Node.js Example
@@ -70,3 +87,9 @@ const openai = new OpenAI({ apiKey: 'your-api-key' });
 - [Google Gemini API Documentation](https://ai.google.dev/gemini-api/docs/interactions?hl=de&ua=chat#sdk)
 - [Claude Agent SDK Documentation](https://github.com/anthropics/claude-agent-sdk-typescript)
 - [Model Context Protocol](https://modelcontextprotocol.io)
+
+## Notes
+
+- Use `--legacy-peer-deps` flag when installing Node.js dependencies due to peer dependency conflicts between different SDK versions
+- The `google-generativeai` package is deprecated; future implementations should use `google-genai` instead
+- All dependencies have been verified to have no known security vulnerabilities

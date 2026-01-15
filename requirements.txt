@@ -1,5 +1,7 @@
 # Google Gemini / Google GenAI SDK
 google-generativeai>=0.8.6
+# Note: google-generativeai is deprecated, consider migrating to google-genai
+# google-genai>=1.58.0
 
 # Anthropic Claude SDK
 anthropic>=0.76.0
