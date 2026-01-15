@@ -1,0 +1,29 @@
+{
+  "name": "github-config",
+  "version": "1.0.0",
+  "description": "GitHub repository configuration with MCP and OpenAI Agents SDK",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "github",
+    "mcp",
+    "openai",
+    "agents"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.0.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@openai/agents": "^0.3.8",
+    "mcp-cli": "github:philschmid/mcp-cli",
+    "openai": "^6.16.0"
+  }
+}
