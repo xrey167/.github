@@ -14,10 +14,10 @@ Install Python dependencies:
 pip install -r requirements.txt
 ```
 
-- **Google Gemini / GenAI SDK** (`google-generativeai>=0.8.6`) - [Documentation](https://ai.google.dev/gemini-api/docs/interactions?hl=de&ua=chat#sdk)
+- **Google Gemini / GenAI SDK** (`google-generativeai>=0.8.6`) - [Documentation](https://ai.google.dev/gemini-api/docs/interactions#sdk)
   - **Note**: The `google-generativeai` package is deprecated. Consider migrating to `google-genai` for new projects.
 - **Anthropic Claude SDK** (`anthropic>=0.76.0`) - For Claude API interactions
-- **OpenAI SDK** (`openai>=2.15.0`) - For Codex and other OpenAI models
+- **OpenAI SDK** (`openai>=2.15.0`) - For GPT and other OpenAI models
 - **Model Context Protocol SDK** (`mcp>=1.25.0`) - MCP Python implementation
 
 ### Node.js SDKs
@@ -32,7 +32,7 @@ npm install --legacy-peer-deps
 - **Anthropic SDK** (`@anthropic-ai/sdk`) - Claude API for Node.js
 - **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) - Claude Agent SDK for building AI agents
 - **Model Context Protocol SDK** (`@modelcontextprotocol/sdk`) - MCP TypeScript implementation
-- **OpenAI SDK** (`openai`) - OpenAI API for Node.js including Codex support
+- **OpenAI SDK** (`openai`) - OpenAI API for Node.js including GPT model support
 
 ## Verification
 
@@ -84,7 +84,7 @@ const openai = new OpenAI({ apiKey: 'your-api-key' });
 
 ## Documentation
 
-- [Google Gemini API Documentation](https://ai.google.dev/gemini-api/docs/interactions?hl=de&ua=chat#sdk)
+- [Google Gemini API Documentation](https://ai.google.dev/gemini-api/docs/interactions#sdk)
 - [Claude Agent SDK Documentation](https://github.com/anthropics/claude-agent-sdk-typescript)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 

@@ -6,7 +6,7 @@ google-generativeai>=0.8.6
 # Anthropic Claude SDK
 anthropic>=0.76.0
 
-# OpenAI SDK (for Codex)
+# OpenAI SDK (e.g., GPT-3.5-turbo, GPT-4)
 openai>=2.15.0
 
 # Model Context Protocol SDK (Python)
