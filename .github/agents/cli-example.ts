@@ -6,7 +6,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
