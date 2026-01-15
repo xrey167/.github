@@ -313,9 +313,9 @@ EOF
 # Create initial commit
 echo -e "${YELLOW}Creating initial commit...${NC}"
 git add .
-git commit -m "feat: initial project setup" -m "- Initialize $PROJECT_TYPE project structure
-- Add basic configuration files
-- Setup git helper scripts"
+git commit -m "feat: initial project setup
+
+Initialize $PROJECT_TYPE project structure with basic configuration files and git helper scripts"
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"

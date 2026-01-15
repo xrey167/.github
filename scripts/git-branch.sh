@@ -6,11 +6,9 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/git-utils.sh"
 
 # Function to display usage
 usage() {
@@ -60,7 +58,7 @@ if git rev-parse --verify "$FULL_BRANCH_NAME" >/dev/null 2>&1; then
 fi
 
 # Update main/master branch
-MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | cut -d' ' -f5 || echo "main")
+MAIN_BRANCH=$(get_main_branch)
 echo -e "${YELLOW}Updating $MAIN_BRANCH...${NC}"
 git fetch origin
 git checkout "$MAIN_BRANCH"
