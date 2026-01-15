@@ -1,0 +1,132 @@
+
+name: Stale Issues and PRs
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Mark Stale Issues and PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark stale issues and PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Stale issue configuration
+          stale-issue-message: |
+            👋 Dieses Issue wurde automatisch als **stale** markiert, da es seit 60 Tagen keine Aktivität gab.
+            
+            Es wird in 7 Tagen automatisch geschlossen, wenn keine weiteren Updates erfolgen.
+            
+            **Um das Issue offen zu halten:**
+            - Kommentiere mit Updates oder zusätzlichen Informationen
+            - Entferne das `stale` Label manuell
+            - Fahre mit der Diskussion fort
+            
+            Danke für deine Beiträge! 🙏
+          
+          close-issue-message: |
+            🔒 Dieses Issue wurde automatisch geschlossen, da es seit längerer Zeit inaktiv war.
+            
+            Wenn das Issue noch relevant ist, kann es jederzeit wieder geöffnet werden.
+            Bitte erstelle einen Kommentar mit aktuellen Informationen.
+            
+            Danke! 👋
+          
+          stale-issue-label: 'stale'
+          days-before-stale: 60
+          days-before-close: 7
+          
+          # Exempt labels - Issues mit diesen Labels werden NICHT als stale markiert
+          exempt-issue-labels: 'pinned,security,priority:critical,priority:high,in-progress,blocked'
+          
+          # Stale PR configuration
+          stale-pr-message: |
+            👋 Dieser Pull Request wurde automatisch als **stale** markiert, da es seit 30 Tagen keine Aktivität gab.
+            
+            Er wird in 7 Tagen automatisch geschlossen, wenn keine weiteren Updates erfolgen.
+            
+            **Um den PR offen zu halten:**
+            - Rebase auf den aktuellen Branch
+            - Adressiere Review-Kommentare
+            - Kommentiere mit Status-Updates
+            - Entferne das `stale` Label manuell
+            
+            Danke für deinen Beitrag! 🙏
+          
+          close-pr-message: |
+            🔒 Dieser Pull Request wurde automatisch geschlossen, da er seit längerer Zeit inaktiv war.
+            
+            Wenn der PR noch relevant ist, kann er jederzeit wieder geöffnet werden.
+            Bitte rebase auf den aktuellen Branch und adressiere Review-Feedback.
+            
+            Danke! 👋
+          
+          stale-pr-label: 'stale'
+          days-before-pr-stale: 30
+          days-before-pr-close: 7
+          
+          # Exempt PR labels
+          exempt-pr-labels: 'pinned,security,priority:critical,work-in-progress,blocked'
+          
+          # Operations per run (GitHub rate limiting)
+          operations-per-run: 100
+          
+          # Remove stale label when updated
+          remove-stale-when-updated: true
+          
+          # Ascending order (oldest first)
+          ascending: true
+          
+          # Enable debug logs
+          debug-only: false
+
+  notify-stale-maintainers:
+    name: Notify Maintainers of Stale Items
+    runs-on: ubuntu-latest
+    needs: stale
+    steps:
+      - name: Get stale issues count
+        id: stale-count
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: staleIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'stale',
+              state: 'open',
+              per_page: 100
+            });
+            
+            const issues = staleIssues.filter(i => !i.pull_request);
+            const prs = staleIssues.filter(i => i.pull_request);
+            
+            core.setOutput('issue-count', issues.length);
+            core.setOutput('pr-count', prs.length);
+            core.setOutput('total-count', staleIssues.length);
+            
+            console.log(`Stale Issues: ${issues.length}`);
+            console.log(`Stale PRs: ${prs.length}`);
+            console.log(`Total Stale: ${staleIssues.length}`);
+
+      - name: Create summary
+        if: steps.stale-count.outputs.total-count > 0
+        run: |
+          echo "## 📊 Stale Items Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 📋 Stale Issues: ${{ steps.stale-count.outputs.issue-count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 Stale PRs: ${{ steps.stale-count.outputs.pr-count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 📈 Total: ${{ steps.stale-count.outputs.total-count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "These items will be closed in 7 days if no activity occurs." >> $GITHUB_STEP_SUMMARY
