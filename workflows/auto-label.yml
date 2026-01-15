@@ -1,0 +1,248 @@
+name: Auto Label
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  auto-label-pr:
+    name: Auto-label Pull Requests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Label based on changed files
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            let labels = new Set();
+
+            // Analyze changed files
+            for (const file of files) {
+              const path = file.filename;
+
+              // Documentation
+              if (path.endsWith('.md') || path.startsWith('docs/')) {
+                labels.add('documentation');
+              }
+
+              // GitHub workflows
+              if (path.startsWith('.github/workflows/')) {
+                labels.add('ci-cd');
+              }
+
+              // Configuration
+              if (path.includes('config') || path.endsWith('.yml') || path.endsWith('.yaml')) {
+                labels.add('configuration');
+              }
+
+              // Tests
+              if (path.includes('test') || path.includes('spec') || path.includes('__tests__')) {
+                labels.add('tests');
+              }
+
+              // Backend
+              if (path.includes('backend') || path.includes('api') || path.includes('server')) {
+                labels.add('backend');
+              }
+
+              // Frontend
+              if (path.includes('frontend') || path.includes('ui') || path.includes('components')) {
+                labels.add('frontend');
+              }
+
+              // Database
+              if (path.includes('migration') || path.includes('sql') || path.includes('database')) {
+                labels.add('database');
+              }
+
+              // Trading/Strategy
+              if (path.includes('trading') || path.includes('strategy') || path.endsWith('.mq5')) {
+                labels.add('trading');
+              }
+
+              // Data
+              if (path.includes('data') || path.includes('etl')) {
+                labels.add('data');
+              }
+
+              // Infrastructure
+              if (path.includes('terraform') || path.includes('k8s') || path.includes('docker')) {
+                labels.add('infrastructure');
+              }
+
+              // Security
+              if (path.includes('security') || path === 'SECURITY.md') {
+                labels.add('security');
+              }
+            }
+
+            // Label based on branch name
+            const branchName = context.payload.pull_request.head.ref;
+            
+            if (branchName.startsWith('feature/')) {
+              labels.add('feature');
+            } else if (branchName.startsWith('bugfix/') || branchName.startsWith('fix/')) {
+              labels.add('bug');
+            } else if (branchName.startsWith('hotfix/')) {
+              labels.add('hotfix');
+              labels.add('priority:critical');
+            } else if (branchName.startsWith('refactor/')) {
+              labels.add('refactoring');
+            } else if (branchName.startsWith('docs/')) {
+              labels.add('documentation');
+            } else if (branchName.startsWith('chore/')) {
+              labels.add('chore');
+            }
+
+            // Size labels based on changes
+            const additions = context.payload.pull_request.additions;
+            const deletions = context.payload.pull_request.deletions;
+            const totalChanges = additions + deletions;
+
+            if (totalChanges < 10) {
+              labels.add('size:XS');
+            } else if (totalChanges < 50) {
+              labels.add('size:S');
+            } else if (totalChanges < 200) {
+              labels.add('size:M');
+            } else if (totalChanges < 500) {
+              labels.add('size:L');
+            } else {
+              labels.add('size:XL');
+            }
+
+            // Add labels
+            const labelsArray = Array.from(labels);
+            if (labelsArray.length > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: labelsArray
+                });
+                core.info(`Added labels: ${labelsArray.join(', ')}`);
+              } catch (error) {
+                // Some labels might not exist
+                core.warning(`Could not add some labels: ${error.message}`);
+              }
+            }
+
+  auto-label-issue:
+    name: Auto-label Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - name: Label based on content
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            
+            let labels = new Set();
+            
+            // Keywords for bug
+            if (title.includes('bug') || title.includes('error') || title.includes('fail') ||
+                body.includes('bug') || body.includes('error') || body.includes('broken')) {
+              labels.add('bug');
+            }
+            
+            // Keywords for feature
+            if (title.includes('feature') || title.includes('enhancement') || title.includes('add') ||
+                body.includes('new feature') || body.includes('would like')) {
+              labels.add('enhancement');
+            }
+            
+            // Keywords for documentation
+            if (title.includes('doc') || title.includes('readme') || 
+                body.includes('documentation') || body.includes('typo')) {
+              labels.add('documentation');
+            }
+            
+            // Keywords for question
+            if (title.includes('question') || title.includes('how to') || title.includes('help') ||
+                body.includes('how do i') || body.includes('?')) {
+              labels.add('question');
+            }
+            
+            // Keywords for performance
+            if (title.includes('performance') || title.includes('slow') || title.includes('optimization') ||
+                body.includes('performance') || body.includes('optimize')) {
+              labels.add('performance');
+            }
+            
+            // Keywords for security
+            if (title.includes('security') || title.includes('vulnerability') || title.includes('cve') ||
+                body.includes('security') || body.includes('exploit')) {
+              labels.add('security');
+            }
+            
+            // Keywords for data
+            if (title.includes('data') || body.includes('data quality') || body.includes('missing data')) {
+              labels.add('data');
+            }
+            
+            // Keywords for trading
+            if (title.includes('strategy') || title.includes('trading') || 
+                body.includes('backtest') || body.includes('trading')) {
+              labels.add('trading');
+            }
+            
+            // Good first issue indicators
+            if (title.includes('simple') || title.includes('easy') || 
+                body.includes('good first issue') || body.includes('beginner')) {
+              labels.add('good first issue');
+            }
+            
+            // Add labels
+            const labelsArray = Array.from(labels);
+            if (labelsArray.length > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: labelsArray
+                });
+                core.info(`Added labels: ${labelsArray.join(', ')}`);
+              } catch (error) {
+                core.warning(`Could not add some labels: ${error.message}`);
+              }
+            }
+
+  dependency-label:
+    name: Label Dependency Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    steps:
+      - name: Add dependency label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['dependencies']
+            });
