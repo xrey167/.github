@@ -40,7 +40,7 @@ try {
 
 // Test OpenAI SDK
 try {
-    const openai = require('openai');
+    require('openai');
     console.log("✓ OpenAI SDK installed successfully");
 } catch (e) {
     console.log(`✗ OpenAI SDK failed: ${e.message}`);
