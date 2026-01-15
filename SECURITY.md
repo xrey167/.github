@@ -47,8 +47,8 @@ Nutze stattdessen eine der folgenden Methoden:
 #### 3. Private Vulnerability Disclosure
 
 Kontaktiere einen Maintainer direkt:
-- @maintainer1
-- @maintainer2
+- @your-maintainer-username
+- @your-backup-maintainer-username
 
 ### Was sollte der Report enthalten?
 
