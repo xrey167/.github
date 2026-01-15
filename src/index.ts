@@ -25,29 +25,41 @@ export class MCPClient {
    * Connect to an MCP server using stdio transport
    */
   async connect(command: string, args: string[]) {
-    const transport = new StdioClientTransport({
-      command,
-      args,
-    });
+    try {
+      const transport = new StdioClientTransport({
+        command,
+        args,
+      });
 
-    await this.client.connect(transport);
-    return this.client;
+      await this.client.connect(transport);
+      return this.client;
+    } catch (error) {
+      throw new Error(`Failed to connect to MCP server: ${error}`);
+    }
   }
 
   /**
    * List available tools from the MCP server
    */
   async listTools() {
-    const tools = await this.client.listTools();
-    return tools;
+    try {
+      const tools = await this.client.listTools();
+      return tools;
+    } catch (error) {
+      throw new Error(`Failed to list tools: ${error}`);
+    }
   }
 
   /**
    * Call a tool on the MCP server
    */
   async callTool(name: string, args: Record<string, unknown>) {
-    const result = await this.client.callTool({ name, arguments: args });
-    return result;
+    try {
+      const result = await this.client.callTool({ name, arguments: args });
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to call tool "${name}": ${error}`);
+    }
   }
 }
 
@@ -68,25 +80,33 @@ export class OpenAIAgent {
    * Create a chat completion
    */
   async chat(messages: Array<{ role: string; content: string }>) {
-    const completion = await this.client.chat.completions.create({
-      model: "gpt-4",
-      messages: messages as any,
-    });
+    try {
+      const completion = await this.client.chat.completions.create({
+        model: "gpt-4",
+        messages: messages as any,
+      });
 
-    return completion.choices[0]?.message;
+      return completion.choices[0]?.message;
+    } catch (error) {
+      throw new Error(`Failed to create chat completion: ${error}`);
+    }
   }
 
   /**
    * Create an assistant (agent)
    */
   async createAssistant(name: string, instructions: string) {
-    const assistant = await this.client.beta.assistants.create({
-      name,
-      instructions,
-      model: "gpt-4",
-    });
+    try {
+      const assistant = await this.client.beta.assistants.create({
+        name,
+        instructions,
+        model: "gpt-4",
+      });
 
-    return assistant;
+      return assistant;
+    } catch (error) {
+      throw new Error(`Failed to create assistant: ${error}`);
+    }
   }
 }
 
