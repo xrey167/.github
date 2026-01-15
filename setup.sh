@@ -120,9 +120,16 @@ if command_exists npm && [ -f .github/agents/package.json ]; then
     echo "Installing Node.js dependencies..."
     echo ""
     
+    # Save current directory
+    ORIGINAL_DIR=$(pwd)
+    
     if cd .github/agents; then
-        npm install
-        cd ../.. || exit 1
+        npm install || {
+            print_error "npm install failed"
+            cd "$ORIGINAL_DIR" || exit 1
+            exit 1
+        }
+        cd "$ORIGINAL_DIR" || exit 1
         print_success "Node.js dependencies installed"
     else
         print_error "Failed to change to .github/agents directory"
@@ -151,13 +158,28 @@ echo "Verifying API key configuration..."
 echo ""
 
 if [ -f .env ]; then
-    # Safely source .env file
-    while IFS='=' read -r key value; do
+    # Safely source .env file with proper quote handling
+    while IFS= read -r line; do
         # Skip comments and empty lines
-        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
-        # Export variable safely
-        export "$key"="$value"
-    done < <(grep -v '^#' .env | grep -v '^$')
+        [[ "$line" =~ ^[[:space:]]*#.*$ || -z "$line" ]] && continue
+        
+        # Extract key and value (handles quotes properly)
+        if [[ "$line" =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]]; then
+            key="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
+            
+            # Remove surrounding quotes if present
+            value="${value%\"}"
+            value="${value#\"}"
+            value="${value%\'}"
+            value="${value#\'}"
+            
+            # Only export if key is valid
+            if [[ "$key" =~ ^(OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|OPENAI_ORG_ID|GOOGLE_PROJECT_ID|OPENAI_MODEL|ANTHROPIC_MODEL|GOOGLE_MODEL|MAX_TOKENS_PER_REQUEST|MAX_REQUESTS_PER_MINUTE|DAILY_BUDGET_USD)$ ]]; then
+                export "$key=$value"
+            fi
+        fi
+    done < .env
     
     # Check OpenAI key
     if [ -n "$OPENAI_API_KEY" ] && [ "$OPENAI_API_KEY" != "sk-..." ]; then
