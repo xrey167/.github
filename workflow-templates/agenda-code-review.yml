@@ -325,11 +325,33 @@ jobs:
             });
 
             // Check merge readiness
-            const hasApproval = reviews.some(review =>
+            // GitHub only considers the latest review from each reviewer.
+            // Build a map of reviewer -> latest review, then derive states from that.
+            const latestReviewsByUser = {};
+            for (const review of reviews) {
+              if (!review.user) {
+                continue;
+              }
+              const userKey = review.user.id || review.user.login;
+              const existing = latestReviewsByUser[userKey];
+              if (!existing) {
+                latestReviewsByUser[userKey] = review;
+              } else {
+                const existingTime = existing.submitted_at || existing.created_at;
+                const currentTime = review.submitted_at || review.created_at;
+                if (existingTime && currentTime && new Date(currentTime) > new Date(existingTime)) {
+                  latestReviewsByUser[userKey] = review;
+                }
+              }
+            }
+
+            const relevantLatestReviews = Object.values(latestReviewsByUser);
+
+            const hasApproval = relevantLatestReviews.some(review =>
               review.state === 'APPROVED'
             );
 
-            const hasChangesRequested = reviews.some(review =>
+            const hasChangesRequested = relevantLatestReviews.some(review =>
               review.state === 'CHANGES_REQUESTED'
             );
 
