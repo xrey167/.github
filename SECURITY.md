@@ -41,7 +41,7 @@ Nutze stattdessen eine der folgenden Methoden:
 
 #### 2. Email (Alternativ)
 
-- **Email**: security@example.com (ersetze mit tatsächlicher Email)
+- **Email**: security@YOUR-DOMAIN.com (**BITTE ERSETZEN** mit eurer tatsächlichen Security-Email-Adresse)
 - **PGP Key**: [Link zu PGP Key] (optional)
 
 #### 3. Private Vulnerability Disclosure
