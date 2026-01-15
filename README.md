@@ -1,6 +1,10 @@
 # .github Repository
 
-This is the organization-wide `.github` repository that provides default community health files, issue templates, and AI assistant instructions for all repositories in the organization.
+Community Health Files & AI Assistant Instructions for xrey167
+
+## Overview
+
+This is the organization-wide `.github` repository that provides default community health files, issue templates, AI assistant instructions, and an automated AI-Agent-System for all repositories in the organization.
 
 ## Repository Structure
 
@@ -24,6 +28,79 @@ This is the organization-wide `.github` repository that provides default communi
 │   └── trading_strategy.yml
 └── README.md
 ```
+
+## 📋 Issue Templates
+
+The repository provides various issue templates for:
+- 🐛 Bug Reports
+- ✨ Feature Requests  
+- 📋 Tasks
+- 📊 Data Issues
+- 🔌 Integration Requests
+- 📈 Trading Strategies
+
+## 🤖 AI-Agent-System
+
+### Available Agents
+
+This repository implements an automatic agent tagging system. You can mention AI agents in issues and comments, and they will automatically respond and take on tasks.
+
+#### @codex 🤖
+- **Specialization**: Code generation and technical solutions
+- **Capabilities**: 
+  - Code generation
+  - Bug fixes
+  - Code refactoring
+  - Technical documentation
+  - API development
+
+#### @copilot 🚁
+- **Specialization**: Code development and problem-solving
+- **Capabilities**:
+  - Code development
+  - Code review
+  - Testing
+  - Debugging
+  - Best practices
+
+#### @gemini ✨
+- **Specialization**: Advanced analysis and creative approaches
+- **Capabilities**:
+  - Complex analysis
+  - Architecture design
+  - Strategic planning
+  - Creative solutions
+  - Multi-modal tasks
+
+### Usage
+
+Simply mention an agent in an issue or comment:
+
+```markdown
+@codex can you please implement the login function?
+```
+
+```markdown
+@copilot this bug needs urgent fixing, see stack trace above
+```
+
+```markdown
+@gemini please analyze the architecture and suggest improvements
+```
+
+### What Happens Next?
+
+1. **Automatic Response** 🚀: The agent reacts with an emoji to your mention
+2. **Confirmation**: The agent creates a comment to confirm the task
+3. **Tracking**: A label (e.g., `agent:codex`) is added to track progress
+
+### Manual Agent Management
+
+You can also manually assign agents via workflow dispatches:
+
+1. Go to **Actions** → **Agent Task Manager**
+2. Click **Run workflow**
+3. Select the agent, issue number, and action
 
 ## AI Assistant Instructions
 
@@ -104,6 +181,10 @@ This repository provides organization-wide issue templates:
 - **Task** - General tasks
 - **Trading Strategy** - Trading strategy proposals
 
+## 🔧 Configuration
+
+The agent configuration is located in `.github/agent-config.yml`. There you can add new agents or customize existing ones.
+
 ## Usage
 
 ### For Repository Members
@@ -134,3 +215,4 @@ When making changes to this repository:
 - [GitHub Community Health Files Documentation](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions)
 - [Issue Forms Syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms)
 - [Conventional Commits Specification](https://www.conventionalcommits.org/)
+- [GitHub Actions](https://docs.github.com/en/actions)
