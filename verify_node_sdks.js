@@ -23,7 +23,7 @@ try {
 
 // Test Claude Agent SDK
 try {
-    const claudeAgent = require('@anthropic-ai/claude-agent-sdk');
+    require('@anthropic-ai/claude-agent-sdk');
     console.log("✓ Claude Agent SDK installed successfully");
 } catch (e) {
     console.log(`✗ Claude Agent SDK failed: ${e.message}`);
