@@ -92,7 +92,7 @@ Die Agent-Konfiguration befindet sich in `.github/agent-config.yml`. Dort könne
 
 - [GitHub Copilot MCP Tutorial](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/enhance-agent-mode-with-mcp)
 - [MCP CLI by philschmid](https://github.com/philschmid/mcp-cli)
-- [OpenAI Agents SDK](https://developers.openai.com/codex/guides/agents-sdk)
+- [OpenAI SDK Documentation](https://platform.openai.com/docs/api-reference)
 
 ## 📚 Weitere Ressourcen
 
