@@ -1,5 +1,6 @@
 # .github
 
+<<<<<<< HEAD
 Community Health Files & AI Coding Agents System für xrey167
 
 This repository contains standard community health files and a comprehensive AI coding agent integration system for all organization repositories.
@@ -18,6 +19,15 @@ This repository implements two complementary agent systems:
 ## 📋 Community Health Files
 
 ### Issue Templates
+=======
+Community Health Files & Agent System für xrey167
+
+## Übersicht
+
+Dieses Repository enthält die Standard-Community-Health-Dateien und das AI-Agent-System für alle Repositories der Organisation.
+
+## 📋 Issue Templates
+>>>>>>> 66386aaac6ddb2c60cd2aa9abb93d9336d7efac8
 
 Das Repository bietet verschiedene Issue-Templates für:
 - 🐛 Bug Reports
@@ -27,6 +37,7 @@ Das Repository bietet verschiedene Issue-Templates für:
 - 🔌 Integration Requests
 - 📈 Trading Strategies
 
+<<<<<<< HEAD
 ---
 
 ## 🏷️ Agent Tagging System
@@ -46,6 +57,40 @@ Du kannst AI-Agenten in Issues und Kommentaren erwähnen, die dann automatisch r
 #### @gemini ✨
 - **Spezialisierung**: Fortgeschrittene Analyse und kreative Lösungsansätze
 - **Fähigkeiten**: Komplexe Analyse, Architektur-Design, Strategische Planung, Kreative Lösungen, Multi-modale Aufgaben
+=======
+## 🤖 AI-Agent-System
+
+### Verfügbare Agents
+
+Dieses Repository implementiert ein automatisches Agent-Tagging-System. Du kannst AI-Agenten in Issues und Kommentaren erwähnen, die dann automatisch reagieren und Aufgaben übernehmen.
+
+#### @codex 🤖
+- **Spezialisierung**: Code-Generierung und technische Lösungen
+- **Fähigkeiten**: 
+  - Code-Generierung
+  - Bug-Fixes
+  - Code-Refactoring
+  - Technische Dokumentation
+  - API-Entwicklung
+
+#### @copilot 🚁
+- **Spezialisierung**: Code-Entwicklung und Problem-Lösung
+- **Fähigkeiten**:
+  - Code-Entwicklung
+  - Code-Review
+  - Testing
+  - Debugging
+  - Best Practices
+
+#### @gemini ✨
+- **Spezialisierung**: Fortgeschrittene Analyse und kreative Lösungsansätze
+- **Fähigkeiten**:
+  - Komplexe Analyse
+  - Architektur-Design
+  - Strategische Planung
+  - Kreative Lösungen
+  - Multi-modale Aufgaben
+>>>>>>> 66386aaac6ddb2c60cd2aa9abb93d9336d7efac8
 
 ### Verwendung
 
@@ -53,6 +98,7 @@ Erwähne einfach einen Agent in einem Issue oder Kommentar:
 
 ```markdown
 @codex kannst du bitte die Login-Funktion implementieren?
+<<<<<<< HEAD
 @copilot dieser Bug muss dringend gefixt werden
 @gemini analysiere bitte die Architektur
 ```
@@ -61,14 +107,36 @@ Erwähne einfach einen Agent in einem Issue oder Kommentar:
 1. **Automatische Reaktion** 🚀: Der Agent reagiert mit einem Emoji
 2. **Bestätigung**: Der Agent erstellt einen Kommentar
 3. **Tracking**: Ein Label (z.B. `agent:codex`) wird hinzugefügt
+=======
+```
+
+```markdown
+@copilot dieser Bug muss dringend gefixt werden, siehe Stack Trace oben
+```
+
+```markdown
+@gemini analysiere bitte die Architektur und schlage Verbesserungen vor
+```
+
+### Was passiert dann?
+
+1. **Automatische Reaktion** 🚀: Der Agent reagiert mit einem Emoji auf deine Erwähnung
+2. **Bestätigung**: Der Agent erstellt einen Kommentar, um die Aufgabe zu bestätigen
+3. **Tracking**: Ein Label (z.B. `agent:codex`) wird hinzugefügt, um den Fortschritt zu verfolgen
+>>>>>>> 66386aaac6ddb2c60cd2aa9abb93d9336d7efac8
 
 ### Manuelles Agent-Management
 
 Du kannst Agents auch manuell über Workflow-Dispatches zuweisen:
+<<<<<<< HEAD
+=======
+
+>>>>>>> 66386aaac6ddb2c60cd2aa9abb93d9336d7efac8
 1. Gehe zu **Actions** → **Agent Task Manager**
 2. Klicke auf **Run workflow**
 3. Wähle den Agent, die Issue-Nummer und die Aktion aus
 
+<<<<<<< HEAD
 ---
 
 ## 🔧 AI Coding Agents Integration
@@ -211,3 +279,13 @@ Die AI Coding Agents Konfiguration befindet sich in `.github/agents/` und `.gith
 ## License
 
 See repository license.
+=======
+## 📚 Weitere Ressourcen
+
+- [GitHub Community Health Files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file)
+- [GitHub Actions](https://docs.github.com/en/actions)
+
+## 🔧 Konfiguration
+
+Die Agent-Konfiguration befindet sich in `.github/agent-config.yml`. Dort können neue Agents hinzugefügt oder bestehende angepasst werden.
+>>>>>>> 66386aaac6ddb2c60cd2aa9abb93d9336d7efac8
