@@ -32,7 +32,7 @@ try {
 // Test Model Context Protocol SDK
 try {
     // Try ESM import path
-    const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
+    require('@modelcontextprotocol/sdk/client/index.js');
     console.log("✓ Model Context Protocol SDK installed successfully");
 } catch (e) {
     console.log(`✗ MCP SDK failed: ${e.message}`);
