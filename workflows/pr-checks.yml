@@ -117,14 +117,14 @@ jobs:
           echo "- Deletions: $DELETED_LINES"
           echo "- Total changes: $TOTAL_CHANGES"
           
-          # Warn if PR is too large
-          if [ $TOTAL_CHANGES -gt 500 ]; then
-            echo "⚠️  Large PR detected ($TOTAL_CHANGES lines changed)"
-            echo "Consider splitting into smaller PRs for easier review"
-          elif [ $TOTAL_CHANGES -gt 1000 ]; then
+          # Warn or fail if PR is too large
+          if [ $TOTAL_CHANGES -gt 1000 ]; then
             echo "❌ Very large PR detected ($TOTAL_CHANGES lines changed)"
             echo "Please split into smaller, focused PRs"
             exit 1
+          elif [ $TOTAL_CHANGES -gt 500 ]; then
+            echo "⚠️  Large PR detected ($TOTAL_CHANGES lines changed)"
+            echo "Consider splitting into smaller PRs for easier review"
           else
             echo "✅ PR size is reasonable"
           fi
