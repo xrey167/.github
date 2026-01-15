@@ -15,7 +15,7 @@ try {
 
 // Test Anthropic SDK
 try {
-    const anthropic = require('@anthropic-ai/sdk');
+    require('@anthropic-ai/sdk');
     console.log("✓ Anthropic SDK installed successfully");
 } catch (e) {
     console.log(`✗ Anthropic SDK failed: ${e.message}`);
