@@ -23,7 +23,7 @@ pub struct KeywordVolume {
 }
 
 pub fn get_fresh(
-    conn: &Connection,
+    conn: &mut Connection,
     keywords: &[String],
     location_code: u32,
     language_code: &str,
@@ -86,44 +86,51 @@ pub fn get_fresh(
 }
 
 pub fn put_batch(
-    conn: &Connection,
+    conn: &mut Connection,
     location_code: u32,
     language_code: &str,
     rows: &[KeywordVolume],
 ) -> Result<()> {
-    let mut stmt = conn.prepare(
-        "INSERT INTO keyword_volume_cache
-            (keyword, location_code, language_code, search_volume, competition,
-             competition_index, cpc, low_top_of_page_bid, high_top_of_page_bid,
-             monthly_searches, fetched_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-         ON CONFLICT (keyword, location_code, language_code) DO UPDATE SET
-            search_volume = excluded.search_volume,
-            competition = excluded.competition,
-            competition_index = excluded.competition_index,
-            cpc = excluded.cpc,
-            low_top_of_page_bid = excluded.low_top_of_page_bid,
-            high_top_of_page_bid = excluded.high_top_of_page_bid,
-            monthly_searches = excluded.monthly_searches,
-            fetched_at = CURRENT_TIMESTAMP",
-    )?;
-    for r in rows {
-        let monthly_str = r
-            .monthly_searches
-            .as_ref()
-            .map(|v| serde_json::to_string(v).unwrap_or_default());
-        stmt.execute(params![
-            &r.keyword,
-            location_code as i64,
-            language_code,
-            r.search_volume,
-            r.competition,
-            r.competition_index,
-            r.cpc,
-            r.low_top_of_page_bid,
-            r.high_top_of_page_bid,
-            monthly_str,
-        ])?;
+    if rows.is_empty() {
+        return Ok(());
     }
+    let tx = conn.transaction()?;
+    {
+        let mut stmt = tx.prepare(
+            "INSERT INTO keyword_volume_cache
+                (keyword, location_code, language_code, search_volume, competition,
+                 competition_index, cpc, low_top_of_page_bid, high_top_of_page_bid,
+                 monthly_searches, fetched_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+             ON CONFLICT (keyword, location_code, language_code) DO UPDATE SET
+                search_volume = excluded.search_volume,
+                competition = excluded.competition,
+                competition_index = excluded.competition_index,
+                cpc = excluded.cpc,
+                low_top_of_page_bid = excluded.low_top_of_page_bid,
+                high_top_of_page_bid = excluded.high_top_of_page_bid,
+                monthly_searches = excluded.monthly_searches,
+                fetched_at = CURRENT_TIMESTAMP",
+        )?;
+        for r in rows {
+            let monthly_str = r
+                .monthly_searches
+                .as_ref()
+                .map(|v| serde_json::to_string(v).unwrap_or_default());
+            stmt.execute(params![
+                &r.keyword,
+                location_code as i64,
+                language_code,
+                r.search_volume,
+                r.competition,
+                r.competition_index,
+                r.cpc,
+                r.low_top_of_page_bid,
+                r.high_top_of_page_bid,
+                monthly_str,
+            ])?;
+        }
+    }
+    tx.commit()?;
     Ok(())
 }

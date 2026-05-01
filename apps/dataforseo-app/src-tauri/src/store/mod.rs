@@ -26,11 +26,12 @@ impl Store {
 
     /// Run a closure with the underlying connection. Holds a blocking mutex
     /// — async callers must wrap calls in tokio::task::spawn_blocking.
-    pub fn with_conn<T>(&self, f: impl FnOnce(&Connection) -> Result<T>) -> Result<T> {
-        let conn = self
+    /// `&mut Connection` is required by duckdb to start transactions.
+    pub fn with_conn<T>(&self, f: impl FnOnce(&mut Connection) -> Result<T>) -> Result<T> {
+        let mut conn = self
             .conn
             .lock()
             .map_err(|_| AppError::Database("store mutex poisoned".into()))?;
-        f(&conn)
+        f(&mut conn)
     }
 }

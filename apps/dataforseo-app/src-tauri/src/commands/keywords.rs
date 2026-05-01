@@ -35,12 +35,13 @@ pub async fn keywords_search_volume(
     language_code: String,
     use_cache: bool,
 ) -> Result<KeywordVolumeBatch> {
+    // Order-preserving dedup so the result table stays stable across runs
+    // and matches the user's input order for keywords with equal volume.
+    let mut seen = HashSet::new();
     let cleaned: Vec<String> = keywords
         .into_iter()
         .map(|k| k.trim().to_owned())
-        .filter(|k| !k.is_empty())
-        .collect::<HashSet<_>>()
-        .into_iter()
+        .filter(|k| !k.is_empty() && seen.insert(k.clone()))
         .collect();
 
     let estimated_usd = cost::estimate(&CostAction::KeywordsSearchVolume {

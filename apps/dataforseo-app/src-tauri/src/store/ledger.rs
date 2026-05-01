@@ -18,7 +18,7 @@ pub struct LedgerEntry<'a> {
     pub error: Option<&'a str>,
 }
 
-pub fn record(conn: &Connection, entry: &LedgerEntry) -> Result<()> {
+pub fn record(conn: &mut Connection, entry: &LedgerEntry) -> Result<()> {
     conn.execute(
         "INSERT INTO api_calls
             (endpoint, mode, cost_usd, estimated_usd, request_size,

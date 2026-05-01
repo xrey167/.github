@@ -6,7 +6,7 @@ use crate::errors::Result;
 
 const MIGRATIONS: &[(u32, &str)] = &[(1, include_str!("../../migrations/v0001_initial.sql"))];
 
-pub fn ensure_current(conn: &Connection) -> Result<()> {
+pub fn ensure_current(conn: &mut Connection) -> Result<()> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS settings (key VARCHAR PRIMARY KEY, value VARCHAR NOT NULL);",
     )?;

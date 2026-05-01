@@ -59,13 +59,28 @@ impl ApiClient {
             )
             .await?;
 
+        // DataForSEO returns logical errors (invalid params, insufficient
+        // balance) inside the JSON body even when the HTTP status is 200.
+        // Top-level status_code == 20000 means success.
+        let api_status = raw.pointer("/status_code").and_then(|v| v.as_u64()).unwrap_or(0);
+        if api_status != 20000 {
+            let message = raw
+                .pointer("/status_message")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown DataForSEO error");
+            return Err(AppError::Api {
+                status_code: api_status as u32,
+                message: message.into(),
+            });
+        }
+
         let cost = raw.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
 
         let items = raw
             .pointer("/tasks/0/result")
             .and_then(|v| v.as_array())
             .ok_or_else(|| AppError::Api {
-                status_code: 200,
+                status_code: 20000,
                 message: "search_volume response missing tasks[0].result".into(),
             })?
             .iter()
