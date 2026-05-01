@@ -45,7 +45,7 @@ Dieser Endpunkt liefert Suchvolumen, monatliche Suchanfragen, Competition und we
 - `POST /v3/keywords_data/google_ads/search_volume/live` *(Live)*
 - `POST /v3/keywords_data/google_ads/search_volume/task_post` + `GET /task_get/{id}` *(Standard)*
 
-**Preis pro Request:** ~0,025 USD Live für 1.000 Keywords (≈ 0,000025 USD pro Keyword) — extrem günstig für Bulk-Recherche.
+**Preis pro Request:** ~0,075 USD Live für 1.000 Keywords (≈ 0,000075 USD pro Keyword) — konsistent mit dem Cost-Estimator (Teil 4: $0,05 Standard-Basis × Live-Multiplikator).
 
 **Rate-Limit:** 12 Requests/Min (Live). Bei 1000 Keywords/Request = 12.000 Keywords/Min möglich.
 
@@ -331,8 +331,10 @@ estimate_serp_cost(query_count, mode, depth, extra_params):
         "standard" => 0.0006
     multiplier = 1.0
     if depth > 10:
-        multiplier *= ceil(depth / 100) + 1  // depth-Parameter
-    multiplier *= 5 ^ extra_params  // 5x pro zusätzlichem Parameter!
+        // DataForSEO berechnet pro 10 Suchergebnisse: depth=10 → 1x, depth=100 → 10x
+        multiplier *= (depth as f64 / 10.0).ceil()
+    // 5x pro zusätzlichem Parameter — `^` ist in Rust XOR, daher powi() für Exponentiation
+    multiplier *= 5.0_f64.powi(extra_params as i32)
     return query_count * base * multiplier
 
 estimate_backlinks_cost(target_count, rows_per_target):
