@@ -1,0 +1,48 @@
+# Path-based PR labeling for actions/labeler@v4.
+# Add or refine entries when new top-level areas land in the repo.
+
+documentation:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'docs/**'
+    - '**/*.md'
+
+ci:
+- changed-files:
+  - any-glob-to-any-file:
+    - '.github/workflows/**'
+    - '.github/labeler.yml'
+    - '.github/CODEOWNERS'
+
+dependencies:
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/package.json'
+    - '**/package-lock.json'
+    - '**/Cargo.toml'
+    - '**/Cargo.lock'
+    - '**/requirements.txt'
+
+apps:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'apps/**'
+
+dataforseo-app:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'apps/dataforseo-app/**'
+
+scripts:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'scripts/**'
+    - 'setup.sh'
+
+templates:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'templates/**'
+    - 'workflow-templates/**'
+    - 'ISSUE_TEMPLATE/**'
+    - 'pull_request_template.md'

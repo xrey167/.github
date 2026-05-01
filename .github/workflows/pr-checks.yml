@@ -22,42 +22,40 @@ jobs:
 
       - name: Check PR title format
         id: pr-title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          
-          # Check if PR title follows convention
           # Format: [TYPE] Description or TYPE: Description
           if [[ "$PR_TITLE" =~ ^(\[.+\]|[A-Z]+:).+ ]]; then
             echo "✅ PR title follows convention"
-            echo "valid=true" >> $GITHUB_OUTPUT
+            echo "valid=true" >> "$GITHUB_OUTPUT"
           else
             echo "❌ PR title does not follow convention"
             echo "Expected format: [TYPE] Description or TYPE: Description"
             echo "Examples: [FEATURE] Add authentication, BUG: Fix login error"
-            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "valid=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
 
       - name: Check for linked issues
         id: linked-issues
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
-          
-          # Check if PR body contains issue references
           if [[ "$PR_BODY" =~ (Closes|Fixes|Resolves|Related|Ref).*#[0-9]+ ]] || \
              [[ "$PR_BODY" =~ https://github.com/.*/issues/[0-9]+ ]]; then
             echo "✅ PR is linked to issue(s)"
-            echo "linked=true" >> $GITHUB_OUTPUT
+            echo "linked=true" >> "$GITHUB_OUTPUT"
           else
             echo "⚠️  No linked issues found"
             echo "Consider linking related issues using: Closes #123, Related #456"
-            echo "linked=false" >> $GITHUB_OUTPUT
+            echo "linked=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
-          
           if [ -z "$PR_BODY" ] || [ ${#PR_BODY} -lt 50 ]; then
             echo "⚠️  PR description is too short or empty"
             echo "Please provide a meaningful description of your changes"
@@ -117,12 +115,14 @@ jobs:
           echo "- Deletions: $DELETED_LINES"
           echo "- Total changes: $TOTAL_CHANGES"
           
-          # Warn or fail if PR is too large
-          if [ $TOTAL_CHANGES -gt 1000 ]; then
+          # Warn or fail if PR is too large.
+          # Thresholds account for legitimate skeleton/scaffolding PRs
+          # (Tauri/React app bootstrap is ~1k lines, planning docs ~700 lines).
+          if [ $TOTAL_CHANGES -gt 2500 ]; then
             echo "❌ Very large PR detected ($TOTAL_CHANGES lines changed)"
             echo "Please split into smaller, focused PRs"
             exit 1
-          elif [ $TOTAL_CHANGES -gt 500 ]; then
+          elif [ $TOTAL_CHANGES -gt 1000 ]; then
             echo "⚠️  Large PR detected ($TOTAL_CHANGES lines changed)"
             echo "Consider splitting into smaller PRs for easier review"
           else
