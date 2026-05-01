@@ -8,7 +8,7 @@ use ts_rs::TS;
 use super::types::Mode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../../src/lib/types/")]
+#[ts(export, export_to = "../src/lib/types/")]
 #[serde(tag = "kind")]
 pub enum CostAction {
     KeywordsSearchVolume { count: u32, mode: Mode },

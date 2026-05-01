@@ -7,7 +7,7 @@ use crate::secrets::{self, Credentials};
 use crate::state::AppState;
 
 #[derive(Debug, Serialize, TS)]
-#[ts(export, export_to = "../../src/lib/types/")]
+#[ts(export, export_to = "../src/lib/types/")]
 pub struct UserInfo {
     pub login: String,
     pub balance: f64,

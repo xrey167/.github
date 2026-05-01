@@ -3,7 +3,7 @@ use thiserror::Error;
 use ts_rs::TS;
 
 #[derive(Debug, Error, Serialize, TS)]
-#[ts(export, export_to = "../../src/lib/types/")]
+#[ts(export, export_to = "../src/lib/types/")]
 #[serde(tag = "kind", content = "message")]
 pub enum AppError {
     #[error("network error: {0}")]
