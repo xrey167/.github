@@ -21,7 +21,7 @@ dependencies:
     - '**/package-lock.json'
     - '**/Cargo.toml'
     - '**/Cargo.lock'
-    - 'requirements.txt'
+    - '**/requirements.txt'
 
 apps:
 - changed-files:
