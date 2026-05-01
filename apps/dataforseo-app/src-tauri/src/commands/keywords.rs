@@ -7,6 +7,7 @@ use tokio::task;
 use ts_rs::TS;
 
 use crate::api::keywords_data::SearchVolumeRequest;
+use crate::api::labs::LabsKeywordItem;
 use crate::domain::cost::{self, CostAction};
 use crate::domain::types::Mode;
 use crate::errors::Result;
@@ -153,4 +154,118 @@ pub async fn keywords_search_volume(
         cost_usd: api_cost,
         estimated_usd,
     })
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct LabsKeyword {
+    pub keyword: String,
+    pub search_volume: Option<i64>,
+    pub competition: Option<String>,
+    pub competition_index: Option<i32>,
+    pub cpc: Option<f64>,
+    pub keyword_difficulty: Option<i32>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct LabsBatch {
+    pub items: Vec<LabsKeyword>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+impl From<LabsKeywordItem> for LabsKeyword {
+    fn from(it: LabsKeywordItem) -> Self {
+        Self {
+            keyword: it.keyword,
+            search_volume: it.search_volume,
+            competition: it.competition,
+            competition_index: it.competition_index,
+            cpc: it.cpc,
+            keyword_difficulty: it.keyword_difficulty,
+        }
+    }
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn keywords_suggestions(
+    state: State<'_, AppState>,
+    seed: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+) -> Result<LabsBatch> {
+    let estimated_usd = cost::estimate(&CostAction::KeywordsSuggestions { mode: Mode::Live });
+
+    let resp = state
+        .api
+        .labs_keyword_suggestions(&seed, location_code, &language_code, limit)
+        .await?;
+
+    record_labs_call(state.clone(), "labs.keyword_suggestions", &resp, estimated_usd).await?;
+
+    Ok(LabsBatch {
+        items: resp.items.into_iter().map(LabsKeyword::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn keywords_related(
+    state: State<'_, AppState>,
+    seed: String,
+    location_code: u32,
+    language_code: String,
+    depth: u32,
+) -> Result<LabsBatch> {
+    let estimated_usd = cost::estimate(&CostAction::KeywordsRelated { depth, mode: Mode::Live });
+
+    let resp = state
+        .api
+        .labs_related_keywords(&seed, location_code, &language_code, depth)
+        .await?;
+
+    record_labs_call(state.clone(), "labs.related_keywords", &resp, estimated_usd).await?;
+
+    Ok(LabsBatch {
+        items: resp.items.into_iter().map(LabsKeyword::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+async fn record_labs_call(
+    state: State<'_, AppState>,
+    endpoint: &'static str,
+    resp: &crate::api::labs::LabsResponse,
+    estimated_usd: f64,
+) -> Result<()> {
+    let store = state.store.clone();
+    let cost = resp.cost;
+    let items_len = resp.items.len() as i64;
+    task::spawn_blocking(move || -> Result<()> {
+        store.with_conn(|c| {
+            ledger::record(
+                c,
+                &LedgerEntry {
+                    endpoint,
+                    mode: "live",
+                    cost_usd: cost,
+                    estimated_usd: Some(estimated_usd),
+                    request_size: Some(items_len),
+                    response_status: Some(20000),
+                    duration_ms: None,
+                    task_id: None,
+                    error: None,
+                },
+            )
+        })
+    })
+    .await
+    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))??;
+    Ok(())
 }

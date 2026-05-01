@@ -34,6 +34,27 @@ export interface KeywordsSearchVolumeArgs {
   useCache: boolean;
 }
 
+export interface LabsKeyword {
+  keyword: string;
+  search_volume: number | null;
+  competition: string | null;
+  competition_index: number | null;
+  cpc: number | null;
+  keyword_difficulty: number | null;
+}
+
+export interface LabsBatch {
+  items: LabsKeyword[];
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface LabsSeedArgs {
+  seed: string;
+  locationCode: number;
+  languageCode: string;
+}
+
 export const tauriApi = {
   saveCredentials: (login: string, password: string) =>
     invoke<void>("save_credentials", { login, password }),
@@ -47,4 +68,10 @@ export const tauriApi = {
 
   keywordsSearchVolume: (args: KeywordsSearchVolumeArgs) =>
     invoke<KeywordVolumeBatch>("keywords_search_volume", args),
+
+  keywordsSuggestions: (args: LabsSeedArgs & { limit: number }) =>
+    invoke<LabsBatch>("keywords_suggestions", args),
+
+  keywordsRelated: (args: LabsSeedArgs & { depth: number }) =>
+    invoke<LabsBatch>("keywords_related", args),
 };
