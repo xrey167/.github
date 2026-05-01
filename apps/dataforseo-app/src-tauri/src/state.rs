@@ -11,7 +11,11 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        let credentials = Arc::new(RwLock::new(crate::secrets::load().ok().flatten()));
+        let initial = crate::secrets::load().unwrap_or_else(|e| {
+            tracing::error!(error = %e, "failed to load credentials from keychain");
+            None
+        });
+        let credentials = Arc::new(RwLock::new(initial));
         let api = Arc::new(ApiClient::new(credentials.clone()));
         Self { credentials, api }
     }

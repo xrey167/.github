@@ -50,7 +50,10 @@ pub async fn test_connection(state: State<'_, AppState>) -> Result<UserInfo> {
     let balance = body
         .pointer("/tasks/0/result/0/money/balance")
         .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
+        .ok_or_else(|| AppError::Api {
+            status_code: 200,
+            message: "missing balance in user_data response".into(),
+        })?;
 
     Ok(UserInfo { login, balance })
 }
