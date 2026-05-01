@@ -97,7 +97,7 @@ Pure Funktion:
 fn estimate_backlinks_detail(target_count: u32, rows_per_target: u32) -> f64 {
     let requests_per_target = (rows_per_target as f64 / 1000.0).ceil().max(1.0);
     let total_requests = target_count as f64 * requests_per_target;
-    total_requests * 0.02 + (target_count * rows_per_target) as f64 * 0.00003
+    total_requests * 0.02 + (target_count as f64 * rows_per_target as f64) * 0.00003
 }
 ```
 
@@ -220,8 +220,8 @@ filter      := condition | composite
 condition   := [field, operator, value]
 composite   := [filter, logical, filter, ...]
 logical     := "and" | "or"
-operator    := "=" | "<>" | ">" | "<" | ">=" | "<=" | "in" | "not in" |
-               "like" | "not like" | "ilike" | "not ilike" | "match" | "not match"
+operator    := "=" | "<>" | ">" | "<" | ">=" | "<=" | "in" | "not_in" |
+               "like" | "not_like" | "ilike" | "not_ilike" | "match" | "not_match"
 field       := <endpoint-spezifischer Feldname>
 value       := string | number | boolean | array
 ```
