@@ -27,7 +27,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tracing-appender = "0.2"
 
-duckdb = { version = "1", features = ["bundled"] }
+duckdb = { version = "1", features = ["bundled", "chrono"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 keyring = "3"
 
 ts-rs = { version = "10", features = ["serde-json-impl"] }
