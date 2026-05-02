@@ -1043,9 +1043,15 @@ function LinkGapTab() {
     if (!a || !b) return;
     setBusy(true);
     try {
+      // DataForSEO's "exclude" mode returns (target_a \ target_b) — i.e.
+      // domains linking to the first target but not the second. To find
+      // the "Link Gap" (the competitor's links the user is missing), we
+      // need to send (competitor \ user), so swap the order when mode is
+      // "exclude". For "intersect" the order doesn't matter (set
+      // intersection is commutative).
       const result = await tauriApi.backlinksDomainIntersection({
-        targetA: a,
-        targetB: b,
+        targetA: mode === "exclude" ? b : a,
+        targetB: mode === "exclude" ? a : b,
         intersectionMode: mode,
         limit,
         offset: 0,
@@ -1057,7 +1063,7 @@ function LinkGapTab() {
       const label =
         mode === "intersect"
           ? `domains linking to both`
-          : `domains linking to ${a} but not ${b}`;
+          : `domains linking to ${b} but not ${a}`;
       toast.success(
         `Loaded ${formatCount(result.items_count)} ${label} (${formatUsd(result.cost_usd)})`,
       );

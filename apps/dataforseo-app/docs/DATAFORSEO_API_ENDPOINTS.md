@@ -129,7 +129,7 @@ across this family (DataForSEO restriction).
 | Referring Domains | `/v3/backlinks/referring_domains/live` | 0.02 + 0.00003/row | ✅ done |
 | Anchors | `/v3/backlinks/anchors/live` | 0.02 + 0.00003/row | ✅ done |
 | History | `/v3/backlinks/history/live` | 0.02 + 0.00003/row | ✅ done |
-| Domain Intersection (Link Gap) | `/v3/backlinks/domain_intersection/live` | 0.02 + 0.00003/row | 🟡 next (this PR) |
+| Domain Intersection (Link Gap) | `/v3/backlinks/domain_intersection/live` | 0.02 + 0.00003/row | ✅ done |
 | Page Intersection | `/v3/backlinks/page_intersection/live` | 0.02 + 0.00003/row | 🟡 next |
 | Domain Pages | `/v3/backlinks/domain_pages/live` | 0.02 + 0.00003/row | 🟡 next |
 | Domain Pages Summary | `/v3/backlinks/domain_pages_summary/live` | 0.02 + 0.00003/row | 🟦 plan |
