@@ -1,11 +1,22 @@
 import ReactMarkdown from "react-markdown";
-import rehypeSanitize from "rehype-sanitize";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
 interface Props {
   content: string;
   className?: string;
 }
+
+/// Sanitize schema with target+rel explicitly whitelisted. Default schema
+/// strips them on <a> elements, which would defeat our open-in-system-browser
+/// behaviour for the Tauri webview.
+const SCHEMA = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    a: [...(defaultSchema.attributes?.a ?? []), "target", "rel"],
+  },
+};
 
 /// Markdown renderer for assistant chat messages (and anywhere else we want
 /// to render LLM output safely). GFM gives us tables + strikethrough; sanitize
@@ -17,9 +28,11 @@ export default function MarkdownView({ content, className }: Props) {
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeSanitize]}
+        rehypePlugins={[[rehypeSanitize, SCHEMA]]}
         components={{
-          a: ({ href, children, ...props }) => (
+          // Destructure `node` (react-markdown v9 injects it) so it doesn't
+          // land on the DOM element and trip React's invalid-attribute warning.
+          a: ({ node: _node, href, children, ...props }) => (
             <a
               href={href}
               target="_blank"
@@ -30,13 +43,14 @@ export default function MarkdownView({ content, className }: Props) {
               {children}
             </a>
           ),
-          // Inline code shouldn't get the prose-pre treatment; differentiate
-          // by checking for the `inline` flag react-markdown injects.
-          code: ({ children, className, ...props }) => {
-            const isBlock = (className ?? "").startsWith("language-");
+          code: ({ node: _node, children, className: codeClass, ...props }) => {
+            // Inline code shouldn't get the prose-pre treatment; differentiate
+            // by checking for the `language-*` class react-markdown injects on
+            // fenced blocks.
+            const isBlock = (codeClass ?? "").startsWith("language-");
             if (isBlock) {
               return (
-                <code className={className} {...props}>
+                <code className={codeClass} {...props}>
                   {children}
                 </code>
               );

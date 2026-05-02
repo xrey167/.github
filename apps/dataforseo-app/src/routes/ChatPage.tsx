@@ -298,7 +298,7 @@ function threadToMarkdown(session: ChatSession, messages: StoredChatMessage[]): 
     if (m.cost_usd != null) {
       lines.push("");
       lines.push(
-        `*${m.input_tokens ?? 0}+${m.output_tokens ?? 0} tok · ${m.cost_usd.toFixed(4)} USD*`,
+        `*${m.input_tokens ?? 0}+${m.output_tokens ?? 0} tok · ${formatUsd(m.cost_usd)}*`,
       );
     }
     lines.push("");
