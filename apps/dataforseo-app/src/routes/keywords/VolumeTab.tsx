@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import BulkKeywordInput, { parseKeywords } from "../../components/BulkKeywordInput";
+import ChatWithResultsButton from "../../components/ChatWithResultsButton";
 import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
 import ResultsTable from "../../components/ResultsTable";
@@ -117,11 +118,17 @@ export default function VolumeTab() {
             {batch.items.length} rows · {batch.cache_hits} from cache · {batch.fresh} freshly fetched ·
             actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
           </span>
-          <ExportMenu
-            filenameStem="keyword-volume"
-            rows={batch.items}
-            columns={columns}
-          />
+          <div className="flex gap-2">
+            <ChatWithResultsButton
+              rows={batch.items}
+              summary={`${batch.items.length} keywords from /keywords/volume`}
+            />
+            <ExportMenu
+              filenameStem="keyword-volume"
+              rows={batch.items}
+              columns={columns}
+            />
+          </div>
         </div>
       )}
 
