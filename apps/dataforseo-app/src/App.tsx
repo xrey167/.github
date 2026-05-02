@@ -1,11 +1,14 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 
+import AdsPage from "./routes/AdsPage";
 import ChatPage from "./routes/ChatPage";
 import ComparePage from "./routes/ComparePage";
 import KeywordsPage from "./routes/KeywordsPage";
 import SerpPage from "./routes/SerpPage";
 import DomainPage from "./routes/DomainPage";
+import SocialPage from "./routes/SocialPage";
 import TasksPage from "./routes/TasksPage";
+import TrafficPage from "./routes/TrafficPage";
 import UsagePage from "./routes/UsagePage";
 import SettingsPage from "./routes/SettingsPage";
 
@@ -13,6 +16,9 @@ const navItems = [
   { to: "/keywords", label: "Keywords" },
   { to: "/serp", label: "SERP" },
   { to: "/domain", label: "Domain" },
+  { to: "/traffic", label: "Traffic" },
+  { to: "/ads", label: "Ads" },
+  { to: "/social", label: "Social" },
   { to: "/compare", label: "Compare" },
   { to: "/tasks", label: "Tasks" },
   { to: "/chat", label: "Chat" },
@@ -43,6 +49,9 @@ export default function App() {
           <Route path="/keywords/*" element={<KeywordsPage />} />
           <Route path="/serp/*" element={<SerpPage />} />
           <Route path="/domain/*" element={<DomainPage />} />
+          <Route path="/traffic" element={<TrafficPage />} />
+          <Route path="/ads" element={<AdsPage />} />
+          <Route path="/social" element={<SocialPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/chat" element={<ChatPage />} />

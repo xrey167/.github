@@ -72,11 +72,27 @@ For the top 10 attached keywords by search volume, draft an SEO title \
 of {keyword, title, meta_description}.",
 };
 
+pub const SOCIAL_DRAFTS: PromptTemplate = PromptTemplate {
+    id: "social_drafts",
+    label: "Social post drafts",
+    description: "Draft Twitter, LinkedIn, and Instagram captions from a topic.",
+    system: "\
+Draft three social-media post variants for the topic in the user message:\n\
+1. Twitter / X — max 280 chars, punchy, no hashtag spam (max 2 hashtags).\n\
+2. LinkedIn — 600-1200 chars, more thoughtful, opens with a hook line, \
+ends with a question to invite comments.\n\
+3. Instagram caption — 800-1500 chars, conversational, 4-6 hashtags at \
+the end on their own line.\n\
+\nDon't include CTAs to external links unless the user asked for it. \
+Return the three drafts as a JSON array of {network, content, char_count}.",
+};
+
 pub const PROMPT_TEMPLATES: &[PromptTemplate] = &[
     CLUSTER_KEYWORDS,
     BLOG_IDEAS,
     KEYWORD_INTENT,
     TITLE_SUGGESTIONS,
+    SOCIAL_DRAFTS,
 ];
 
 pub fn find_template(id: &str) -> Option<&'static PromptTemplate> {
