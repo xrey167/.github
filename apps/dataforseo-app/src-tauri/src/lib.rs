@@ -40,6 +40,8 @@ pub fn run() {
             commands::ledger::estimate_cost,
             commands::ledger::get_recent_calls,
             commands::ledger::get_usage_summary,
+            commands::ledger::get_ai_recent_calls,
+            commands::ledger::get_ai_usage_summary,
             commands::keywords::keywords_search_volume,
             commands::keywords::keywords_suggestions,
             commands::keywords::keywords_related,
