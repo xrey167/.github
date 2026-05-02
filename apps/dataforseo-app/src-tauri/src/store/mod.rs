@@ -1,3 +1,4 @@
+pub mod chat;
 pub mod keywords_cache;
 pub mod ledger;
 pub mod schema;

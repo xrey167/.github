@@ -29,3 +29,27 @@ pub fn clear() -> Result<()> {
     let _ = keyring::Entry::new(SERVICE, "password")?.delete_credential();
     Ok(())
 }
+
+/// Generic provider-key storage for AI providers (Anthropic, OpenAI, ...).
+/// Each provider stores under its own keychain entry name.
+pub fn save_ai_key(provider: &str, key: &str) -> Result<()> {
+    keyring::Entry::new(SERVICE, &ai_entry(provider))?.set_password(key)?;
+    Ok(())
+}
+
+pub fn load_ai_key(provider: &str) -> Result<Option<String>> {
+    match keyring::Entry::new(SERVICE, &ai_entry(provider))?.get_password() {
+        Ok(v) => Ok(Some(v)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(e.into()),
+    }
+}
+
+pub fn clear_ai_key(provider: &str) -> Result<()> {
+    let _ = keyring::Entry::new(SERVICE, &ai_entry(provider))?.delete_credential();
+    Ok(())
+}
+
+fn ai_entry(provider: &str) -> String {
+    format!("ai.{provider}.api_key")
+}

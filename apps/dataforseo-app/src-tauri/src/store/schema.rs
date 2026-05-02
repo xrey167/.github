@@ -4,7 +4,10 @@ use duckdb::Connection;
 
 use crate::errors::Result;
 
-const MIGRATIONS: &[(u32, &str)] = &[(1, include_str!("../../migrations/v0001_initial.sql"))];
+const MIGRATIONS: &[(u32, &str)] = &[
+    (1, include_str!("../../migrations/v0001_initial.sql")),
+    (2, include_str!("../../migrations/v0002_ai_chat.sql")),
+];
 
 pub fn ensure_current(conn: &mut Connection) -> Result<()> {
     conn.execute_batch(
