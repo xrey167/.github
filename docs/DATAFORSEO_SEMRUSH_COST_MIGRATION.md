@@ -28,7 +28,18 @@ Wenn du heute SEMrush Pro (139 USD/Monat) oder Guru (249 USD/Monat) zahlst:
   Pro für genau diese drei Module, alles andere migriere.
 
 **Erwarteter Sparbetrag pro Monat (typischer Pro-User):**
-~110 USD/Monat (139 SEMrush − ~29 App-Lizenz/Subscription wenn Pro-Tier).
+
+Vollkosten-Rechnung — 139 USD SEMrush Pro − 29 USD App-Lizenz (Pro-Tier)
+− DataForSEO-Verbrauch je nach Phase. Phase-Zahlen unten enthalten den
+DataForSEO-Spend, nicht nur die Lizenz-Differenz:
+
+- Phase A (Tier 1 + AI): 139 − 29 − ~12 ≈ **98 USD/Monat gespart**
+- Phase B (+ Backlinks): 139 − 29 − ~27 ≈ **83 USD/Monat gespart**
+- Phase C (+ Tracking + On-Page): 139 − 29 − ~40 ≈ **70 USD/Monat gespart**
+
+Savings sinken pro Phase, weil du DataForSEO härter ausreizt — Tradeoff,
+keine Verschlechterung. Wer SEMrush Guru (249 USD) oder Business (499 USD)
+heute zahlt, spart entsprechend mehr.
 
 ---
 
@@ -39,11 +50,37 @@ du jetzt herunterladen solltest, geordnet nach „kann die App importieren":
 
 ### 1.1 Direkt in der App nutzbar (CSV-Import-fähig)
 
-> Hinweis: CSV-Import-Buttons stehen aktuell auf der Roadmap. Bis dahin
-> liegen die Exporte als Backup, sind aber via DuckDB-CLI (`duckdb
-> ~/.local/share/com.bluebranch.dataforseo-app/dataforseo-app.duckdb`)
-> direkt einlesbar via `INSERT INTO keyword_volume_cache SELECT * FROM
-> read_csv_auto('semrush-export.csv', columns=...)`.
+> **Hinweis:** CSV-Import-Buttons stehen aktuell auf der Roadmap. Bis
+> dahin liegen die Exporte als Backup; direktes Einlesen via DuckDB-CLI
+> ist möglich, aber **mit expliziten Spalten-Aliasen** — SEMrush-CSVs
+> haben oft andere Spalten-Reihenfolgen als die App-Tabellen, ein
+> `INSERT … SELECT *` würde Daten in die falschen Felder schreiben.
+>
+> DB-Pfad pro OS:
+>
+> - macOS: `~/Library/Application Support/com.bluebranch.dataforseo-app/dataforseo-app.duckdb`
+> - Linux: `~/.local/share/com.bluebranch.dataforseo-app/dataforseo-app.duckdb`
+> - Windows: `%APPDATA%\com.bluebranch.dataforseo-app\dataforseo-app.duckdb`
+>
+> Sicheres Import-Pattern (Beispiel `keyword_volume_cache`):
+>
+> ```sql
+> INSERT INTO keyword_volume_cache
+>     (keyword, location_code, language_code,
+>      search_volume, competition, cpc, fetched_at)
+> SELECT
+>     "Keyword",
+>     2276,                         -- Standort manuell setzen
+>     'de',
+>     CAST("Volume" AS INTEGER),
+>     "Competition",
+>     CAST("CPC" AS DOUBLE),
+>     CURRENT_TIMESTAMP
+> FROM read_csv_auto('semrush-export.csv', header=true);
+> ```
+>
+> Spalten-Namen entsprechen den SEMrush-CSV-Headern (case-sensitive); ggf.
+> mit `head -1 semrush-export.csv` prüfen und anpassen.
 
 | SEMrush-Modul | Export-Format | Ziel-Tabelle in DuckDB |
 |---|---|---|
@@ -139,7 +176,8 @@ Compare, AI-Workflows.
 2. Daten aus SEMrush exportieren (Teil 1.1).
 3. Eine Woche parallel arbeiten — alle Standardabfragen einmal in der App
    wiederholen, Resultate vergleichen.
-4. SEMrush downgrade von Pro/Guru auf Free. **Spart ~110 USD/Monat sofort.**
+4. SEMrush downgrade von Pro/Guru auf Free. **Net Save Phase A: ~98 USD/Monat**
+   (139 SEMrush − 29 App − ~12 DataForSEO-Verbrauch).
 
 **Was du in dieser Phase noch nicht machen kannst:**
 - Detaillierte Backlink-Audits → SEMrush Pro Free (10/Tag) reicht für Sanity-
@@ -293,7 +331,8 @@ Damit der Switch nicht nur „gleichwertig billiger" ist:
 ## Teil 8: Zusammenfassung — der eine Satz
 
 Wenn du SEMrush kündigst und auf den App-Stack switchst, sparst du als
-typischer Pro-User ~70 USD/Monat ab Tag 1 (Phase A), ~85 USD/Monat ab
-Phase B, und ~110 USD/Monat ab Phase C — vorausgesetzt du nutzt nicht
-aktiv Traffic Analytics, Social Toolkit, oder PPC Display Network, für
-die DataForSEO kein Pendant hat.
+typischer Pro-User (heute 139 USD/Monat) ~98 USD/Monat ab Tag 1
+(Phase A), ~83 USD/Monat ab Phase B, und ~70 USD/Monat ab Phase C —
+DataForSEO-Verbrauch in jeder Phase eingerechnet, vorausgesetzt du
+nutzt nicht aktiv Traffic Analytics, Social Toolkit, oder PPC Display
+Network, für die DataForSEO kein Pendant hat.
