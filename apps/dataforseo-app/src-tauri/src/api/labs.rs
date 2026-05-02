@@ -156,9 +156,8 @@ fn parse_ranked_response(raw: &serde_json::Value) -> Result<RankedResponse> {
     let raw_items = raw
         .pointer("/tasks/0/result/0/items")
         .and_then(|v| v.as_array())
-        .ok_or_else(|| AppError::Api {
-            status_code: 20000,
-            message: "ranked_keywords response missing tasks[0].result[0].items".into(),
+        .ok_or_else(|| {
+            AppError::Parse("ranked_keywords response missing tasks[0].result[0].items".into())
         })?;
 
     let items = raw_items
@@ -188,9 +187,7 @@ fn parse_ranked_response(raw: &serde_json::Value) -> Result<RankedResponse> {
                     .and_then(|s| s.pointer("/url"))
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_owned()),
-                etv: raw_item
-                    .pointer("/ranked_serp_element/serp_item/etv")
-                    .and_then(|v| v.as_f64()),
+                etv: serp.and_then(|s| s.pointer("/etv")).and_then(|v| v.as_f64()),
             })
         })
         .collect();

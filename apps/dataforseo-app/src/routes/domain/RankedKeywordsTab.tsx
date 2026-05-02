@@ -50,12 +50,20 @@ export default function RankedKeywordsTab({ target }: Props) {
         accessorKey: "serp_url",
         cell: (ctx) => {
           const url = ctx.getValue<string | null>();
-          return url ? (
+          if (!url) return "—";
+          // The API can occasionally return non-absolute URLs (e.g., for
+          // certain SERP feature types) that crash new URL(). Fall back
+          // to the raw string so the row keeps rendering.
+          let display: string;
+          try {
+            display = new URL(url).pathname || url;
+          } catch {
+            display = url;
+          }
+          return (
             <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-              {new URL(url).pathname || url}
+              {display}
             </a>
-          ) : (
-            "—"
           );
         },
       },
