@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::stream::{self, StreamExt};
+use futures::stream::{self, StreamExt, TryStreamExt};
 use tokio::task;
 use tokio::time;
 
@@ -55,11 +55,11 @@ async fn poll_once(api: &Arc<ApiClient>, store: &Arc<Store>) -> Result<()> {
         return Ok(());
     }
 
-    // Fetch results concurrently. Each future yields (task_id, Result<resp>);
-    // the rate-limiter inside ApiClient still serialises actual HTTP requests
-    // up to the configured per-family rate, so this is bounded throughput
-    // with parallelised waiting.
-    let fetches = stream::iter(ready.into_iter().map(|t| {
+    // Fetch and persist concurrently. Each network result is handed to a
+    // DB write as soon as it arrives, so a slow task_get does not stall
+    // persistence of the others. Per-family rate-limiting still bounds
+    // absolute throughput inside ApiClient.
+    stream::iter(ready.into_iter().map(|t| {
         let api = api.clone();
         async move {
             let r = api.serp_google_organic_task_get_regular(&t.task_id).await;
@@ -67,13 +67,11 @@ async fn poll_once(api: &Arc<ApiClient>, store: &Arc<Store>) -> Result<()> {
         }
     }))
     .buffer_unordered(TASK_GET_CONCURRENCY)
-    .collect::<Vec<_>>()
-    .await;
-
-    for (task_id, result) in fetches {
+    .map(Ok::<_, AppError>)
+    .try_for_each(|(task_id, result)| async move {
         match result {
             Ok(resp) => {
-                let id = task_id.clone();
+                let id = task_id;
                 let cost = resp.cost;
                 blocking(store, move |c| {
                     serp_results::insert_batch(c, &id, &resp.items)?;
@@ -84,12 +82,14 @@ async fn poll_once(api: &Arc<ApiClient>, store: &Arc<Store>) -> Result<()> {
             }
             Err(e) => {
                 tracing::warn!(task_id = %task_id, error = %e, "task_get failed");
-                let id = task_id.clone();
+                let id = task_id;
                 let msg = e.to_string();
                 blocking(store, move |c| serp_tasks::record_attempt(c, &id, Some(&msg))).await?;
             }
         }
-    }
+        Ok(())
+    })
+    .await?;
 
     Ok(())
 }
