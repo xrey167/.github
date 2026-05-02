@@ -40,9 +40,14 @@ pub fn run() {
                 })
                 .await;
             });
+            let tracker_api = api.clone();
+            let tracker_store = store.clone();
             app.manage(state);
             tauri::async_runtime::spawn(async move {
                 tasks::poller::run(api, store).await;
+            });
+            tauri::async_runtime::spawn(async move {
+                tasks::tracker::run(tracker_api, tracker_store).await;
             });
             Ok(())
         })
@@ -87,6 +92,11 @@ pub fn run() {
             commands::domain_analytics::domain_technologies,
             commands::on_page::on_page_instant,
             commands::on_page::on_page_lighthouse,
+            commands::tracking::tracking_add,
+            commands::tracking::tracking_list,
+            commands::tracking::tracking_remove,
+            commands::tracking::tracking_history,
+            commands::tracking::tracking_run_now,
             commands::ai::ai_provider_status,
             commands::ai::ai_save_provider_key,
             commands::ai::ai_clear_provider_key,

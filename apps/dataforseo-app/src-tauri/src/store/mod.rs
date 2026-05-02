@@ -7,6 +7,7 @@ pub mod response_cache;
 pub mod schema;
 pub mod serp_results;
 pub mod serp_tasks;
+pub mod tracking;
 
 use std::path::PathBuf;
 use std::sync::Mutex;

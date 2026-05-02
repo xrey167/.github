@@ -279,6 +279,15 @@ Always free. Used by the auth + diagnostics flows.
 
 ## Implementation roadmap
 
+### Position Tracking
+
+Built on top of SERP organic Live (already implemented). The
+`tracked_keywords` + `tracking_results` tables and the `tasks/tracker.rs`
+background runner give SEMrush-style daily rank monitoring without an
+extra DataForSEO endpoint.
+
+### Roadmap (older entries — kept for reference)
+
 After this PR (Domain Intersection), the suggested order for the next batch
 is:
 

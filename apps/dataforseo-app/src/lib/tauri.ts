@@ -111,6 +111,18 @@ export const tauriApi = {
   keywordGap: (args: { yours: string; competitor: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<KeywordGapView>("keyword_gap", args),
 
+  trackingAdd: (args: { target: string; keyword: string; locationCode: number; languageCode: string; frequency: "daily" | "weekly" | "manual" }) =>
+    invoke<number>("tracking_add", args),
+
+  trackingList: () => invoke<TrackedKeywordWithRank[]>("tracking_list"),
+
+  trackingRemove: (args: { id: number }) => invoke<void>("tracking_remove", args),
+
+  trackingHistory: (args: { id: number; days: number }) =>
+    invoke<RankPoint[]>("tracking_history", args),
+
+  trackingRunNow: (args: { id: number }) => invoke<void>("tracking_run_now", args),
+
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
     invoke<SerpLiveBatch>("serp_live", args),
 
@@ -604,6 +616,32 @@ export interface DomainIntersectionView {
   estimated_usd: number;
   from_cache: boolean;
   fetched_at: string | null;
+}
+
+export interface TrackedKeyword {
+  id: number;
+  target: string;
+  keyword: string;
+  location_code: number;
+  language_code: string;
+  // "daily" | "weekly" | "manual"
+  frequency: string;
+  active: boolean;
+  created_at: string | null;
+  last_run_at: string | null;
+}
+
+export interface TrackedKeywordWithRank {
+  keyword: TrackedKeyword;
+  current_rank: number | null;
+  previous_rank: number | null;
+  current_url: string | null;
+}
+
+export interface RankPoint {
+  fetched_at: string;
+  rank_absolute: number | null;
+  url: string | null;
 }
 
 export interface BulkVolumeItem {
