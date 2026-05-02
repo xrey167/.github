@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import DifficultyTab from "./keywords/DifficultyTab";
 import RelatedTab from "./keywords/RelatedTab";
 import SuggestionsTab from "./keywords/SuggestionsTab";
 import VolumeTab from "./keywords/VolumeTab";
@@ -8,6 +9,7 @@ const TABS = [
   { id: "volume", label: "Volume" },
   { id: "suggestions", label: "Suggestions" },
   { id: "related", label: "Related" },
+  { id: "difficulty", label: "Difficulty" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -44,6 +46,7 @@ export default function KeywordsPage() {
       {active === "volume" && <VolumeTab />}
       {active === "suggestions" && <SuggestionsTab />}
       {active === "related" && <RelatedTab />}
+      {active === "difficulty" && <DifficultyTab />}
     </section>
   );
 }

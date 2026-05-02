@@ -353,3 +353,128 @@ pub async fn keywords_ranked(
         estimated_usd,
     })
 }
+
+// ---------- Domain Rank Overview + Bulk Keyword Difficulty ----------
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct DomainRankOverviewView {
+    pub target: String,
+    /// Raw items array from DataForSEO (one row per metrics shape:
+    /// organic + paid). UI extracts known fields.
+    pub items: serde_json::Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_domain_rank_overview(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+) -> Result<DomainRankOverviewView> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsDomainRankOverview);
+    let api = state.api.clone();
+    let target_for_call = target.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_DOMAIN_RANK_OVERVIEW,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_domain_rank_overview(&target_for_call, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(DomainRankOverviewView {
+        target,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct BulkDifficultyItem {
+    pub keyword: String,
+    pub keyword_difficulty: Option<i32>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct BulkDifficultyView {
+    pub items: Vec<BulkDifficultyItem>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+const BULK_DIFFICULTY_MAX: usize = 1000;
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_bulk_keyword_difficulty(
+    state: State<'_, AppState>,
+    keywords: Vec<String>,
+    location_code: u32,
+    language_code: String,
+) -> Result<BulkDifficultyView> {
+    // Same order-preserving dedup pattern as keywords_search_volume so
+    // the table stays stable.
+    let mut seen = HashSet::new();
+    let mut cleaned: Vec<String> = keywords
+        .into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty() && seen.insert(k.clone()))
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one keyword required".into()));
+    }
+    if cleaned.len() > BULK_DIFFICULTY_MAX {
+        cleaned.truncate(BULK_DIFFICULTY_MAX);
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsBulkKeywordDifficulty {
+        count: cleaned.len() as u32,
+    });
+    let api = state.api.clone();
+    let cleaned_for_call = cleaned.clone();
+    let request_size = cleaned.len() as i64;
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_BULK_KEYWORD_DIFFICULTY,
+        Mode::Live,
+        estimated_usd,
+        request_size,
+        move || async move {
+            let r = api
+                .labs_bulk_keyword_difficulty(&cleaned_for_call, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(BulkDifficultyView {
+        items: resp
+            .items
+            .into_iter()
+            .map(|i| BulkDifficultyItem {
+                keyword: i.keyword,
+                keyword_difficulty: i.keyword_difficulty,
+            })
+            .collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}

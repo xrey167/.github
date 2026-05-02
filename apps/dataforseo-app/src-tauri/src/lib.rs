@@ -47,6 +47,8 @@ pub fn run() {
             commands::keywords::keywords_related,
             commands::keywords::keywords_for_domain,
             commands::keywords::keywords_ranked,
+            commands::keywords::labs_domain_rank_overview,
+            commands::keywords::labs_bulk_keyword_difficulty,
             commands::serp::serp_live,
             commands::serp::serp_task_create,
             commands::serp::serp_task_status,

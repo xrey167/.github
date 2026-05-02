@@ -26,6 +26,15 @@ pub enum CostAction {
     /// per-domain endpoint returns one row per request, so we don't
     /// multiply by rows here).
     DomainAnalyticsTechnologies,
+    /// Labs Domain Rank Overview · 0.0125 USD per request, single
+    /// target. Aggregate metrics (organic traffic, keyword count,
+    /// position bucket counts) for one domain.
+    LabsDomainRankOverview,
+    /// Labs Bulk Keyword Difficulty · 0.0001 USD per keyword. The
+    /// endpoint accepts up to 1000 keywords per request; we charge
+    /// strictly per keyword regardless of how many requests we
+    /// have to fan out under the hood.
+    LabsBulkKeywordDifficulty { count: u32 },
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -73,6 +82,8 @@ pub fn estimate(action: &CostAction) -> f64 {
         }
         DomainAnalyticsWhois { rows } => (*rows as f64).max(1.0) * 0.0001,
         DomainAnalyticsTechnologies => 0.001,
+        LabsDomainRankOverview => 0.0125,
+        LabsBulkKeywordDifficulty { count } => (*count as f64).max(1.0) * 0.0001,
     }
 }
 
@@ -176,6 +187,26 @@ mod tests {
     fn technologies_is_flat_per_request() {
         let cost = estimate(&CostAction::DomainAnalyticsTechnologies);
         assert!((cost - 0.001).abs() < 1e-9);
+    }
+
+    #[test]
+    fn labs_domain_rank_overview_is_flat_per_request() {
+        let cost = estimate(&CostAction::LabsDomainRankOverview);
+        assert!((cost - 0.0125).abs() < 1e-9);
+    }
+
+    #[test]
+    fn labs_bulk_keyword_difficulty_charges_per_keyword() {
+        let cost = estimate(&CostAction::LabsBulkKeywordDifficulty { count: 100 });
+        assert!((cost - 0.01).abs() < 1e-9);
+    }
+
+    #[test]
+    fn labs_bulk_keyword_difficulty_zero_count_still_baseline() {
+        let cost = estimate(&CostAction::LabsBulkKeywordDifficulty { count: 0 });
+        // .max(1.0) keeps the cost preview from going to 0 before the
+        // user has typed anything.
+        assert!((cost - 0.0001).abs() < 1e-9);
     }
 
     #[test]

@@ -88,6 +88,12 @@ export const tauriApi = {
   keywordsRanked: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
     invoke<RankedBatch>("keywords_ranked", args),
 
+  labsDomainRankOverview: (args: { target: string; locationCode: number; languageCode: string }) =>
+    invoke<DomainRankOverviewView>("labs_domain_rank_overview", args),
+
+  labsBulkKeywordDifficulty: (args: { keywords: string[]; locationCode: number; languageCode: string }) =>
+    invoke<BulkDifficultyView>("labs_bulk_keyword_difficulty", args),
+
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
     invoke<SerpLiveBatch>("serp_live", args),
 
@@ -460,6 +466,27 @@ export interface RankedKeyword {
 
 export interface RankedBatch {
   items: RankedKeyword[];
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface DomainRankOverviewView {
+  target: string;
+  // Raw items from DataForSEO — items are objects with `metrics.organic`
+  // and `metrics.paid` sub-objects. The page extracts the well-known
+  // numeric fields (count, etv, pos_1, pos_2_3, etc.).
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface BulkDifficultyItem {
+  keyword: string;
+  keyword_difficulty: number | null;
+}
+
+export interface BulkDifficultyView {
+  items: BulkDifficultyItem[];
   cost_usd: number;
   estimated_usd: number;
 }

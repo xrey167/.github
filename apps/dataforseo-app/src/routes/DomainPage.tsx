@@ -1,9 +1,11 @@
 import { useState } from "react";
 
 import KeywordsForSiteTab from "./domain/KeywordsForSiteTab";
+import RankOverviewTab from "./domain/RankOverviewTab";
 import RankedKeywordsTab from "./domain/RankedKeywordsTab";
 
 const TABS = [
+  { id: "overview", label: "Overview" },
   { id: "keywords", label: "Keywords for Domain" },
   { id: "ranked", label: "Ranked Keywords" },
 ] as const;
@@ -12,7 +14,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function DomainPage() {
   const [target, setTarget] = useState("");
-  const [active, setActive] = useState<TabId>("keywords");
+  const [active, setActive] = useState<TabId>("overview");
 
   return (
     <section className="flex flex-col gap-6">
@@ -53,6 +55,7 @@ export default function DomainPage() {
         ))}
       </nav>
 
+      {active === "overview" && <RankOverviewTab target={target} />}
       {active === "keywords" && <KeywordsForSiteTab target={target} />}
       {active === "ranked" && <RankedKeywordsTab target={target} />}
     </section>
