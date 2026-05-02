@@ -34,6 +34,8 @@ pub fn run() {
             commands::keywords::keywords_search_volume,
             commands::keywords::keywords_suggestions,
             commands::keywords::keywords_related,
+            commands::keywords::keywords_for_domain,
+            commands::keywords::keywords_ranked,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

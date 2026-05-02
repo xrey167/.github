@@ -74,4 +74,27 @@ export const tauriApi = {
 
   keywordsRelated: (args: LabsSeedArgs & { depth: number }) =>
     invoke<LabsBatch>("keywords_related", args),
+
+  keywordsForDomain: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
+    invoke<LabsBatch>("keywords_for_domain", args),
+
+  keywordsRanked: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
+    invoke<RankedBatch>("keywords_ranked", args),
 };
+
+export interface RankedKeyword {
+  keyword: string;
+  search_volume: number | null;
+  competition: string | null;
+  cpc: number | null;
+  keyword_difficulty: number | null;
+  rank_absolute: number | null;
+  serp_url: string | null;
+  etv: number | null;
+}
+
+export interface RankedBatch {
+  items: RankedKeyword[];
+  cost_usd: number;
+  estimated_usd: number;
+}

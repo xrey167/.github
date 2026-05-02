@@ -7,7 +7,7 @@ use tokio::task;
 use ts_rs::TS;
 
 use crate::api::keywords_data::SearchVolumeRequest;
-use crate::api::labs::LabsKeywordItem;
+use crate::api::labs::{LabsKeywordItem, RankedKeywordItem};
 use crate::domain::cost::{self, CostAction};
 use crate::domain::types::Mode;
 use crate::errors::Result;
@@ -238,15 +238,123 @@ pub async fn keywords_related(
     })
 }
 
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn keywords_for_domain(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+) -> Result<LabsBatch> {
+    let estimated_usd = cost::estimate(&CostAction::KeywordsForDomain { mode: Mode::Live });
+
+    let resp = state
+        .api
+        .labs_keywords_for_site(&target, location_code, &language_code, limit)
+        .await?;
+
+    record_ledger_entry(
+        state.clone(),
+        "labs.keywords_for_site",
+        resp.cost,
+        estimated_usd,
+        resp.items.len() as i64,
+    )
+    .await?;
+
+    Ok(LabsBatch {
+        items: resp.items.into_iter().map(LabsKeyword::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct RankedKeyword {
+    pub keyword: String,
+    pub search_volume: Option<i64>,
+    pub competition: Option<String>,
+    pub cpc: Option<f64>,
+    pub keyword_difficulty: Option<i32>,
+    pub rank_absolute: Option<i32>,
+    pub serp_url: Option<String>,
+    pub etv: Option<f64>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct RankedBatch {
+    pub items: Vec<RankedKeyword>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+impl From<RankedKeywordItem> for RankedKeyword {
+    fn from(it: RankedKeywordItem) -> Self {
+        Self {
+            keyword: it.keyword,
+            search_volume: it.search_volume,
+            competition: it.competition,
+            cpc: it.cpc,
+            keyword_difficulty: it.keyword_difficulty,
+            rank_absolute: it.rank_absolute,
+            serp_url: it.serp_url,
+            etv: it.etv,
+        }
+    }
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn keywords_ranked(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+) -> Result<RankedBatch> {
+    let estimated_usd = cost::estimate(&CostAction::KeywordsForDomain { mode: Mode::Live });
+
+    let resp = state
+        .api
+        .labs_ranked_keywords(&target, location_code, &language_code, limit)
+        .await?;
+
+    record_ledger_entry(
+        state.clone(),
+        "labs.ranked_keywords",
+        resp.cost,
+        estimated_usd,
+        resp.items.len() as i64,
+    )
+    .await?;
+
+    Ok(RankedBatch {
+        items: resp.items.into_iter().map(RankedKeyword::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
 async fn record_labs_call(
     state: State<'_, AppState>,
     endpoint: &'static str,
     resp: &crate::api::labs::LabsResponse,
     estimated_usd: f64,
 ) -> Result<()> {
+    record_ledger_entry(state, endpoint, resp.cost, estimated_usd, resp.items.len() as i64).await
+}
+
+async fn record_ledger_entry(
+    state: State<'_, AppState>,
+    endpoint: &'static str,
+    cost_usd: f64,
+    estimated_usd: f64,
+    items_len: i64,
+) -> Result<()> {
     let store = state.store.clone();
-    let cost = resp.cost;
-    let items_len = resp.items.len() as i64;
     task::spawn_blocking(move || -> Result<()> {
         store.with_conn(|c| {
             ledger::record(
@@ -254,7 +362,7 @@ async fn record_labs_call(
                 &LedgerEntry {
                     endpoint,
                     mode: "live",
-                    cost_usd: cost,
+                    cost_usd,
                     estimated_usd: Some(estimated_usd),
                     request_size: Some(items_len),
                     response_status: Some(20000),
