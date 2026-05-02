@@ -1,5 +1,6 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 
+import ChatPage from "./routes/ChatPage";
 import KeywordsPage from "./routes/KeywordsPage";
 import SerpPage from "./routes/SerpPage";
 import DomainPage from "./routes/DomainPage";
@@ -12,6 +13,7 @@ const navItems = [
   { to: "/serp", label: "SERP" },
   { to: "/domain", label: "Domain" },
   { to: "/tasks", label: "Tasks" },
+  { to: "/chat", label: "Chat" },
   { to: "/usage", label: "Usage" },
   { to: "/settings", label: "Settings" },
 ];
@@ -40,6 +42,8 @@ export default function App() {
           <Route path="/serp/*" element={<SerpPage />} />
           <Route path="/domain/*" element={<DomainPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/:sessionId" element={<ChatPage />} />
           <Route path="/usage" element={<UsagePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>

@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import ChatWithResultsButton from "../../components/ChatWithResultsButton";
 import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
 import ResultsTable from "../../components/ResultsTable";
@@ -114,11 +115,17 @@ export default function RankedKeywordsTab({ target }: Props) {
           <span>
             {batch.items.length} ranked keywords · actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
           </span>
-          <ExportMenu
-            filenameStem="ranked-keywords"
-            rows={batch.items}
-            columns={columns}
-          />
+          <div className="flex gap-2">
+            <ChatWithResultsButton
+              rows={batch.items}
+              summary={`${batch.items.length} ranked keywords`}
+            />
+            <ExportMenu
+              filenameStem="ranked-keywords"
+              rows={batch.items}
+              columns={columns}
+            />
+          </div>
         </div>
       )}
 

@@ -102,7 +102,69 @@ export const tauriApi = {
 
   getUsageSummary: (args: { days: number }) =>
     invoke<UsageSummary>("get_usage_summary", args),
+
+  aiProviderStatus: () => invoke<AiProviderStatus[]>("ai_provider_status"),
+
+  aiSaveProviderKey: (args: { provider: string; apiKey: string }) =>
+    invoke<void>("ai_save_provider_key", args),
+
+  aiClearProviderKey: (args: { provider: string }) =>
+    invoke<void>("ai_clear_provider_key", args),
+
+  aiPromptTemplates: () => invoke<PromptTemplate[]>("ai_prompt_templates"),
+
+  chatNewSession: (args: {
+    attachmentSummary: string | null;
+    attachmentJson: unknown | null;
+  }) => invoke<number>("chat_new_session", { args }),
+
+  chatListSessions: (args: { limit: number }) =>
+    invoke<ChatSession[]>("chat_list_sessions", args),
+
+  chatHistory: (args: { sessionId: number }) =>
+    invoke<StoredChatMessage[]>("chat_history", args),
+
+  chatSend: (args: {
+    sessionId: number;
+    userContent: string;
+    promptTemplateId: string | null;
+  }) => invoke<StoredChatMessage>("chat_send", { args }),
 };
+
+export interface AiProviderStatus {
+  provider: string;
+  configured: boolean;
+  model: string | null;
+}
+
+export interface PromptTemplate {
+  id: string;
+  label: string;
+  description: string;
+  system: string;
+}
+
+export interface ChatSession {
+  id: number;
+  title: string | null;
+  provider: string;
+  model: string;
+  attachment_summary: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface StoredChatMessage {
+  id: number;
+  session_id: number;
+  role: string;
+  content: string;
+  prompt_template_id: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd: number | null;
+  created_at: string | null;
+}
 
 export interface CallLogRow {
   ts: string;
