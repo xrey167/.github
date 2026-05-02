@@ -83,8 +83,11 @@ Draft three social-media post variants for the topic in the user message:\n\
 ends with a question to invite comments.\n\
 3. Instagram caption — 800-1500 chars, conversational, 4-6 hashtags at \
 the end on their own line.\n\
-\nDon't include CTAs to external links unless the user asked for it. \
-Return the three drafts as a JSON array of {network, content, char_count}.",
+\nDon't include CTAs to external links unless the user asked for it.\n\
+\nReturn the three drafts as Markdown. For each draft use a `### Twitter / X`, \
+`### LinkedIn`, or `### Instagram` heading followed by the post content, \
+then a final line `*N chars*` with the character count. The frontend \
+renders the assistant reply as Markdown directly — no JSON wrapping.",
 };
 
 pub const PROMPT_TEMPLATES: &[PromptTemplate] = &[
