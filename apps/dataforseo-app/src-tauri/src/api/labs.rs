@@ -95,9 +95,8 @@ fn parse_labs_response(raw: &serde_json::Value) -> Result<LabsResponse> {
     let raw_items = raw
         .pointer("/tasks/0/result/0/items")
         .and_then(|v| v.as_array())
-        .ok_or_else(|| AppError::Api {
-            status_code: 20000,
-            message: "labs response missing tasks[0].result[0].items".into(),
+        .ok_or_else(|| {
+            AppError::Parse("labs response missing tasks[0].result[0].items".into())
         })?;
 
     let items = raw_items

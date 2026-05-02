@@ -14,7 +14,9 @@ const DEFAULT_LANGUAGE = "de";
 interface Props {
   title: string;
   description: string;
-  costAction: (seed: string) => CostAction;
+  /// Cost preview action. Pass a stable (memoized) value from the parent so
+  /// the CostPreview doesn't re-render on every keystroke in the seed input.
+  costAction: CostAction;
   /// Extra control rendered above the Run button (e.g. depth slider).
   extraControls?: React.ReactNode;
   run: (seed: string) => Promise<LabsBatch>;
@@ -26,7 +28,6 @@ export default function SeedTab({ title, description, costAction, extraControls,
   const [batch, setBatch] = useState<LabsBatch | null>(null);
 
   const trimmed = seed.trim();
-  const action = useMemo(() => costAction(trimmed), [costAction, trimmed]);
 
   const columns = useMemo<ColumnDef<LabsKeyword, unknown>[]>(
     () => [
@@ -94,7 +95,7 @@ export default function SeedTab({ title, description, costAction, extraControls,
 
         <div className="flex flex-col gap-3">
           <CostPreview
-            action={action}
+            action={costAction}
             details={[`Location ${DEFAULT_LOCATION}, Language ${DEFAULT_LANGUAGE}`]}
             disabled={!trimmed || busy}
           />

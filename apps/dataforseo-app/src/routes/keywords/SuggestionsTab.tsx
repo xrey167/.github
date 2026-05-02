@@ -1,15 +1,18 @@
+import type { CostAction } from "../../lib/cost";
 import { tauriApi } from "../../lib/tauri";
 import SeedTab from "./SeedTab";
 
 const DEFAULT_LOCATION = 2276;
 const DEFAULT_LANGUAGE = "de";
 
+const SUGGESTIONS_COST: CostAction = { kind: "KeywordsSuggestions", mode: "live" };
+
 export default function SuggestionsTab() {
   return (
     <SeedTab
       title="Keyword Suggestions"
       description="Long-tail keywords that contain the seed term, ranked by search volume."
-      costAction={() => ({ kind: "KeywordsSuggestions", mode: "live" })}
+      costAction={SUGGESTIONS_COST}
       run={(seed) =>
         tauriApi.keywordsSuggestions({
           seed,

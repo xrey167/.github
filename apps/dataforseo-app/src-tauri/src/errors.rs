@@ -24,6 +24,12 @@ pub enum AppError {
     #[error("api error {status_code}: {message}")]
     Api { status_code: u32, message: String },
 
+    /// Response was structurally unexpected even though the upstream API
+    /// reported success. Distinct from Api so callers can tell a successful
+    /// API call with a malformed body apart from an explicit upstream error.
+    #[error("response parse error: {0}")]
+    Parse(String),
+
     #[error("internal: {0}")]
     Internal(String),
 }

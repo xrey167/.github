@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import type { CostAction } from "../../lib/cost";
 import { tauriApi } from "../../lib/tauri";
 import SeedTab from "./SeedTab";
 
@@ -9,11 +10,16 @@ const DEFAULT_LANGUAGE = "de";
 export default function RelatedTab() {
   const [depth, setDepth] = useState(2);
 
+  const costAction = useMemo<CostAction>(
+    () => ({ kind: "KeywordsRelated", depth, mode: "live" }),
+    [depth],
+  );
+
   return (
     <SeedTab
       title="Related Keywords"
       description="Ideas pulled from Googles 'searches related to' section. Higher depth costs more."
-      costAction={() => ({ kind: "KeywordsRelated", depth, mode: "live" })}
+      costAction={costAction}
       extraControls={
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-slate-700">Depth: {depth}</span>
