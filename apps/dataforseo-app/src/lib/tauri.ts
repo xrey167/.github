@@ -115,6 +115,12 @@ export const tauriApi = {
   backlinksDomainIntersection: (params: BacklinksIntersectionParams) =>
     invoke<BacklinksListView>("backlinks_domain_intersection", { params }),
 
+  whoisOverview: (args: { domain: string }) =>
+    invoke<WhoisView>("whois_overview", args),
+
+  domainTechnologies: (args: { domain: string }) =>
+    invoke<TechnologiesView>("domain_technologies", args),
+
   getRecentCalls: (args: { limit: number }) =>
     invoke<CallLogRow[]>("get_recent_calls", args),
 
@@ -350,6 +356,24 @@ export interface BacklinksIntersectionParams {
   includeSubdomains: boolean;
   filter: FilterTree | null;
   orderBy: string[] | null;
+}
+
+export interface WhoisView {
+  domain: string;
+  // DataForSEO returns ~30 fields per row (registrar, dates, name servers,
+  // status flags, contact info). The page picks the ones it knows.
+  item: Record<string, unknown> | null;
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface TechnologiesView {
+  domain: string;
+  // Whole result blob — has `technologies` map keyed by category, plus
+  // metadata fields (last_visited_date, country_iso_code, etc.).
+  result: Record<string, unknown> | null;
+  cost_usd: number;
+  estimated_usd: number;
 }
 
 export interface TaskBatchId {
