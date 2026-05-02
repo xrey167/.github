@@ -327,4 +327,79 @@ impl ApiClient {
             cost,
         })
     }
+
+    /// Domain Intersection — the SEMrush "Link Gap" feature. Pass two
+    /// targets and `intersection_mode = "intersect"` to get domains that
+    /// link to both, or `"exclude"` to get domains that link only to the
+    /// first target. The shape is the same as referring_domains: one row
+    /// per linking domain with rank, backlink count, etc.
+    pub async fn backlinks_domain_intersection_live(
+        &self,
+        args: BacklinksIntersectionArgs<'_>,
+    ) -> Result<BacklinksListResponse> {
+        let mut payload = serde_json::json!({
+            "targets": [
+                { "target": args.target_a, "include_subdomains": args.include_subdomains },
+                { "target": args.target_b, "include_subdomains": args.include_subdomains },
+            ],
+            "intersection_mode": args.intersection_mode,
+            "limit": args.limit,
+            "offset": args.offset,
+        });
+        if let Some(filter) = args.filter {
+            attach_filter(&mut payload, filter);
+        }
+        if let Some(order) = args.order_by {
+            payload["order_by"] = serde_json::json!(order);
+        }
+        let body = serde_json::json!([payload]);
+        let raw = self
+            .post_json(
+                Family::Backlinks,
+                "/v3/backlinks/domain_intersection/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let result = raw.pointer("/tasks/0/result/0").ok_or_else(|| {
+            AppError::Parse("backlinks domain_intersection missing tasks[0].result[0]".into())
+        })?;
+        let total_count = result
+            .pointer("/total_count")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let items_count = result
+            .pointer("/items_count")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let items = result
+            .pointer("/items")
+            .cloned()
+            .unwrap_or(Value::Array(Vec::new()));
+        Ok(BacklinksListResponse {
+            // Combine the two targets into the response label so the UI
+            // can show "a vs b" without storing them separately.
+            target: format!("{} vs {}", args.target_a, args.target_b),
+            total_count,
+            items_count,
+            items,
+            cost,
+        })
+    }
+}
+
+/// Inputs for `backlinks_domain_intersection_live`. Two targets and a mode
+/// — "intersect" (linking domains in common) or "exclude" (domains linking
+/// to A but not B). Filterable like the other list endpoints.
+#[derive(Debug, Clone)]
+pub struct BacklinksIntersectionArgs<'a> {
+    pub target_a: &'a str,
+    pub target_b: &'a str,
+    /// "intersect" | "exclude" — DataForSEO's wire form.
+    pub intersection_mode: &'static str,
+    pub limit: u32,
+    pub offset: u32,
+    pub include_subdomains: bool,
+    pub filter: Option<&'a Filter>,
+    pub order_by: Option<Vec<String>>,
 }

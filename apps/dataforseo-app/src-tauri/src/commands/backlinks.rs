@@ -5,7 +5,9 @@ use tauri::State;
 use tokio::task;
 use ts_rs::TS;
 
-use crate::api::backlinks::{BacklinksDetailArgs, BacklinksListArgs};
+use crate::api::backlinks::{
+    BacklinksDetailArgs, BacklinksIntersectionArgs, BacklinksListArgs,
+};
 use crate::commands::ledger::run_with_ledger;
 use crate::domain::cost::{self, CostAction};
 use crate::domain::endpoints;
@@ -396,6 +398,93 @@ pub async fn backlinks_history(
                     date_to.as_deref(),
                 )
                 .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+
+    Ok(BacklinksListView {
+        target: resp.target,
+        total_count: resp.total_count,
+        items_count: resp.items_count,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+// ---------- Domain Intersection (Link Gap) ----------
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+#[serde(rename_all = "camelCase")]
+pub struct BacklinksIntersectionParams {
+    pub target_a: String,
+    pub target_b: String,
+    /// "intersect" (domains linking to both) | "exclude" (linking to A
+    /// but not B). The frontend toggles between these.
+    pub intersection_mode: String,
+    pub limit: u32,
+    pub offset: u32,
+    pub include_subdomains: bool,
+    pub filter: Option<Filter>,
+    pub order_by: Option<Vec<String>>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state, params))]
+pub async fn backlinks_domain_intersection(
+    state: State<'_, AppState>,
+    params: BacklinksIntersectionParams,
+) -> Result<BacklinksListView> {
+    let target_a = params.target_a.trim().to_owned();
+    let target_b = params.target_b.trim().to_owned();
+    if target_a.is_empty() || target_b.is_empty() {
+        return Err(AppError::Validation(
+            "both targets required".into(),
+        ));
+    }
+    let mode = match params.intersection_mode.as_str() {
+        "intersect" => "intersect",
+        "exclude" => "exclude",
+        other => {
+            return Err(AppError::Validation(format!(
+                "invalid intersection_mode {other:?}; expected intersect|exclude"
+            )))
+        }
+    };
+    let limit = params.limit.clamp(1, LIST_MAX_LIMIT);
+
+    // Same per-row pricing as referring_domains.
+    let estimated_usd = cost::estimate(&CostAction::Backlinks {
+        target_count: 1,
+        rows_per_target: limit,
+    });
+
+    let api = state.api.clone();
+    let filter = params.filter.clone();
+    let order_by = params.order_by.clone();
+    let target_a_for_call = target_a.clone();
+    let target_b_for_call = target_b.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::BACKLINKS_DOMAIN_INTERSECTION,
+        Mode::Live,
+        estimated_usd,
+        limit as i64,
+        move || async move {
+            let args = BacklinksIntersectionArgs {
+                target_a: &target_a_for_call,
+                target_b: &target_b_for_call,
+                intersection_mode: mode,
+                limit,
+                offset: params.offset,
+                include_subdomains: params.include_subdomains,
+                filter: filter.as_ref(),
+                order_by,
+            };
+            let r = api.backlinks_domain_intersection_live(args).await?;
             let cost = r.cost;
             Ok((r, cost))
         },

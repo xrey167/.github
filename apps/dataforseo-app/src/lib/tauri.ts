@@ -112,6 +112,9 @@ export const tauriApi = {
   backlinksHistory: (params: BacklinksHistoryParams) =>
     invoke<BacklinksListView>("backlinks_history", { params }),
 
+  backlinksDomainIntersection: (params: BacklinksIntersectionParams) =>
+    invoke<BacklinksListView>("backlinks_domain_intersection", { params }),
+
   getRecentCalls: (args: { limit: number }) =>
     invoke<CallLogRow[]>("get_recent_calls", args),
 
@@ -334,6 +337,19 @@ export interface BacklinksHistoryParams {
   // YYYY-MM-DD; both ends optional.
   dateFrom: string | null;
   dateTo: string | null;
+}
+
+export type BacklinksIntersectionMode = "intersect" | "exclude";
+
+export interface BacklinksIntersectionParams {
+  targetA: string;
+  targetB: string;
+  intersectionMode: BacklinksIntersectionMode;
+  limit: number;
+  offset: number;
+  includeSubdomains: boolean;
+  filter: FilterTree | null;
+  orderBy: string[] | null;
 }
 
 export interface TaskBatchId {

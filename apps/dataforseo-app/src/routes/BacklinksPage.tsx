@@ -17,12 +17,19 @@ import {
   type BacklinksDetailMode,
   type BacklinksDetailStatus,
   type BacklinksDetailView,
+  type BacklinksIntersectionMode,
   type BacklinksListView,
   type BacklinksSummaryView,
   type FilterTree,
 } from "../lib/tauri";
 
-type Tab = "summary" | "detail" | "domains" | "anchors" | "history";
+type Tab =
+  | "summary"
+  | "detail"
+  | "domains"
+  | "anchors"
+  | "history"
+  | "linkgap";
 
 export default function BacklinksPage() {
   const [tab, setTab] = useState<Tab>("summary");
@@ -60,6 +67,9 @@ export default function BacklinksPage() {
         <TabButton active={tab === "history"} onClick={() => setTab("history")}>
           History
         </TabButton>
+        <TabButton active={tab === "linkgap"} onClick={() => setTab("linkgap")}>
+          Link Gap
+        </TabButton>
       </nav>
 
       {tab === "summary" && <SummaryTab />}
@@ -67,6 +77,7 @@ export default function BacklinksPage() {
       {tab === "domains" && <ReferringDomainsTab />}
       {tab === "anchors" && <AnchorsTab />}
       {tab === "history" && <HistoryTab />}
+      {tab === "linkgap" && <LinkGapTab />}
     </section>
   );
 }
@@ -1011,6 +1022,192 @@ function EmptyHint({ label }: { label: string }) {
   return (
     <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
       {label}
+    </div>
+  );
+}
+
+// ---------- Link Gap (Domain Intersection) tab ----------
+
+function LinkGapTab() {
+  const [targetA, setTargetA] = useState("");
+  const [targetB, setTargetB] = useState("");
+  const [mode, setMode] = useState<BacklinksIntersectionMode>("exclude");
+  const [limit, setLimit] = useState(100);
+  const [includeSubdomains, setIncludeSubdomains] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<BacklinksListView | null>(null);
+
+  async function onRun() {
+    const a = targetA.trim();
+    const b = targetB.trim();
+    if (!a || !b) return;
+    setBusy(true);
+    try {
+      const result = await tauriApi.backlinksDomainIntersection({
+        targetA: a,
+        targetB: b,
+        intersectionMode: mode,
+        limit,
+        offset: 0,
+        includeSubdomains,
+        filter: null,
+        orderBy: ["rank,desc"],
+      });
+      setView(result);
+      const label =
+        mode === "intersect"
+          ? `domains linking to both`
+          : `domains linking to ${a} but not ${b}`;
+      toast.success(
+        `Loaded ${formatCount(result.items_count)} ${label} (${formatUsd(result.cost_usd)})`,
+      );
+    } catch (e) {
+      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-xs text-slate-600">
+        SEMrush-style "Link Gap": find domains linking to a competitor but
+        not to you. Pick <strong>exclude</strong> to see {targetB || "B"}'s
+        links that {targetA || "A"} is missing, or <strong>intersect</strong>{" "}
+        to see which referring domains both already share.
+      </p>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700">Your domain (A)</span>
+            <input
+              type="text"
+              value={targetA}
+              onChange={(e) => setTargetA(e.target.value)}
+              disabled={busy}
+              className="rounded border px-2 py-1 font-mono text-sm disabled:bg-slate-50"
+              placeholder="example.com"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700">
+              Competitor domain (B)
+            </span>
+            <input
+              type="text"
+              value={targetB}
+              onChange={(e) => setTargetB(e.target.value)}
+              disabled={busy}
+              className="rounded border px-2 py-1 font-mono text-sm disabled:bg-slate-50"
+              placeholder="competitor.com"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <label className="flex flex-col gap-1">
+              <span className="font-medium text-slate-700">Mode</span>
+              <select
+                value={mode}
+                onChange={(e) =>
+                  setMode(e.target.value as BacklinksIntersectionMode)
+                }
+                disabled={busy}
+                className="rounded border px-2 py-1 disabled:bg-slate-50"
+              >
+                <option value="exclude">Exclude (B \ A)</option>
+                <option value="intersect">Intersect (A ∩ B)</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="font-medium text-slate-700">Limit</span>
+              <input
+                type="number"
+                min={1}
+                max={1000}
+                value={limit}
+                onChange={(e) => {
+                  const n = e.target.valueAsNumber;
+                  setLimit(Number.isFinite(n) ? n : 0);
+                }}
+                onBlur={(e) => {
+                  const n = e.target.valueAsNumber;
+                  setLimit(
+                    Number.isFinite(n)
+                      ? Math.max(1, Math.min(1000, n))
+                      : 100,
+                  );
+                }}
+                disabled={busy}
+                className="rounded border px-2 py-1 disabled:bg-slate-50"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <CostPreview
+            action={{
+              kind: "Backlinks",
+              target_count: 1,
+              rows_per_target: limit,
+            }}
+            details={[
+              `Up to ${formatCount(limit)} domains`,
+              mode === "exclude"
+                ? "Domains linking only to B"
+                : "Domains linking to both",
+            ]}
+            disabled={busy || !targetA.trim() || !targetB.trim()}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={includeSubdomains}
+              onChange={(e) => setIncludeSubdomains(e.target.checked)}
+              disabled={busy}
+            />
+            Include subdomains
+          </label>
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={busy || !targetA.trim() || !targetB.trim()}
+            className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {busy ? "Loading…" : "Find link gap"}
+          </button>
+        </div>
+      </div>
+
+      {view ? (
+        <ListTable
+          view={view}
+          columns={[
+            { key: "domain", label: "Domain", kind: "string" },
+            { key: "rank", label: "Rank", kind: "number", align: "right" },
+            {
+              key: "backlinks",
+              label: "Links",
+              kind: "number",
+              align: "right",
+            },
+            {
+              key: "first_seen",
+              label: "First seen",
+              kind: "string",
+              transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
+            },
+          ]}
+        />
+      ) : (
+        !busy && (
+          <EmptyHint label="Enter your domain and a competitor, then find the gap." />
+        )
+      )}
     </div>
   );
 }
