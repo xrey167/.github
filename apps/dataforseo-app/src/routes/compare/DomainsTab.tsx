@@ -51,12 +51,14 @@ export default function DomainsTab() {
           locationCode: DEFAULT_LOCATION,
           languageCode: DEFAULT_LANGUAGE,
           limit: KEYWORD_LIMIT,
+          useCache: true,
         }),
         tauriApi.keywordsRanked({
           target: trimmedB,
           locationCode: DEFAULT_LOCATION,
           languageCode: DEFAULT_LANGUAGE,
           limit: KEYWORD_LIMIT,
+          useCache: true,
         }),
       ]);
 

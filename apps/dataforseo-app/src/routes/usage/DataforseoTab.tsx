@@ -16,6 +16,7 @@ import {
   type CallLogRow,
   type UsageSummary,
 } from "../../lib/tauri";
+import BudgetCard from "./BudgetCard";
 import Stat from "./Stat";
 
 const RANGE_OPTIONS = [
@@ -80,6 +81,7 @@ export default function DataforseoTab() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BudgetCard />
       <div className="flex items-center justify-end gap-2">
         <select
           value={days}

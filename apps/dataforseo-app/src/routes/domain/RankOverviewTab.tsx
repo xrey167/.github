@@ -27,6 +27,7 @@ export default function RankOverviewTab({ target }: Props) {
         target: trimmed,
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
+        useCache: true,
       });
       setView(result);
       toast.success(`Loaded overview for ${trimmed} (${formatUsd(result.cost_usd)})`);

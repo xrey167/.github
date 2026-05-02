@@ -37,6 +37,7 @@ export default function DifficultyTab() {
         keywords,
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
+        useCache: true,
       });
       setView(result);
       toast.success(

@@ -26,6 +26,7 @@ export default function DomainIntersectionTab() {
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
         limit: 200,
+        useCache: true,
       });
       setView(result);
       toast.success(`${result.items.length} shared keywords (${formatUsd(result.cost_usd)})`);

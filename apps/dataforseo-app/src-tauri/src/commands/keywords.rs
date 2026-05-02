@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use chrono::Duration;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 use tokio::task;
 use ts_rs::TS;
@@ -11,7 +11,9 @@ use crate::api::labs::{
     CompetitorsDomainItem, DomainIntersectionItem, LabsKeywordItem, RankedKeywordItem,
     SerpCompetitorItem,
 };
+use crate::commands::cached::{self, CachedOutcome};
 use crate::commands::ledger::run_with_ledger;
+use crate::domain::cache;
 use crate::domain::cost::{self, CostAction};
 use crate::domain::endpoints;
 use crate::domain::types::Mode;
@@ -157,7 +159,7 @@ pub async fn keywords_search_volume(
     })
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct LabsKeyword {
     pub keyword: String,
@@ -168,12 +170,16 @@ pub struct LabsKeyword {
     pub keyword_difficulty: Option<i32>,
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct LabsBatch {
     pub items: Vec<LabsKeyword>,
     pub cost_usd: f64,
     pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
 }
 
 impl From<LabsKeywordItem> for LabsKeyword {
@@ -197,12 +203,29 @@ pub async fn keywords_suggestions(
     location_code: u32,
     language_code: String,
     limit: u32,
+    use_cache: bool,
 ) -> Result<LabsBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsSuggestions { mode: Mode::Live });
+    let endpoint = endpoints::LABS_KEYWORD_SUGGESTIONS;
+    let cache_params = serde_json::json!({
+        "seed": &seed,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<LabsBatch>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_KEYWORD_SUGGESTIONS,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -215,11 +238,15 @@ pub async fn keywords_suggestions(
         },
     )
     .await?;
-    Ok(LabsBatch {
+    let view = LabsBatch {
         items: resp.items.into_iter().map(LabsKeyword::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
 #[tauri::command]
@@ -230,12 +257,29 @@ pub async fn keywords_related(
     location_code: u32,
     language_code: String,
     depth: u32,
+    use_cache: bool,
 ) -> Result<LabsBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsRelated { depth, mode: Mode::Live });
+    let endpoint = endpoints::LABS_RELATED_KEYWORDS;
+    let cache_params = serde_json::json!({
+        "seed": &seed,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "depth": depth,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<LabsBatch>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_RELATED_KEYWORDS,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -248,11 +292,15 @@ pub async fn keywords_related(
         },
     )
     .await?;
-    Ok(LabsBatch {
+    let view = LabsBatch {
         items: resp.items.into_iter().map(LabsKeyword::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
 #[tauri::command]
@@ -263,12 +311,29 @@ pub async fn keywords_for_domain(
     location_code: u32,
     language_code: String,
     limit: u32,
+    use_cache: bool,
 ) -> Result<LabsBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsForDomain { mode: Mode::Live });
+    let endpoint = endpoints::LABS_KEYWORDS_FOR_SITE;
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<LabsBatch>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_KEYWORDS_FOR_SITE,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -281,14 +346,18 @@ pub async fn keywords_for_domain(
         },
     )
     .await?;
-    Ok(LabsBatch {
+    let view = LabsBatch {
         items: resp.items.into_iter().map(LabsKeyword::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct RankedKeyword {
     pub keyword: String,
@@ -301,12 +370,16 @@ pub struct RankedKeyword {
     pub etv: Option<f64>,
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct RankedBatch {
     pub items: Vec<RankedKeyword>,
     pub cost_usd: f64,
     pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
 }
 
 impl From<RankedKeywordItem> for RankedKeyword {
@@ -332,12 +405,29 @@ pub async fn keywords_ranked(
     location_code: u32,
     language_code: String,
     limit: u32,
+    use_cache: bool,
 ) -> Result<RankedBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsForDomain { mode: Mode::Live });
+    let endpoint = endpoints::LABS_RANKED_KEYWORDS;
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<RankedBatch>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_volatile(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_RANKED_KEYWORDS,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -350,16 +440,20 @@ pub async fn keywords_ranked(
         },
     )
     .await?;
-    Ok(RankedBatch {
+    let view = RankedBatch {
         items: resp.items.into_iter().map(RankedKeyword::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
 // ---------- Domain Rank Overview + Bulk Keyword Difficulty ----------
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct DomainRankOverviewView {
     pub target: String,
@@ -368,6 +462,10 @@ pub struct DomainRankOverviewView {
     pub items: serde_json::Value,
     pub cost_usd: f64,
     pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
 }
 
 #[tauri::command]
@@ -377,17 +475,33 @@ pub async fn labs_domain_rank_overview(
     target: String,
     location_code: u32,
     language_code: String,
+    use_cache: bool,
 ) -> Result<DomainRankOverviewView> {
     let target = target.trim().to_owned();
     if target.is_empty() {
         return Err(AppError::Validation("target required".into()));
     }
     let estimated_usd = cost::estimate(&CostAction::LabsDomainRankOverview);
+    let endpoint = endpoints::LABS_DOMAIN_RANK_OVERVIEW;
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "location_code": location_code,
+        "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<DomainRankOverviewView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_short(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let target_for_call = target.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_DOMAIN_RANK_OVERVIEW,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -400,27 +514,35 @@ pub async fn labs_domain_rank_overview(
         },
     )
     .await?;
-    Ok(DomainRankOverviewView {
-        target,
+    let view = DomainRankOverviewView {
+        target: target.clone(),
         items: resp.items,
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct BulkDifficultyItem {
     pub keyword: String,
     pub keyword_difficulty: Option<i32>,
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct BulkDifficultyView {
     pub items: Vec<BulkDifficultyItem>,
     pub cost_usd: f64,
     pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
 }
 
 const BULK_DIFFICULTY_MAX: usize = 1000;
@@ -432,6 +554,7 @@ pub async fn labs_bulk_keyword_difficulty(
     keywords: Vec<String>,
     location_code: u32,
     language_code: String,
+    use_cache: bool,
 ) -> Result<BulkDifficultyView> {
     // Same order-preserving dedup pattern as keywords_search_volume so
     // the table stays stable.
@@ -450,12 +573,32 @@ pub async fn labs_bulk_keyword_difficulty(
     let estimated_usd = cost::estimate(&CostAction::LabsBulkKeywordDifficulty {
         count: cleaned.len() as u32,
     });
+    let endpoint = endpoints::LABS_BULK_KEYWORD_DIFFICULTY;
+    // Sort keywords inside the cache key so two calls that pass the same
+    // set in different order get the same hash. Doesn't affect the API
+    // call (which we still make in the user-supplied order).
+    let mut sorted_keywords = cleaned.clone();
+    sorted_keywords.sort();
+    let cache_params = serde_json::json!({
+        "keywords": sorted_keywords,
+        "location_code": location_code,
+        "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<BulkDifficultyView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let cleaned_for_call = cleaned.clone();
     let request_size = cleaned.len() as i64;
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_BULK_KEYWORD_DIFFICULTY,
+        endpoint,
         Mode::Live,
         estimated_usd,
         request_size,
@@ -468,7 +611,7 @@ pub async fn labs_bulk_keyword_difficulty(
         },
     )
     .await?;
-    Ok(BulkDifficultyView {
+    let view = BulkDifficultyView {
         items: resp
             .items
             .into_iter()
@@ -479,12 +622,16 @@ pub async fn labs_bulk_keyword_difficulty(
             .collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
 // ---------- Competitive Intelligence ----------
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct SerpCompetitor {
     pub domain: Option<String>,
@@ -508,13 +655,17 @@ impl From<SerpCompetitorItem> for SerpCompetitor {
     }
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct SerpCompetitorsView {
     pub keyword: String,
     pub items: Vec<SerpCompetitor>,
     pub cost_usd: f64,
     pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
 }
 
 #[tauri::command]
@@ -525,12 +676,29 @@ pub async fn labs_serp_competitors(
     location_code: u32,
     language_code: String,
     limit: u32,
+    use_cache: bool,
 ) -> Result<SerpCompetitorsView> {
     let estimated_usd = cost::estimate(&CostAction::LabsSerpCompetitors);
+    let endpoint = endpoints::LABS_SERP_COMPETITORS;
+    let cache_params = serde_json::json!({
+        "keyword": &keyword,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<SerpCompetitorsView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_short(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_SERP_COMPETITORS,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -543,15 +711,19 @@ pub async fn labs_serp_competitors(
         },
     )
     .await?;
-    Ok(SerpCompetitorsView {
+    let view = SerpCompetitorsView {
         keyword: resp.keyword,
         items: resp.items.into_iter().map(SerpCompetitor::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct CompetitorDomain {
     pub domain: Option<String>,
@@ -571,13 +743,17 @@ impl From<CompetitorsDomainItem> for CompetitorDomain {
     }
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct CompetitorsDomainView {
     pub target: String,
     pub items: Vec<CompetitorDomain>,
     pub cost_usd: f64,
     pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
 }
 
 #[tauri::command]
@@ -588,17 +764,34 @@ pub async fn labs_competitors_domain(
     location_code: u32,
     language_code: String,
     limit: u32,
+    use_cache: bool,
 ) -> Result<CompetitorsDomainView> {
     let target = target.trim().to_owned();
     if target.is_empty() {
         return Err(AppError::Validation("target required".into()));
     }
     let estimated_usd = cost::estimate(&CostAction::LabsCompetitorsDomain);
+    let endpoint = endpoints::LABS_COMPETITORS_DOMAIN;
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<CompetitorsDomainView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let target_for_call = target.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_COMPETITORS_DOMAIN,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -611,15 +804,19 @@ pub async fn labs_competitors_domain(
         },
     )
     .await?;
-    Ok(CompetitorsDomainView {
-        target,
+    let view = CompetitorsDomainView {
+        target: target.clone(),
         items: resp.items.into_iter().map(CompetitorDomain::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct IntersectionKeyword {
     pub keyword: String,
@@ -645,7 +842,7 @@ impl From<DomainIntersectionItem> for IntersectionKeyword {
     }
 }
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct DomainIntersectionView {
     pub target1: String,
@@ -653,6 +850,10 @@ pub struct DomainIntersectionView {
     pub items: Vec<IntersectionKeyword>,
     pub cost_usd: f64,
     pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
 }
 
 #[tauri::command]
@@ -664,6 +865,7 @@ pub async fn labs_domain_intersection(
     location_code: u32,
     language_code: String,
     limit: u32,
+    use_cache: bool,
 ) -> Result<DomainIntersectionView> {
     let target1 = target1.trim().to_owned();
     let target2 = target2.trim().to_owned();
@@ -671,12 +873,33 @@ pub async fn labs_domain_intersection(
         return Err(AppError::Validation("both target1 and target2 required".into()));
     }
     let estimated_usd = cost::estimate(&CostAction::LabsDomainIntersection);
+    let endpoint = endpoints::LABS_DOMAIN_INTERSECTION;
+    // Sort the pair so `(a,b)` and `(b,a)` share a cache key. The position
+    // labels in the response (target1 vs target2) still match what the API
+    // actually returned for the live call — we only normalize the hash.
+    let mut pair = [target1.as_str(), target2.as_str()];
+    pair.sort();
+    let cache_params = serde_json::json!({
+        "targets": pair,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<DomainIntersectionView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_short(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
     let api = state.api.clone();
     let t1 = target1.clone();
     let t2 = target2.clone();
     let resp = run_with_ledger(
         state.store.clone(),
-        endpoints::LABS_DOMAIN_INTERSECTION,
+        endpoint,
         Mode::Live,
         estimated_usd,
         1,
@@ -689,9 +912,9 @@ pub async fn labs_domain_intersection(
         },
     )
     .await?;
-    Ok(DomainIntersectionView {
-        target1,
-        target2,
+    let view = DomainIntersectionView {
+        target1: target1.clone(),
+        target2: target2.clone(),
         items: resp
             .items
             .into_iter()
@@ -699,5 +922,9 @@ pub async fn labs_domain_intersection(
             .collect(),
         cost_usd: resp.cost,
         estimated_usd,
-    })
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
 }

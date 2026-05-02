@@ -25,6 +25,7 @@ export default function CompetitorsDomainTab({ target }: Props) {
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
         limit: 100,
+        useCache: true,
       });
       setView(result);
       toast.success(`${result.items.length} competitors (${formatUsd(result.cost_usd)})`);

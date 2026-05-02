@@ -152,3 +152,43 @@ pub async fn get_ai_usage_summary(
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?
 }
+
+// ---------- Cost Budget ----------
+
+use crate::store::cost_budget::{self, Budget, BudgetStatus};
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn get_budget_status(
+    state: State<'_, AppState>,
+    period: String,
+) -> Result<BudgetStatus> {
+    let store = state.store.clone();
+    task::spawn_blocking(move || -> Result<_> {
+        store.with_conn(|c| cost_budget::status(c, &period))
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn set_budget(state: State<'_, AppState>, budget: Budget) -> Result<()> {
+    let store = state.store.clone();
+    task::spawn_blocking(move || -> Result<()> {
+        store.with_conn(|c| cost_budget::upsert(c, &budget))
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn clear_budget(state: State<'_, AppState>, period: String) -> Result<()> {
+    let store = state.store.clone();
+    task::spawn_blocking(move || -> Result<()> {
+        store.with_conn(|c| cost_budget::delete(c, &period))
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?
+}

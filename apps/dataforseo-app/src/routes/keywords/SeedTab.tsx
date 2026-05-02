@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import CacheBadge from "../../components/CacheBadge";
 import ChatWithResultsButton from "../../components/ChatWithResultsButton";
 import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
@@ -20,7 +21,9 @@ interface Props {
   costAction: CostAction;
   /// Extra control rendered above the Run button (e.g. depth slider).
   extraControls?: React.ReactNode;
-  run: (seed: string) => Promise<LabsBatch>;
+  /// `useCache=false` is passed when the user clicks Refresh to bypass the
+  /// response cache for this call.
+  run: (seed: string, useCache: boolean) => Promise<LabsBatch>;
 }
 
 export default function SeedTab({
@@ -63,13 +66,16 @@ export default function SeedTab({
     [],
   );
 
-  async function onRun() {
+  async function onRun(useCache: boolean) {
     if (!trimmed) return;
     setBusy(true);
     try {
-      const result = await run(trimmed);
+      const result = await run(trimmed, useCache);
       setBatch(result);
-      toast.success(`${result.items.length} keywords (${formatUsd(result.cost_usd)})`);
+      const note = result.from_cache
+        ? `${result.items.length} keywords (cached, $0.00)`
+        : `${result.items.length} keywords (${formatUsd(result.cost_usd)})`;
+      toast.success(note);
     } catch (e) {
       toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
     } finally {
@@ -108,21 +114,34 @@ export default function SeedTab({
             disabled={!trimmed || busy}
           />
           {extraControls}
-          <button
-            type="button"
-            onClick={onRun}
-            disabled={busy || !trimmed}
-            className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
-          >
-            {busy ? "Running…" : "Run"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onRun(true)}
+              disabled={busy || !trimmed}
+              className="flex-1 rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {busy ? "Running…" : "Run"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onRun(false)}
+              disabled={busy || !trimmed}
+              title="Bypass cache and refetch from DataForSEO"
+              className="rounded border border-slate-300 px-2 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              ↻
+            </button>
+          </div>
         </div>
       </div>
 
       {batch && (
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>
-            {batch.items.length} rows · actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
+          <span className="flex items-center gap-2">
+            <CacheBadge fromCache={batch.from_cache} fetchedAt={batch.fetched_at} />
+            {batch.items.length} rows · actual {formatUsd(batch.cost_usd)} · estimated{" "}
+            {formatUsd(batch.estimated_usd)}
           </span>
           <div className="flex gap-2">
             <ChatWithResultsButton

@@ -79,7 +79,7 @@ function WhoisTab() {
     if (!trimmed) return;
     setBusy(true);
     try {
-      const result = await tauriApi.whoisOverview({ domain: trimmed });
+      const result = await tauriApi.whoisOverview({ domain: trimmed, useCache: true });
       setView(result);
       toast.success(`Loaded WHOIS for ${trimmed} (${formatUsd(result.cost_usd)})`);
     } catch (e) {
@@ -219,7 +219,7 @@ function TechnologiesTab() {
     if (!trimmed) return;
     setBusy(true);
     try {
-      const result = await tauriApi.domainTechnologies({ domain: trimmed });
+      const result = await tauriApi.domainTechnologies({ domain: trimmed, useCache: true });
       setView(result);
       toast.success(
         `Loaded tech stack for ${trimmed} (${formatUsd(result.cost_usd)})`,

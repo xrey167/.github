@@ -8,6 +8,7 @@ const MIGRATIONS: &[(u32, &str)] = &[
     (1, include_str!("../../migrations/v0001_initial.sql")),
     (2, include_str!("../../migrations/v0002_ai_chat.sql")),
     (3, include_str!("../../migrations/v0003_backlinks.sql")),
+    (4, include_str!("../../migrations/v0004_response_cache.sql")),
 ];
 
 pub fn ensure_current(conn: &mut Connection) -> Result<()> {

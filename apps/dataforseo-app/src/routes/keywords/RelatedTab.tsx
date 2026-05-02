@@ -35,12 +35,13 @@ export default function RelatedTab() {
           </span>
         </label>
       }
-      run={(seed) =>
+      run={(seed, useCache) =>
         tauriApi.keywordsRelated({
           seed,
           locationCode: DEFAULT_LOCATION,
           languageCode: DEFAULT_LANGUAGE,
           depth,
+          useCache,
         })
       }
     />

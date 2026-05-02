@@ -53,6 +53,8 @@ export interface LabsBatch {
   items: LabsKeyword[];
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 // See KeywordsSearchVolumeArgs above for why this is a `type` alias.
@@ -76,31 +78,31 @@ export const tauriApi = {
   keywordsSearchVolume: (args: KeywordsSearchVolumeArgs) =>
     invoke<KeywordVolumeBatch>("keywords_search_volume", args),
 
-  keywordsSuggestions: (args: LabsSeedArgs & { limit: number }) =>
+  keywordsSuggestions: (args: LabsSeedArgs & { limit: number; useCache: boolean }) =>
     invoke<LabsBatch>("keywords_suggestions", args),
 
-  keywordsRelated: (args: LabsSeedArgs & { depth: number }) =>
+  keywordsRelated: (args: LabsSeedArgs & { depth: number; useCache: boolean }) =>
     invoke<LabsBatch>("keywords_related", args),
 
-  keywordsForDomain: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
+  keywordsForDomain: (args: { target: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<LabsBatch>("keywords_for_domain", args),
 
-  keywordsRanked: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
+  keywordsRanked: (args: { target: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<RankedBatch>("keywords_ranked", args),
 
-  labsDomainRankOverview: (args: { target: string; locationCode: number; languageCode: string }) =>
+  labsDomainRankOverview: (args: { target: string; locationCode: number; languageCode: string; useCache: boolean }) =>
     invoke<DomainRankOverviewView>("labs_domain_rank_overview", args),
 
-  labsBulkKeywordDifficulty: (args: { keywords: string[]; locationCode: number; languageCode: string }) =>
+  labsBulkKeywordDifficulty: (args: { keywords: string[]; locationCode: number; languageCode: string; useCache: boolean }) =>
     invoke<BulkDifficultyView>("labs_bulk_keyword_difficulty", args),
 
-  labsSerpCompetitors: (args: { keyword: string; locationCode: number; languageCode: string; limit: number }) =>
+  labsSerpCompetitors: (args: { keyword: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<SerpCompetitorsView>("labs_serp_competitors", args),
 
-  labsCompetitorsDomain: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
+  labsCompetitorsDomain: (args: { target: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<CompetitorsDomainView>("labs_competitors_domain", args),
 
-  labsDomainIntersection: (args: { target1: string; target2: string; locationCode: number; languageCode: string; limit: number }) =>
+  labsDomainIntersection: (args: { target1: string; target2: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<DomainIntersectionView>("labs_domain_intersection", args),
 
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
@@ -146,10 +148,10 @@ export const tauriApi = {
   backlinksDomainIntersection: (params: BacklinksIntersectionParams) =>
     invoke<BacklinksListView>("backlinks_domain_intersection", { params }),
 
-  whoisOverview: (args: { domain: string }) =>
+  whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
-  domainTechnologies: (args: { domain: string }) =>
+  domainTechnologies: (args: { domain: string; useCache: boolean }) =>
     invoke<TechnologiesView>("domain_technologies", args),
 
   getRecentCalls: (args: { limit: number }) =>
@@ -163,6 +165,15 @@ export const tauriApi = {
 
   getAiUsageSummary: (args: { days: number }) =>
     invoke<AiUsageSummary>("get_ai_usage_summary", args),
+
+  getBudgetStatus: (args: { period: "daily" | "monthly" }) =>
+    invoke<BudgetStatus>("get_budget_status", args),
+
+  setBudget: (args: { budget: { period: "daily" | "monthly"; limit_usd: number; alert_at_pct: number } }) =>
+    invoke<void>("set_budget", args),
+
+  clearBudget: (args: { period: "daily" | "monthly" }) =>
+    invoke<void>("clear_budget", args),
 
   aiProviderStatus: () => invoke<AiProviderStatus[]>("ai_provider_status"),
 
@@ -228,6 +239,16 @@ export interface StoredChatMessage {
   output_tokens: number | null;
   cost_usd: number | null;
   created_at: string | null;
+}
+
+export interface BudgetStatus {
+  period: string;
+  limit_usd: number | null;
+  alert_at_pct: number | null;
+  spent_usd: number;
+  used_pct: number | null;
+  // "ok" | "alert" | "exceeded" | "no_budget"
+  state: string;
 }
 
 export interface CallLogRow {
@@ -396,6 +417,8 @@ export interface WhoisView {
   item: Record<string, unknown> | null;
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface TechnologiesView {
@@ -405,6 +428,8 @@ export interface TechnologiesView {
   result: Record<string, unknown> | null;
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface TaskBatchId {
@@ -486,6 +511,8 @@ export interface RankedBatch {
   items: RankedKeyword[];
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface DomainRankOverviewView {
@@ -496,6 +523,8 @@ export interface DomainRankOverviewView {
   items: Array<Record<string, unknown>>;
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface BulkDifficultyItem {
@@ -507,6 +536,8 @@ export interface BulkDifficultyView {
   items: BulkDifficultyItem[];
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface SerpCompetitor {
@@ -523,6 +554,8 @@ export interface SerpCompetitorsView {
   items: SerpCompetitor[];
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface CompetitorDomain {
@@ -537,6 +570,8 @@ export interface CompetitorsDomainView {
   items: CompetitorDomain[];
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface IntersectionKeyword {
@@ -555,6 +590,8 @@ export interface DomainIntersectionView {
   items: IntersectionKeyword[];
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface MapsResultItem {

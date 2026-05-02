@@ -41,6 +41,7 @@ export default function TrafficPage() {
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
         limit: KEYWORD_LIMIT,
+        useCache: true,
       });
       const totalEtv = batch.items.reduce((sum, it) => sum + (it.etv ?? 0), 0);
       const totalVolume = batch.items.reduce(

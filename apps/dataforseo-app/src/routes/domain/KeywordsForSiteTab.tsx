@@ -47,6 +47,7 @@ export default function KeywordsForSiteTab({ target }: Props) {
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
         limit: 200,
+        useCache: true,
       });
       setBatch(result);
       toast.success(`${result.items.length} keywords (${formatUsd(result.cost_usd)})`);

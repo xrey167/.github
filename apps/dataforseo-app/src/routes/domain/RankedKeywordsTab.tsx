@@ -80,6 +80,7 @@ export default function RankedKeywordsTab({ target }: Props) {
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
         limit: 200,
+        useCache: true,
       });
       setBatch(result);
       toast.success(`${result.items.length} ranked keywords (${formatUsd(result.cost_usd)})`);
