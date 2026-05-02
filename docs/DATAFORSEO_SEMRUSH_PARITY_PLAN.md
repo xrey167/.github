@@ -29,7 +29,7 @@ SEMrush bündelt sechs Hauptbereiche, die hier als Mapping-Grundlage dienen:
 
 Plus: Content-Tools (Content Audit, Topic Research, SEO Writing Assistant) —
 das sind Editorial-Workflows, die DataForSEO nicht direkt liefert; wir
-betrachten sie separat in Teil 7.
+betrachten sie separat in Teil 3.4 und Teil 5.
 
 ---
 
@@ -131,7 +131,7 @@ CREATE TABLE rank_tracking_keywords (
     keyword VARCHAR NOT NULL,
     location_code INTEGER NOT NULL,
     language_code VARCHAR NOT NULL,
-    device VARCHAR NOT NULL,                   -- 'desktop' | 'mobile'
+    device VARCHAR NOT NULL CHECK (device IN ('desktop', 'mobile')),
     target_domain VARCHAR NOT NULL,            -- "myclient.de"
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -139,7 +139,7 @@ CREATE TABLE rank_tracking_keywords (
 CREATE TABLE rank_tracking_history (
     keyword_id BIGINT NOT NULL,
     measured_at DATE NOT NULL,
-    rank_absolute INTEGER,                     -- NULL = nicht in top 100
+    rank_absolute INTEGER,                     -- 101 = nicht in top 100 (Sentinel statt NULL für simplere AVG / Visibility-Aggregate)
     serp_url VARCHAR,
     PRIMARY KEY (keyword_id, measured_at)
 );
@@ -362,8 +362,10 @@ abbilden, weil DataForSEO pay-as-you-go ist und die App selbst lokal läuft.
 - **Enterprise: bespoke:** SaaS-Variante mit Reseller-Backlinks-Konto, also
   „bring your own DataForSEO-Konto entfällt".
 
-→ User zahlt insgesamt: **~55–75 USD/Monat** vs. **130–450 USD/Monat** bei
-SEMrush. Differenz ist das Verkaufsargument.
+→ Pro-User zahlt insgesamt: **~55–75 USD/Monat** (App-Lizenz + DataForSEO-
+Verbrauch) vs. **130–450 USD/Monat** bei SEMrush. Agency-Tier zahlt
+~125 USD/Monat (99 USD App-Lizenz + ~26 USD Verbrauch), aber mit
+Mehrnutzer- und Mandantenfähigkeit. Differenz ist das Verkaufsargument.
 
 ---
 
