@@ -756,11 +756,12 @@ function HistoryTab() {
             action={{
               kind: "Backlinks",
               target_count: 1,
-              rows_per_target: 60,
+              rows_per_target: 1,
             }}
             details={[
               "One request, monthly snapshots",
               "Up to ~5 years of history",
+              "Flat fee (no per-row component)",
             ]}
             disabled={busy || !target.trim()}
           />

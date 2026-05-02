@@ -247,7 +247,6 @@ pub struct BacklinksListView {
 }
 
 const LIST_MAX_LIMIT: u32 = 1000;
-const HISTORY_MAX_ROWS: u32 = 60; // monthly buckets, ~5 years
 
 #[tauri::command]
 #[tracing::instrument(skip(state, params))]
@@ -370,11 +369,13 @@ pub async fn backlinks_history(
     if target.is_empty() {
         return Err(AppError::Validation("target required".into()));
     }
-    // History is one snapshot per month; cost is per-request only (no
-    // per-row component since we don't request a row count).
+    // History is billed per-request only — no per-row component, even
+    // though one call returns ~60 monthly snapshots. Match the summary
+    // endpoint (which is also flat-fee) and pass rows_per_target: 1 so
+    // the cost preview shows the same 0.02 USD as the actual charge.
     let estimated_usd = cost::estimate(&CostAction::Backlinks {
         target_count: 1,
-        rows_per_target: HISTORY_MAX_ROWS,
+        rows_per_target: 1,
     });
 
     let api = state.api.clone();
