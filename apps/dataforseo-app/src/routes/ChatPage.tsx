@@ -13,7 +13,10 @@ import {
 export default function ChatPage() {
   const params = useParams<{ sessionId?: string }>();
   const navigate = useNavigate();
-  const sessionId = params.sessionId ? Number(params.sessionId) : null;
+  // Number("abc") returns NaN — guard so a junk URL like /chat/foo doesn't
+  // fall through to API calls with an invalid id.
+  const parsed = params.sessionId ? Number(params.sessionId) : null;
+  const sessionId = parsed != null && Number.isFinite(parsed) ? parsed : null;
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
@@ -165,7 +168,7 @@ export default function ChatPage() {
           {activeSession && (
             <>
               <SessionHeader session={activeSession} />
-              <ChatThread ref={threadRef} messages={messages} busy={busy} />
+              <ChatThread threadRef={threadRef} messages={messages} busy={busy} />
               <ChatInput
                 templates={templates}
                 disabled={busy || providerConfigured === false}
@@ -238,16 +241,19 @@ function SessionHeader({ session }: { session: ChatSession }) {
   );
 }
 
+// `ref` is reserved on functional components in React 18 unless wrapped in
+// forwardRef — using a custom prop name skips the wrapper and lets the auto-
+// scroll effect target the underlying div.
 const ChatThread = ({
   messages,
   busy,
-  ref,
+  threadRef,
 }: {
   messages: StoredChatMessage[];
   busy: boolean;
-  ref?: React.RefObject<HTMLDivElement>;
+  threadRef?: React.RefObject<HTMLDivElement>;
 }) => (
-  <div ref={ref} className="flex-1 space-y-3 overflow-y-auto rounded border bg-white p-4">
+  <div ref={threadRef} className="flex-1 space-y-3 overflow-y-auto rounded border bg-white p-4">
     {messages.length === 0 && (
       <div className="text-sm text-slate-500">No messages yet — try a Quick Action below.</div>
     )}

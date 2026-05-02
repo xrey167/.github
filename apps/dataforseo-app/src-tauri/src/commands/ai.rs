@@ -78,6 +78,7 @@ pub fn ai_prompt_templates() -> Result<Vec<PromptTemplate>> {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatNewSessionArgs {
     pub attachment_summary: Option<String>,
     pub attachment_json: Option<Value>,
@@ -137,6 +138,7 @@ pub async fn chat_history(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatSendArgs {
     pub session_id: i64,
     pub user_content: String,
