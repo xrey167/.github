@@ -63,6 +63,24 @@ impl ApiClient {
         Self::deserialize_or_err(resp).await
     }
 
+    /// GET a path and return the parsed response, gated by the rate limiter
+    /// for the given family. Used by tasks_ready / task_get.
+    pub(crate) async fn get_json(
+        &self,
+        family: Family,
+        path: &str,
+    ) -> Result<serde_json::Value> {
+        self.scheduler.acquire(family).await;
+        let creds = self.credentials().await?;
+        let resp = self
+            .http
+            .get(format!("{BASE_URL}{path}"))
+            .basic_auth(&creds.login, Some(&creds.password))
+            .send()
+            .await?;
+        Self::deserialize_or_err(resp).await
+    }
+
     async fn deserialize_or_err(resp: reqwest::Response) -> Result<serde_json::Value> {
         let status = resp.status();
         if !status.is_success() {
