@@ -80,10 +80,14 @@ export function downloadJson<T>(rows: T[], filename: string): void {
   triggerBlobDownload(JSON.stringify(rows, null, 2), filename, "application/json");
 }
 
+export function downloadMarkdown(content: string, filename: string): void {
+  triggerBlobDownload(content, filename, "text/markdown;charset=utf-8");
+}
+
 /// Stamp a filename with a sortable timestamp so users can collect repeat
 /// exports without overwriting. Sanitises the stem so it cannot blow up on
 /// Windows: drops any of <>:"/\|?* and collapses runs of whitespace.
-export function timestampedFilename(stem: string, ext: "csv" | "json"): string {
+export function timestampedFilename(stem: string, ext: "csv" | "json" | "md"): string {
   const safe = stem.replace(/[<>:"/\\|?*\s]+/g, "-").replace(/^-+|-+$/g, "") || "export";
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
