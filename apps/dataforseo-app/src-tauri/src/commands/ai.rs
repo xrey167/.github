@@ -15,6 +15,10 @@ use crate::secrets;
 use crate::state::AppState;
 use crate::store::chat::{self, ChatSession, StoredChatMessage};
 
+/// Default Anthropic model. The hyphen-only `claude-sonnet-4-6` is the
+/// stable alias for the current Sonnet 4.6 release (per Anthropic's 2026
+/// catalogue) — not a typo for `claude-3-5-sonnet-latest`. Override per
+/// provider via the Settings page once a model picker exists.
 const DEFAULT_ANTHROPIC_MODEL: &str = "claude-sonnet-4-6";
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -157,7 +161,10 @@ pub async fn chat_send(
         .as_deref()
         .and_then(prompts::find_template);
 
-    // Pull existing history + attachment from the session.
+    // Pull existing history + attachment in one DB hit. We never persist
+    // the system message — it's rebuilt fresh per turn from the latest
+    // template + attachment, so mid-session Quick Actions take effect
+    // immediately and we don't pile up stale system rows in chat_messages.
     let store = state.store.clone();
     let (existing, attachment) = task::spawn_blocking(move || -> Result<_> {
         store.with_conn(|c| {
@@ -169,53 +176,17 @@ pub async fn chat_send(
     .await
     .map_err(|e| AppError::Internal(e.to_string()))??;
 
-    // Build the message list. The first user turn picks up the system
-    // preamble + (optional) template + (optional) attachment. Subsequent
-    // turns reuse the same system context implicitly via Claude's
-    // top-level `system` field, so we only re-send it if the existing
-    // history has no system message yet.
-    let mut messages: Vec<ChatMessage> = Vec::new();
-    let has_system = existing.iter().any(|m| m.role == "system");
-    if !has_system {
-        let mut system = String::from(SYSTEM_PREAMBLE);
-        if let Some(t) = template {
-            system.push_str("\n\n");
-            system.push_str(t.system);
-        }
-        if let Some(att) = &attachment {
-            system.push_str("\n\n<user_data>\n");
-            system.push_str(&build_attachment_context(att));
-            system.push_str("\n</user_data>");
-        }
-        messages.push(ChatMessage { role: Role::System, content: system });
-    }
-    for m in &existing {
-        let role = match m.role.as_str() {
-            "system" => Role::System,
-            "user" => Role::User,
-            "assistant" => Role::Assistant,
-            _ => continue,
-        };
-        messages.push(ChatMessage { role, content: m.content.clone() });
-    }
-    messages.push(ChatMessage {
-        role: Role::User,
-        content: args.user_content.clone(),
-    });
+    let system_prompt = build_system_prompt(template, attachment.as_ref());
 
-    // Persist the user turn before the call so it's not lost on failure.
+    // Persist the user turn before the API call so it survives a failure.
     let store = state.store.clone();
     let user_content = args.user_content.clone();
     let template_id = template.map(|t| t.id.to_string());
     task::spawn_blocking({
         let template_id = template_id.clone();
+        let user_content = user_content.clone();
         move || -> Result<()> {
             store.with_conn(|c| {
-                if !has_system {
-                    if let Some(sys) = messages.first().filter(|m| matches!(m.role, Role::System)) {
-                        chat::append_message(c, session_id, "system", &sys.content, None, None, None, None)?;
-                    }
-                }
                 chat::append_message(
                     c,
                     session_id,
@@ -233,29 +204,25 @@ pub async fn chat_send(
     .await
     .map_err(|e| AppError::Internal(e.to_string()))??;
 
-    // Re-read the messages we just wrote so we send the same canonical
-    // history the model will see on every subsequent turn.
-    let store = state.store.clone();
-    let canonical = task::spawn_blocking(move || -> Result<Vec<StoredChatMessage>> {
-        store.with_conn(|c| chat::list_messages(c, session_id))
-    })
-    .await
-    .map_err(|e| AppError::Internal(e.to_string()))??;
-    let send_messages: Vec<ChatMessage> = canonical
+    // Build the canonical message list in memory: prior history (no
+    // system rows by construction) + the user turn we just persisted.
+    let mut send_messages: Vec<ChatMessage> = existing
         .iter()
         .filter_map(|m| {
             let role = match m.role.as_str() {
-                "system" => Role::System,
                 "user" => Role::User,
                 "assistant" => Role::Assistant,
-                _ => return None,
+                _ => return None, // any stray "system" row is ignored
             };
             Some(ChatMessage { role, content: m.content.clone() })
         })
         .collect();
+    send_messages.push(ChatMessage { role: Role::User, content: user_content });
 
     let start = std::time::Instant::now();
-    let result = client.chat(&send_messages).await;
+    let result = client
+        .chat_with_system(Some(&system_prompt), &send_messages)
+        .await;
     let duration_ms = start.elapsed().as_millis() as i64;
 
     let provider_name = client.provider_name().to_string();
@@ -333,4 +300,26 @@ pub async fn chat_send(
             Err(e)
         }
     }
+}
+
+/// Compose the per-turn system prompt: standing safety preamble + the
+/// (optional) currently-selected Quick Action template + the (optional)
+/// attached table wrapped in <user_data>. Keeping this stateless means
+/// the user can switch templates mid-session and the next turn picks it
+/// up immediately.
+fn build_system_prompt(
+    template: Option<&PromptTemplate>,
+    attachment: Option<&Value>,
+) -> String {
+    let mut out = String::from(SYSTEM_PREAMBLE);
+    if let Some(t) = template {
+        out.push_str("\n\n");
+        out.push_str(t.system);
+    }
+    if let Some(att) = attachment {
+        out.push_str("\n\n<user_data>\n");
+        out.push_str(&build_attachment_context(att));
+        out.push_str("\n</user_data>");
+    }
+    out
 }

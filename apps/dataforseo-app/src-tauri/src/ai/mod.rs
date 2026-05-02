@@ -51,6 +51,27 @@ pub trait AiClient: Send + Sync {
     fn provider_name(&self) -> &'static str;
     fn model(&self) -> &str;
     async fn chat(&self, messages: &[ChatMessage]) -> Result<ChatResponse>;
+
+    /// Per-call system prompt — preferred over storing the system as a
+    /// persistent message so that mid-session Quick Actions can replace
+    /// the system instructions without polluting the chat history. Default
+    /// impl prepends as a Role::System message; provider-specific impls
+    /// can map onto their native top-level field (Anthropic does this).
+    async fn chat_with_system(
+        &self,
+        system: Option<&str>,
+        messages: &[ChatMessage],
+    ) -> Result<ChatResponse> {
+        match system {
+            None => self.chat(messages).await,
+            Some(s) => {
+                let mut combined = Vec::with_capacity(messages.len() + 1);
+                combined.push(ChatMessage { role: Role::System, content: s.to_string() });
+                combined.extend(messages.iter().cloned());
+                self.chat(&combined).await
+            }
+        }
+    }
 }
 
 /// Runtime-swappable AI client. The active provider is held in an RwLock
