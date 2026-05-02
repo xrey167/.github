@@ -16,6 +16,7 @@ pub enum Family {
     Labs,
     SerpLive,
     SerpTask,
+    Backlinks,
 }
 
 struct Bucket {
@@ -62,6 +63,12 @@ impl Scheduler {
         buckets.insert(Family::Labs, Bucket::new(60.0, 10.0));
         buckets.insert(Family::SerpLive, Bucket::new(120.0, 20.0));
         buckets.insert(Family::SerpTask, Bucket::new(2000.0, 2000.0 / 60.0));
+        // Backlinks: 2000 rpm sustained, but the API enforces a separate
+        // 30-simultaneous-request cap that we'd want to honour if we ever
+        // fan out parallel calls. For Phase 2 we keep it simple — same
+        // capacity model as SerpTask, the per-family Semaphore will be
+        // added if we add parallel calls later.
+        buckets.insert(Family::Backlinks, Bucket::new(2000.0, 2000.0 / 60.0));
         Self { buckets: Mutex::new(buckets) }
     }
 

@@ -97,6 +97,9 @@ export const tauriApi = {
   serpTaskRecentBatches: (args: { limit: number }) =>
     invoke<BatchSummary[]>("serp_task_recent_batches", args),
 
+  backlinksSummary: (args: { target: string; useCache: boolean }) =>
+    invoke<BacklinksSummaryView>("backlinks_summary", args),
+
   getRecentCalls: (args: { limit: number }) =>
     invoke<CallLogRow[]>("get_recent_calls", args),
 
@@ -228,6 +231,17 @@ export interface AiUsageSummary {
   total_input_tokens: number;
   total_output_tokens: number;
   by_model: AiUsageByModel[];
+}
+
+export interface BacklinksSummaryView {
+  target: string;
+  // Raw response shape from DataForSEO — variable enough that we let the
+  // page extract the fields it cares about with `summary?.field`.
+  summary: Record<string, unknown>;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface TaskBatchId {

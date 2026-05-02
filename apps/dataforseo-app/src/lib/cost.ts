@@ -15,7 +15,8 @@ export type CostAction =
       mode: Mode;
       depth: number;
       extra_params: number;
-    };
+    }
+  | { kind: "Backlinks"; target_count: number; rows_per_target: number };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -43,6 +44,17 @@ export function estimate(action: CostAction): number {
         action.depth <= 10 ? 1 : Math.ceil(action.depth / 10);
       const paramMult = Math.pow(5, action.extra_params);
       return action.count * base * depthMult * paramMult;
+    }
+    case "Backlinks": {
+      const requestsPerTarget = Math.max(
+        1,
+        Math.ceil(action.rows_per_target / 1000),
+      );
+      const totalRequests = action.target_count * requestsPerTarget;
+      return (
+        totalRequests * 0.02 +
+        action.target_count * action.rows_per_target * 0.00003
+      );
     }
   }
 }

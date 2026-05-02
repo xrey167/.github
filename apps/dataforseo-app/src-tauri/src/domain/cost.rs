@@ -14,6 +14,11 @@ pub enum CostAction {
     KeywordsRelated { depth: u32, mode: Mode },
     KeywordsForDomain { mode: Mode },
     Serp { count: u32, mode: Mode, depth: u32, extra_params: u32 },
+    /// Backlinks endpoints follow a different shape: 0.02 USD per request
+    /// + 0.00003 USD per result row. `target_count` is how many separate
+    /// targets are queried (one POST each), `rows_per_target` the limit
+    /// requested. Aggregate endpoints (summary, history) pass rows=1.
+    Backlinks { target_count: u32, rows_per_target: u32 },
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -49,6 +54,15 @@ pub fn estimate(action: &CostAction) -> f64 {
             };
             let param_mult = 5.0_f64.powi(*extra_params as i32);
             (*count as f64) * base * depth_mult * param_mult
+        }
+        Backlinks { target_count, rows_per_target } => {
+            // 0.02 USD per request, plus 0.00003 USD per row.
+            // Cast both to f64 before multiplying so target × rows can't
+            // overflow u32 (a 70k × 100k worst case is well above 2^32).
+            let requests_per_target = (*rows_per_target as f64 / 1000.0).ceil().max(1.0);
+            let total_requests = *target_count as f64 * requests_per_target;
+            total_requests * 0.02
+                + (*target_count as f64 * *rows_per_target as f64) * 0.00003
         }
     }
 }
@@ -102,6 +116,37 @@ mod tests {
         });
         // 5^2 = 25x
         assert!((with_two - with_zero * 25.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn backlinks_summary_is_one_request_per_target() {
+        // rows_per_target=1 -> 1 request, ~0.02 USD per target.
+        let cost = estimate(&CostAction::Backlinks {
+            target_count: 1,
+            rows_per_target: 1,
+        });
+        assert!((cost - (0.02 + 0.00003)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn backlinks_detail_1000_rows_one_target() {
+        let cost = estimate(&CostAction::Backlinks {
+            target_count: 1,
+            rows_per_target: 1000,
+        });
+        // ceil(1000/1000)=1 -> 1 * 0.02 + 1000 * 0.00003 = 0.05
+        assert!((cost - 0.05).abs() < 1e-9);
+    }
+
+    #[test]
+    fn backlinks_detail_huge_input_no_overflow() {
+        // 70k targets × 100k rows would overflow u32 if multiplied as ints;
+        // f64 cast keeps it safe.
+        let cost = estimate(&CostAction::Backlinks {
+            target_count: 70_000,
+            rows_per_target: 100_000,
+        });
+        assert!(cost > 0.0 && cost.is_finite());
     }
 
     #[test]
