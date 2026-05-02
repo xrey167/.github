@@ -37,6 +37,8 @@ pub fn run() {
             commands::auth::save_credentials,
             commands::auth::clear_credentials,
             commands::ledger::estimate_cost,
+            commands::ledger::get_recent_calls,
+            commands::ledger::get_usage_summary,
             commands::keywords::keywords_search_volume,
             commands::keywords::keywords_suggestions,
             commands::keywords::keywords_related,
