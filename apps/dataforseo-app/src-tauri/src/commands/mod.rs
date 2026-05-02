@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod auth;
 pub mod keywords;
 pub mod ledger;
