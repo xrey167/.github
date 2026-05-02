@@ -79,9 +79,8 @@ impl ApiClient {
         let items = raw
             .pointer("/tasks/0/result")
             .and_then(|v| v.as_array())
-            .ok_or_else(|| AppError::Api {
-                status_code: 20000,
-                message: "search_volume response missing tasks[0].result".into(),
+            .ok_or_else(|| {
+                AppError::Parse("search_volume response missing tasks[0].result".into())
             })?
             .iter()
             .filter_map(|item| serde_json::from_value::<SearchVolumeItem>(item.clone()).ok())
