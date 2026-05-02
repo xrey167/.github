@@ -1,0 +1,31 @@
+# actions/labeler@v4 path-based label config. Each top-level key is a
+# label that gets applied to a PR when any of its glob patterns match a
+# changed path. Labels themselves are documented in /LABELS.md.
+
+area:frontend:
+  - apps/dataforseo-app/src/**/*
+
+area:backend:
+  - apps/dataforseo-app/src-tauri/**/*
+
+area:api:
+  - apps/dataforseo-app/src-tauri/src/api/**/*
+  - apps/dataforseo-app/src-tauri/src/commands/**/*
+
+area:database:
+  - apps/dataforseo-app/src-tauri/migrations/**/*
+  - apps/dataforseo-app/src-tauri/src/store/**/*
+
+area:ci-cd:
+  - .github/workflows/**/*
+  - .github/labeler.yml
+
+documentation:
+  - "**/*.md"
+  - apps/dataforseo-app/docs/**/*
+
+dependencies:
+  - apps/dataforseo-app/package.json
+  - apps/dataforseo-app/package-lock.json
+  - apps/dataforseo-app/src-tauri/Cargo.toml
+  - apps/dataforseo-app/src-tauri/Cargo.lock

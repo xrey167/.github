@@ -27,12 +27,18 @@ export interface KeywordVolumeBatch {
   estimated_usd: number;
 }
 
-export interface KeywordsSearchVolumeArgs {
+// `type` alias rather than `interface`: Tauri's invoke() requires the
+// args to satisfy `Record<string, unknown>`. A named interface doesn't,
+// because interfaces are extensible (any future declaration could add
+// non-string-key members), but a closed type alias does. Avoids the
+// `[k: string]: unknown` index-signature workaround which would weaken
+// property-access checking.
+export type KeywordsSearchVolumeArgs = {
   keywords: string[];
   locationCode: number;
   languageCode: string;
   useCache: boolean;
-}
+};
 
 export interface LabsKeyword {
   keyword: string;
@@ -49,11 +55,12 @@ export interface LabsBatch {
   estimated_usd: number;
 }
 
-export interface LabsSeedArgs {
+// See KeywordsSearchVolumeArgs above for why this is a `type` alias.
+export type LabsSeedArgs = {
   seed: string;
   locationCode: number;
   languageCode: string;
-}
+};
 
 export const tauriApi = {
   saveCredentials: (login: string, password: string) =>

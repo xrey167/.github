@@ -15,11 +15,13 @@ describe("downloadCsv", () => {
       return "blob:test";
     };
     URL.revokeObjectURL = () => undefined;
-    document.body.appendChild = (node: Node) => {
+    // appendChild is `<T extends Node>(node: T) => T` — the mock has to
+    // be generic too so it doesn't widen the return type to Node.
+    document.body.appendChild = <T extends Node>(node: T): T => {
       if (node instanceof HTMLAnchorElement) {
         // skip the actual click — text is captured via createObjectURL
       }
-      return origAppend(node);
+      return origAppend(node) as T;
     };
 
     const rows = [
