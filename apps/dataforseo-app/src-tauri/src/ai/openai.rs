@@ -10,6 +10,10 @@ const OPENAI_API: &str = "https://api.openai.com/v1/chat/completions";
 
 /// Per-1M-token pricing keyed by model id prefix. Order matters —
 /// longer / more specific prefixes first.
+///
+/// Source: OpenAI's 2026 pricing page. `gpt-4.1*` (released Apr 2025),
+/// `o4-mini` (released Apr 2025), and the older `gpt-4o*` family all coexist;
+/// older 3.5/turbo SKUs are intentionally omitted (deprecated for new keys).
 const PRICING: &[(&str, f64, f64)] = &[
     ("gpt-4o-mini",   0.15,  0.60),
     ("gpt-4o",        2.50, 10.00),
@@ -113,6 +117,8 @@ impl OpenAiClient {
             .unwrap_or_default();
 
         let (in_per_m, out_per_m) = pricing_for(&self.model);
+        // .max(0) here is `Ord::max` (in the prelude), not a missing
+        // i32::max inherent — clamps stray negative token counts to 0.
         let cost = (parsed.usage.prompt_tokens.max(0) as f64 / 1_000_000.0) * in_per_m
             + (parsed.usage.completion_tokens.max(0) as f64 / 1_000_000.0) * out_per_m;
 
