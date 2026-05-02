@@ -149,8 +149,8 @@ are single-page; the Task variants run a multi-page crawl.
 
 | Endpoint | Path | Live | Status |
 | --- | --- | --- | --- |
-| Instant Pages | `/v3/on_page/instant_pages` | 0.0025 / page | 🟡 next |
-| Lighthouse · Live · JSON | `/v3/on_page/lighthouse/live/json` | 0.0025 | 🟡 next |
+| Instant Pages | `/v3/on_page/instant_pages` | 0.0025 / page | ✅ done |
+| Lighthouse · Live · JSON | `/v3/on_page/lighthouse/live/json` | 0.0025 | ✅ done |
 | Lighthouse · Audits | `/v3/on_page/lighthouse/audits` | free | 🟦 plan |
 | Lighthouse · Versions | `/v3/on_page/lighthouse/versions` | free | n/a |
 | Task Post (full crawl) | `/v3/on_page/task_post` | 0.000125 / page | 🟦 plan |

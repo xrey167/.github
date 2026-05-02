@@ -70,6 +70,8 @@ pub fn run() {
             commands::backlinks::backlinks_domain_intersection,
             commands::domain_analytics::whois_overview,
             commands::domain_analytics::domain_technologies,
+            commands::on_page::on_page_instant,
+            commands::on_page::on_page_lighthouse,
             commands::ai::ai_provider_status,
             commands::ai::ai_save_provider_key,
             commands::ai::ai_clear_provider_key,

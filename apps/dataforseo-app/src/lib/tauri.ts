@@ -154,6 +154,12 @@ export const tauriApi = {
   domainTechnologies: (args: { domain: string; useCache: boolean }) =>
     invoke<TechnologiesView>("domain_technologies", args),
 
+  onPageInstant: (args: { url: string; enableJavascript: boolean; enableBrowserRendering: boolean; useCache: boolean }) =>
+    invoke<OnPageInstantView>("on_page_instant", args),
+
+  onPageLighthouse: (args: { url: string; forMobile: boolean; useCache: boolean }) =>
+    invoke<LighthouseView>("on_page_lighthouse", args),
+
   getRecentCalls: (args: { limit: number }) =>
     invoke<CallLogRow[]>("get_recent_calls", args),
 
@@ -588,6 +594,27 @@ export interface DomainIntersectionView {
   target1: string;
   target2: string;
   items: IntersectionKeyword[];
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface OnPageInstantView {
+  url: string;
+  // Items array; first row holds the page audit (meta, content, checks).
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface LighthouseView {
+  url: string;
+  // Full Lighthouse result blob — categories.{performance, accessibility,
+  // best-practices, seo, pwa}.score (0..1), plus audits map.
+  result: Record<string, unknown> | null;
   cost_usd: number;
   estimated_usd: number;
   from_cache: boolean;

@@ -23,7 +23,9 @@ export type CostAction =
   | { kind: "LabsBulkKeywordDifficulty"; count: number }
   | { kind: "LabsSerpCompetitors" }
   | { kind: "LabsCompetitorsDomain" }
-  | { kind: "LabsDomainIntersection" };
+  | { kind: "LabsDomainIntersection" }
+  | { kind: "OnPageInstantPages" }
+  | { kind: "OnPageLighthouse" };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -75,5 +77,8 @@ export function estimate(action: CostAction): number {
     case "LabsCompetitorsDomain":
     case "LabsDomainIntersection":
       return 0.0125;
+    case "OnPageInstantPages":
+    case "OnPageLighthouse":
+      return 0.0025;
   }
 }

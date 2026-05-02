@@ -18,6 +18,7 @@ pub enum Family {
     SerpTask,
     Backlinks,
     DomainAnalytics,
+    OnPage,
 }
 
 struct Bucket {
@@ -74,6 +75,9 @@ impl Scheduler {
         // documented limits. Same capacity model as Backlinks; UI calls
         // are one-at-a-time so the burst capacity is more than enough.
         buckets.insert(Family::DomainAnalytics, Bucket::new(2000.0, 2000.0 / 60.0));
+        // OnPage instant_pages + lighthouse — DataForSEO documents 2000 rpm
+        // for the on_page family. Capacity matches the other 2k families.
+        buckets.insert(Family::OnPage, Bucket::new(2000.0, 2000.0 / 60.0));
         Self { buckets: Mutex::new(buckets) }
     }
 

@@ -5,4 +5,5 @@ pub mod cached;
 pub mod domain_analytics;
 pub mod keywords;
 pub mod ledger;
+pub mod on_page;
 pub mod serp;

@@ -3,6 +3,7 @@ pub mod client;
 pub mod domain_analytics;
 pub mod keywords_data;
 pub mod labs;
+pub mod on_page;
 pub mod serp;
 
 use crate::errors::{AppError, Result};

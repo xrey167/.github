@@ -6,6 +6,7 @@ import ChatPage from "./routes/ChatPage";
 import ComparePage from "./routes/ComparePage";
 import DomainAnalyticsPage from "./routes/DomainAnalyticsPage";
 import KeywordsPage from "./routes/KeywordsPage";
+import OnPagePage from "./routes/OnPagePage";
 import SerpPage from "./routes/SerpPage";
 import DomainPage from "./routes/DomainPage";
 import SocialPage from "./routes/SocialPage";
@@ -20,6 +21,7 @@ const navItems = [
   { to: "/domain", label: "Domain" },
   { to: "/backlinks", label: "Backlinks" },
   { to: "/domain-analytics", label: "Domain Analytics" },
+  { to: "/on-page", label: "On-Page" },
   { to: "/traffic", label: "Traffic" },
   { to: "/ads", label: "Ads" },
   { to: "/social", label: "Social" },
@@ -55,6 +57,7 @@ export default function App() {
           <Route path="/domain/*" element={<DomainPage />} />
           <Route path="/backlinks" element={<BacklinksPage />} />
           <Route path="/domain-analytics" element={<DomainAnalyticsPage />} />
+          <Route path="/on-page" element={<OnPagePage />} />
           <Route path="/traffic" element={<TrafficPage />} />
           <Route path="/ads" element={<AdsPage />} />
           <Route path="/social" element={<SocialPage />} />

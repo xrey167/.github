@@ -26,3 +26,5 @@ pub const SERP_GOOGLE_MAPS_LIVE: &str = "serp.google.maps.live";
 pub const LABS_SERP_COMPETITORS: &str = "labs.serp_competitors";
 pub const LABS_COMPETITORS_DOMAIN: &str = "labs.competitors_domain";
 pub const LABS_DOMAIN_INTERSECTION: &str = "labs.domain_intersection";
+pub const ON_PAGE_INSTANT_PAGES: &str = "on_page.instant_pages";
+pub const ON_PAGE_LIGHTHOUSE: &str = "on_page.lighthouse";

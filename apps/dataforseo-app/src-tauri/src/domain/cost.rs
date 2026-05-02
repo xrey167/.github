@@ -44,6 +44,12 @@ pub enum CostAction {
     /// Labs Domain Intersection · 0.0125 USD per request. Returns
     /// keywords both target domains rank for (competitive overlap).
     LabsDomainIntersection,
+    /// On-Page Instant Pages · 0.0025 USD per page. Single-URL audit
+    /// (no full crawl) — covers ~70 SEO checks plus page timing.
+    OnPageInstantPages,
+    /// On-Page Lighthouse · 0.0025 USD per request. Google Lighthouse
+    /// audit (performance, accessibility, best-practices, SEO, PWA).
+    OnPageLighthouse,
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -96,6 +102,8 @@ pub fn estimate(action: &CostAction) -> f64 {
         LabsSerpCompetitors => 0.0125,
         LabsCompetitorsDomain => 0.0125,
         LabsDomainIntersection => 0.0125,
+        OnPageInstantPages => 0.0025,
+        OnPageLighthouse => 0.0025,
     }
 }
 
