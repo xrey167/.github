@@ -27,17 +27,18 @@ export interface KeywordVolumeBatch {
   estimated_usd: number;
 }
 
-// Index signature is required so this satisfies @tauri-apps/api's
-// `InvokeArgs = Record<string, unknown>` constraint. Tauri tightened the
-// invoke signature in a recent SDK version; named interfaces without an
-// index signature get rejected even though they're structurally fine.
-export interface KeywordsSearchVolumeArgs {
+// `type` alias rather than `interface`: Tauri's invoke() requires the
+// args to satisfy `Record<string, unknown>`. A named interface doesn't,
+// because interfaces are extensible (any future declaration could add
+// non-string-key members), but a closed type alias does. Avoids the
+// `[k: string]: unknown` index-signature workaround which would weaken
+// property-access checking.
+export type KeywordsSearchVolumeArgs = {
   keywords: string[];
   locationCode: number;
   languageCode: string;
   useCache: boolean;
-  [k: string]: unknown;
-}
+};
 
 export interface LabsKeyword {
   keyword: string;
@@ -54,13 +55,12 @@ export interface LabsBatch {
   estimated_usd: number;
 }
 
-export interface LabsSeedArgs {
+// See KeywordsSearchVolumeArgs above for why this is a `type` alias.
+export type LabsSeedArgs = {
   seed: string;
   locationCode: number;
   languageCode: string;
-  // See KeywordsSearchVolumeArgs — needed for Tauri's InvokeArgs constraint.
-  [k: string]: unknown;
-}
+};
 
 export const tauriApi = {
   saveCredentials: (login: string, password: string) =>
