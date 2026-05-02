@@ -1,11 +1,13 @@
 //! SERP API — Google Organic.
 //!
 //! Live "regular" + the Standard-Queue task flow (task_post / tasks_ready /
-//! task_get/regular). The "advanced" variant lands in a later milestone.
+//! task_get/regular). The "advanced" variant carries richer SERP features
+//! at ~5x cost and is not yet wired up.
 
 use serde::Deserialize;
 
 use crate::api::client::ApiClient;
+use crate::api::ensure_api_success;
 use crate::errors::{AppError, Result};
 use crate::ratelimit::Family;
 
@@ -50,19 +52,7 @@ impl ApiClient {
             )
             .await?;
 
-        let api_status = raw.pointer("/status_code").and_then(|v| v.as_u64()).unwrap_or(0);
-        if api_status != 20000 {
-            let message = raw
-                .pointer("/status_message")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown DataForSEO error");
-            return Err(AppError::Api {
-                status_code: api_status as u32,
-                message: message.into(),
-            });
-        }
-
-        let cost = raw.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let cost = ensure_api_success(&raw)?;
 
         let result = raw
             .pointer("/tasks/0/result/0")
@@ -122,19 +112,7 @@ impl ApiClient {
             )
             .await?;
 
-        let api_status = raw.pointer("/status_code").and_then(|v| v.as_u64()).unwrap_or(0);
-        if api_status != 20000 {
-            let message = raw
-                .pointer("/status_message")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown DataForSEO error");
-            return Err(AppError::Api {
-                status_code: api_status as u32,
-                message: message.into(),
-            });
-        }
-
-        let cost = raw.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let cost = ensure_api_success(&raw)?;
 
         let task_ids = raw
             .pointer("/tasks")
@@ -152,18 +130,7 @@ impl ApiClient {
         let raw = self
             .get_json(Family::SerpTask, "/v3/serp/google/organic/tasks_ready")
             .await?;
-
-        let api_status = raw.pointer("/status_code").and_then(|v| v.as_u64()).unwrap_or(0);
-        if api_status != 20000 {
-            let message = raw
-                .pointer("/status_message")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown DataForSEO error");
-            return Err(AppError::Api {
-                status_code: api_status as u32,
-                message: message.into(),
-            });
-        }
+        ensure_api_success(&raw)?;
 
         let ids = raw
             .pointer("/tasks/0/result")
@@ -186,19 +153,7 @@ impl ApiClient {
         let path = format!("/v3/serp/google/organic/task_get/regular/{task_id}");
         let raw = self.get_json(Family::SerpTask, &path).await?;
 
-        let api_status = raw.pointer("/status_code").and_then(|v| v.as_u64()).unwrap_or(0);
-        if api_status != 20000 {
-            let message = raw
-                .pointer("/status_message")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown DataForSEO error");
-            return Err(AppError::Api {
-                status_code: api_status as u32,
-                message: message.into(),
-            });
-        }
-
-        let cost = raw.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let cost = ensure_api_success(&raw)?;
 
         let result = raw
             .pointer("/tasks/0/result/0")

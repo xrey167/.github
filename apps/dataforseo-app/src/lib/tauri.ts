@@ -96,7 +96,38 @@ export const tauriApi = {
 
   serpTaskRecentBatches: (args: { limit: number }) =>
     invoke<BatchSummary[]>("serp_task_recent_batches", args),
+
+  getRecentCalls: (args: { limit: number }) =>
+    invoke<CallLogRow[]>("get_recent_calls", args),
+
+  getUsageSummary: (args: { days: number }) =>
+    invoke<UsageSummary>("get_usage_summary", args),
 };
+
+export interface CallLogRow {
+  ts: string;
+  endpoint: string;
+  mode: string;
+  cost_usd: number;
+  estimated_usd: number | null;
+  request_size: number | null;
+  duration_ms: number | null;
+  error: string | null;
+}
+
+export interface UsageByEndpoint {
+  endpoint: string;
+  call_count: number;
+  cost_usd: number;
+}
+
+export interface UsageSummary {
+  days: number;
+  total_calls: number;
+  total_cost_usd: number;
+  total_estimated_usd: number;
+  by_endpoint: UsageByEndpoint[];
+}
 
 export interface TaskBatchId {
   batch_id: string;

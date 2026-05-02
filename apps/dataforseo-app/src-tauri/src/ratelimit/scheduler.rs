@@ -1,11 +1,14 @@
 //! Token-bucket per endpoint family.
-//!
-//! Source: docs/DATAFORSEO_ARCHITECTURE.md Teil 6.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use tokio::sync::Mutex;
+
+/// Floor on the sleep duration when the bucket reports we should wait.
+/// A computed sub-millisecond wait combined with clock granularity can
+/// cause acquire() to spin without ever crossing the 1-token threshold.
+const MIN_WAIT: Duration = Duration::from_millis(1);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Family {
@@ -42,7 +45,7 @@ impl Bucket {
         } else {
             let needed = 1.0 - self.tokens;
             let wait_secs = needed / self.refill_per_sec;
-            Some(Duration::from_secs_f64(wait_secs))
+            Some(Duration::from_secs_f64(wait_secs).max(MIN_WAIT))
         }
     }
 }
@@ -55,7 +58,6 @@ impl Scheduler {
     pub fn new() -> Self {
         let mut buckets = HashMap::new();
         // capacity = burst allowed, refill_per_sec = sustained rate.
-        // Tier 1 limits per docs/DATAFORSEO_API_MAPPING.md Teil 5.
         buckets.insert(Family::GoogleAdsLive, Bucket::new(12.0, 12.0 / 60.0));
         buckets.insert(Family::Labs, Bucket::new(60.0, 10.0));
         buckets.insert(Family::SerpLive, Bucket::new(120.0, 20.0));
