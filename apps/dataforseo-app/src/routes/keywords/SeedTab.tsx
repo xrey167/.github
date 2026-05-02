@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import ResultsTable from "../../components/ResultsTable";
 import type { CostAction } from "../../lib/cost";
 import { formatCount, formatUsd } from "../../lib/format";
@@ -14,6 +15,7 @@ const DEFAULT_LANGUAGE = "de";
 interface Props {
   title: string;
   description: string;
+  exportFilenameStem: string;
   /// Cost preview action. Pass a stable (memoized) value from the parent so
   /// the CostPreview doesn't re-render on every keystroke in the seed input.
   costAction: CostAction;
@@ -22,7 +24,14 @@ interface Props {
   run: (seed: string) => Promise<LabsBatch>;
 }
 
-export default function SeedTab({ title, description, costAction, extraControls, run }: Props) {
+export default function SeedTab({
+  title,
+  description,
+  exportFilenameStem,
+  costAction,
+  extraControls,
+  run,
+}: Props) {
   const [seed, setSeed] = useState("");
   const [busy, setBusy] = useState(false);
   const [batch, setBatch] = useState<LabsBatch | null>(null);
@@ -112,8 +121,15 @@ export default function SeedTab({ title, description, costAction, extraControls,
       </div>
 
       {batch && (
-        <div className="text-xs text-slate-500">
-          {batch.items.length} rows · actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span>
+            {batch.items.length} rows · actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
+          </span>
+          <ExportMenu
+            filenameStem={exportFilenameStem}
+            rows={batch.items}
+            columns={columns}
+          />
         </div>
       )}
 
