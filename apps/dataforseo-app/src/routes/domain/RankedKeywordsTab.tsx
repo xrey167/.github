@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import ResultsTable from "../../components/ResultsTable";
 import { formatCount, formatUsd } from "../../lib/format";
 import { tauriApi, type RankedBatch, type RankedKeyword } from "../../lib/tauri";
@@ -109,8 +110,15 @@ export default function RankedKeywordsTab({ target }: Props) {
       </div>
 
       {batch && (
-        <div className="text-xs text-slate-500">
-          {batch.items.length} ranked keywords · actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span>
+            {batch.items.length} ranked keywords · actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
+          </span>
+          <ExportMenu
+            filenameStem="ranked-keywords"
+            rows={batch.items}
+            columns={columns}
+          />
         </div>
       )}
 

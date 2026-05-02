@@ -12,6 +12,7 @@ export default function SuggestionsTab() {
     <SeedTab
       title="Keyword Suggestions"
       description="Long-tail keywords that contain the seed term, ranked by search volume."
+      exportFilenameStem="keyword-suggestions"
       costAction={SUGGESTIONS_COST}
       run={(seed) =>
         tauriApi.keywordsSuggestions({

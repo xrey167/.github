@@ -19,6 +19,7 @@ export default function RelatedTab() {
     <SeedTab
       title="Related Keywords"
       description="Ideas pulled from Googles 'searches related to' section. Higher depth costs more."
+      exportFilenameStem="related-keywords"
       costAction={costAction}
       extraControls={
         <label className="flex flex-col gap-1 text-sm">

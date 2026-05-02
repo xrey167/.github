@@ -1,7 +1,9 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { formatUsd } from "../../lib/format";
 import { tauriApi, type SerpLiveBatch, type SerpResultItem } from "../../lib/tauri";
 
@@ -31,6 +33,18 @@ export default function QuickTab() {
   const [batch, setBatch] = useState<SerpLiveBatch | null>(null);
 
   const trimmed = keyword.trim();
+
+  const exportColumns = useMemo<ColumnDef<SerpResultItem, unknown>[]>(
+    () => [
+      { id: "rank_absolute", header: "Position", accessorKey: "rank_absolute" },
+      { id: "kind", header: "Type", accessorKey: "kind" },
+      { id: "domain", header: "Domain", accessorKey: "domain" },
+      { id: "url", header: "URL", accessorKey: "url" },
+      { id: "title", header: "Title", accessorKey: "title" },
+      { id: "description", header: "Description", accessorKey: "description" },
+    ],
+    [],
+  );
 
   const costAction = useMemo(
     () =>
@@ -115,9 +129,16 @@ export default function QuickTab() {
       </div>
 
       {batch && (
-        <div className="text-xs text-slate-500">
-          {batch.items.length} items for &ldquo;{batch.keyword}&rdquo; · actual cost {formatUsd(batch.cost_usd)} (estimated{" "}
-          {formatUsd(batch.estimated_usd)})
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span>
+            {batch.items.length} items for &ldquo;{batch.keyword}&rdquo; · actual cost {formatUsd(batch.cost_usd)} (estimated{" "}
+            {formatUsd(batch.estimated_usd)})
+          </span>
+          <ExportMenu
+            filenameStem={`serp-${batch.keyword}`}
+            rows={batch.items}
+            columns={exportColumns}
+          />
         </div>
       )}
 
