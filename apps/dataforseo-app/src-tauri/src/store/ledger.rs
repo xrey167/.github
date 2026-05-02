@@ -199,8 +199,8 @@ pub fn ai_summary(conn: &mut Connection, days: u32) -> Result<AiUsageSummary> {
         conn.query_row(
             "SELECT COUNT(*),
                     COALESCE(SUM(cost_usd), 0.0),
-                    COALESCE(SUM(input_tokens), 0),
-                    COALESCE(SUM(output_tokens), 0)
+                    COALESCE(SUM(input_tokens)::BIGINT, 0),
+                    COALESCE(SUM(output_tokens)::BIGINT, 0)
                FROM ai_calls
               WHERE ts >= CURRENT_TIMESTAMP - INTERVAL '1 day' * $1",
             [days_i],
@@ -209,8 +209,8 @@ pub fn ai_summary(conn: &mut Connection, days: u32) -> Result<AiUsageSummary> {
 
     let mut stmt = conn.prepare(
         "SELECT provider, model, COUNT(*),
-                COALESCE(SUM(input_tokens), 0),
-                COALESCE(SUM(output_tokens), 0),
+                COALESCE(SUM(input_tokens)::BIGINT, 0),
+                COALESCE(SUM(output_tokens)::BIGINT, 0),
                 COALESCE(SUM(cost_usd), 0.0)
            FROM ai_calls
           WHERE ts >= CURRENT_TIMESTAMP - INTERVAL '1 day' * $1
