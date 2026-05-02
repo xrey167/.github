@@ -16,3 +16,5 @@ pub const BACKLINKS_REFERRING_DOMAINS: &str = "backlinks.referring_domains";
 pub const BACKLINKS_ANCHORS: &str = "backlinks.anchors";
 pub const BACKLINKS_HISTORY: &str = "backlinks.history";
 pub const BACKLINKS_DOMAIN_INTERSECTION: &str = "backlinks.domain_intersection";
+pub const DOMAIN_ANALYTICS_WHOIS_OVERVIEW: &str = "domain_analytics.whois.overview";
+pub const DOMAIN_ANALYTICS_TECHNOLOGIES: &str = "domain_analytics.technologies.domain";

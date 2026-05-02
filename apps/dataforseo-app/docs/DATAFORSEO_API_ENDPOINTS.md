@@ -172,11 +172,11 @@ Tech-stack and WHOIS lookups. Tiny, cheap, useful for one-off audits.
 
 | Endpoint | Path | Live | Status |
 | --- | --- | --- | --- |
-| Technologies · Domain Technologies | `/v3/domain_analytics/technologies/domain_technologies/live` | 0.001 | 🟡 next |
+| Technologies · Domain Technologies | `/v3/domain_analytics/technologies/domain_technologies/live` | 0.001 | ✅ done |
 | Technologies · Available Filters | `/v3/domain_analytics/technologies/available_filters` | free | n/a |
 | Technologies · Domains by Technology | `/v3/domain_analytics/technologies/domains_by_technology/live` | 0.001 | 🟦 plan |
 | Technologies · Aggregation | `/v3/domain_analytics/technologies/aggregation_technologies/live` | 0.001 | 🟦 plan |
-| Whois · Overview | `/v3/domain_analytics/whois/overview/live` | 0.0001 | 🟡 next |
+| Whois · Overview | `/v3/domain_analytics/whois/overview/live` | 0.0001 | ✅ done |
 | Whois · Available Filters | `/v3/domain_analytics/whois/available_filters` | free | n/a |
 
 ## Content Analysis API

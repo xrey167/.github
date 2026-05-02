@@ -17,6 +17,7 @@ pub enum Family {
     SerpLive,
     SerpTask,
     Backlinks,
+    DomainAnalytics,
 }
 
 struct Bucket {
@@ -69,6 +70,10 @@ impl Scheduler {
         // capacity model as SerpTask, the per-family Semaphore will be
         // added if we add parallel calls later.
         buckets.insert(Family::Backlinks, Bucket::new(2000.0, 2000.0 / 60.0));
+        // Domain Analytics (whois, technologies): 2000 rpm in DataForSEO's
+        // documented limits. Same capacity model as Backlinks; UI calls
+        // are one-at-a-time so the burst capacity is more than enough.
+        buckets.insert(Family::DomainAnalytics, Bucket::new(2000.0, 2000.0 / 60.0));
         Self { buckets: Mutex::new(buckets) }
     }
 

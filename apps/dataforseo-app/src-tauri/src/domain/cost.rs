@@ -19,6 +19,13 @@ pub enum CostAction {
     /// targets are queried (one POST each), `rows_per_target` the limit
     /// requested. Aggregate endpoints (summary, history) pass rows=1.
     Backlinks { target_count: u32, rows_per_target: u32 },
+    /// Domain Analytics WHOIS · 0.0001 USD per row (one row per domain
+    /// returned). One request can return many rows when filtered.
+    DomainAnalyticsWhois { rows: u32 },
+    /// Domain Analytics Technologies · 0.001 USD per request (the
+    /// per-domain endpoint returns one row per request, so we don't
+    /// multiply by rows here).
+    DomainAnalyticsTechnologies,
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -64,6 +71,8 @@ pub fn estimate(action: &CostAction) -> f64 {
             total_requests * 0.02
                 + (*target_count as f64 * *rows_per_target as f64) * 0.00003
         }
+        DomainAnalyticsWhois { rows } => (*rows as f64).max(1.0) * 0.0001,
+        DomainAnalyticsTechnologies => 0.001,
     }
 }
 
@@ -147,6 +156,26 @@ mod tests {
             rows_per_target: 100_000,
         });
         assert!(cost > 0.0 && cost.is_finite());
+    }
+
+    #[test]
+    fn whois_overview_one_row_baseline() {
+        let cost = estimate(&CostAction::DomainAnalyticsWhois { rows: 1 });
+        assert!((cost - 0.0001).abs() < 1e-9);
+    }
+
+    #[test]
+    fn whois_overview_zero_rows_still_one_request() {
+        let cost = estimate(&CostAction::DomainAnalyticsWhois { rows: 0 });
+        // .max(1.0) prevents the estimate from going to zero before the
+        // user's first keystroke.
+        assert!((cost - 0.0001).abs() < 1e-9);
+    }
+
+    #[test]
+    fn technologies_is_flat_per_request() {
+        let cost = estimate(&CostAction::DomainAnalyticsTechnologies);
+        assert!((cost - 0.001).abs() < 1e-9);
     }
 
     #[test]
