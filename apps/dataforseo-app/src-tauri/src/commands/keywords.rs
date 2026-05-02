@@ -8,12 +8,13 @@ use ts_rs::TS;
 
 use crate::api::keywords_data::SearchVolumeRequest;
 use crate::api::labs::{LabsKeywordItem, RankedKeywordItem};
+use crate::commands::ledger::run_with_ledger;
 use crate::domain::cost::{self, CostAction};
+use crate::domain::endpoints;
 use crate::domain::types::Mode;
-use crate::errors::Result;
+use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use crate::store::keywords_cache::{self, KeywordVolume};
-use crate::store::ledger::{self, LedgerEntry};
 
 #[derive(Debug, Serialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
@@ -50,7 +51,6 @@ pub async fn keywords_search_volume(
         mode: Mode::Live,
     });
 
-    // Cache lookup (blocking IO -> spawn_blocking).
     let store = state.store.clone();
     let cache_keywords = cleaned.clone();
     let lang_for_cache = language_code.clone();
@@ -67,7 +67,7 @@ pub async fn keywords_search_volume(
             })
         })
         .await
-        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))??
+        .map_err(|e| AppError::Internal(e.to_string()))??
     } else {
         Default::default()
     };
@@ -82,14 +82,28 @@ pub async fn keywords_search_volume(
     let mut api_cost = 0.0;
 
     if !misses.is_empty() {
-        let resp = state
-            .api
-            .google_ads_search_volume_live(SearchVolumeRequest {
-                keywords: &misses,
-                location_code,
-                language_code: &language_code,
-            })
-            .await?;
+        let api = state.api.clone();
+        let misses_for_call = misses.clone();
+        let lang_for_call = language_code.clone();
+        let resp = run_with_ledger(
+            state.store.clone(),
+            endpoints::KEYWORDS_SEARCH_VOLUME,
+            Mode::Live,
+            estimated_usd,
+            misses.len() as i64,
+            move || async move {
+                let r = api
+                    .google_ads_search_volume_live(SearchVolumeRequest {
+                        keywords: &misses_for_call,
+                        location_code,
+                        language_code: &lang_for_call,
+                    })
+                    .await?;
+                let cost = r.cost;
+                Ok((r, cost))
+            },
+        )
+        .await?;
 
         api_cost = resp.cost;
 
@@ -109,32 +123,16 @@ pub async fn keywords_search_volume(
             })
             .collect();
 
-        // Persist fresh rows + ledger entry.
         let store = state.store.clone();
         let lang_for_write = language_code.clone();
         let to_persist = fresh_rows.clone();
-        let request_size = misses.len() as i64;
         task::spawn_blocking(move || -> Result<()> {
             store.with_conn(|c| {
-                keywords_cache::put_batch(c, location_code, &lang_for_write, &to_persist)?;
-                ledger::record(
-                    c,
-                    &LedgerEntry {
-                        endpoint: "google_ads.search_volume",
-                        mode: "live",
-                        cost_usd: api_cost,
-                        estimated_usd: Some(estimated_usd),
-                        request_size: Some(request_size),
-                        response_status: Some(20000),
-                        duration_ms: None,
-                        task_id: None,
-                        error: None,
-                    },
-                )
+                keywords_cache::put_batch(c, location_code, &lang_for_write, &to_persist)
             })
         })
         .await
-        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))??;
+        .map_err(|e| AppError::Internal(e.to_string()))??;
     }
 
     let mut items: Vec<KeywordVolume> = cached.into_values().collect();
@@ -198,14 +196,22 @@ pub async fn keywords_suggestions(
     limit: u32,
 ) -> Result<LabsBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsSuggestions { mode: Mode::Live });
-
-    let resp = state
-        .api
-        .labs_keyword_suggestions(&seed, location_code, &language_code, limit)
-        .await?;
-
-    record_labs_call(state.clone(), "labs.keyword_suggestions", &resp, estimated_usd).await?;
-
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_KEYWORD_SUGGESTIONS,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_keyword_suggestions(&seed, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
     Ok(LabsBatch {
         items: resp.items.into_iter().map(LabsKeyword::from).collect(),
         cost_usd: resp.cost,
@@ -223,14 +229,22 @@ pub async fn keywords_related(
     depth: u32,
 ) -> Result<LabsBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsRelated { depth, mode: Mode::Live });
-
-    let resp = state
-        .api
-        .labs_related_keywords(&seed, location_code, &language_code, depth)
-        .await?;
-
-    record_labs_call(state.clone(), "labs.related_keywords", &resp, estimated_usd).await?;
-
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_RELATED_KEYWORDS,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_related_keywords(&seed, location_code, &language_code, depth)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
     Ok(LabsBatch {
         items: resp.items.into_iter().map(LabsKeyword::from).collect(),
         cost_usd: resp.cost,
@@ -248,21 +262,22 @@ pub async fn keywords_for_domain(
     limit: u32,
 ) -> Result<LabsBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsForDomain { mode: Mode::Live });
-
-    let resp = state
-        .api
-        .labs_keywords_for_site(&target, location_code, &language_code, limit)
-        .await?;
-
-    record_ledger_entry(
-        state.clone(),
-        "labs.keywords_for_site",
-        resp.cost,
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_KEYWORDS_FOR_SITE,
+        Mode::Live,
         estimated_usd,
-        resp.items.len() as i64,
+        1,
+        move || async move {
+            let r = api
+                .labs_keywords_for_site(&target, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
     )
     .await?;
-
     Ok(LabsBatch {
         items: resp.items.into_iter().map(LabsKeyword::from).collect(),
         cost_usd: resp.cost,
@@ -316,64 +331,25 @@ pub async fn keywords_ranked(
     limit: u32,
 ) -> Result<RankedBatch> {
     let estimated_usd = cost::estimate(&CostAction::KeywordsForDomain { mode: Mode::Live });
-
-    let resp = state
-        .api
-        .labs_ranked_keywords(&target, location_code, &language_code, limit)
-        .await?;
-
-    record_ledger_entry(
-        state.clone(),
-        "labs.ranked_keywords",
-        resp.cost,
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_RANKED_KEYWORDS,
+        Mode::Live,
         estimated_usd,
-        resp.items.len() as i64,
+        1,
+        move || async move {
+            let r = api
+                .labs_ranked_keywords(&target, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
     )
     .await?;
-
     Ok(RankedBatch {
         items: resp.items.into_iter().map(RankedKeyword::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
     })
-}
-
-async fn record_labs_call(
-    state: State<'_, AppState>,
-    endpoint: &'static str,
-    resp: &crate::api::labs::LabsResponse,
-    estimated_usd: f64,
-) -> Result<()> {
-    record_ledger_entry(state, endpoint, resp.cost, estimated_usd, resp.items.len() as i64).await
-}
-
-async fn record_ledger_entry(
-    state: State<'_, AppState>,
-    endpoint: &'static str,
-    cost_usd: f64,
-    estimated_usd: f64,
-    items_len: i64,
-) -> Result<()> {
-    let store = state.store.clone();
-    task::spawn_blocking(move || -> Result<()> {
-        store.with_conn(|c| {
-            ledger::record(
-                c,
-                &LedgerEntry {
-                    endpoint,
-                    mode: "live",
-                    cost_usd,
-                    estimated_usd: Some(estimated_usd),
-                    request_size: Some(items_len),
-                    response_status: Some(20000),
-                    duration_ms: None,
-                    task_id: None,
-                    error: None,
-                },
-            )
-        })
-    })
-    .await
-    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))??;
-    Ok(())
 }

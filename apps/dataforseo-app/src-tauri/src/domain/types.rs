@@ -10,6 +10,16 @@ pub enum Mode {
     Standard,
 }
 
+impl Mode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Mode::Live => "live",
+            Mode::Priority => "priority",
+            Mode::Standard => "standard",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub enum EndpointFamily {

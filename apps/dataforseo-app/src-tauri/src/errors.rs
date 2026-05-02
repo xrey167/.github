@@ -34,6 +34,18 @@ pub enum AppError {
     Internal(String),
 }
 
+impl AppError {
+    /// Return the upstream API status code if this error originated as an
+    /// explicit DataForSEO error, else None. Used by the ledger to surface
+    /// failures alongside successful calls.
+    pub fn api_status_code(&self) -> Option<i64> {
+        match self {
+            AppError::Api { status_code, .. } => Some(*status_code as i64),
+            _ => None,
+        }
+    }
+}
+
 impl From<reqwest::Error> for AppError {
     fn from(e: reqwest::Error) -> Self {
         AppError::Network(e.to_string())

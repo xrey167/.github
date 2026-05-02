@@ -5,6 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use futures::stream::{self, StreamExt, TryStreamExt};
 use tokio::task;
 use tokio::time;
 
@@ -13,6 +14,10 @@ use crate::errors::{AppError, Result};
 use crate::store::{serp_results, serp_tasks, Store};
 
 const POLL_INTERVAL_SECS: u64 = 30;
+/// How many task_get calls run concurrently. The SerpTask rate-limiter
+/// (2000 rpm sustained) caps absolute throughput; a small concurrency
+/// keeps the poller responsive without flooding the runtime.
+const TASK_GET_CONCURRENCY: usize = 8;
 
 pub async fn run(api: Arc<ApiClient>, store: Arc<Store>) {
     tracing::info!("serp task poller started (interval {}s)", POLL_INTERVAL_SECS);
@@ -46,29 +51,45 @@ async fn poll_once(api: &Arc<ApiClient>, store: &Arc<Store>) -> Result<()> {
     }
 
     let ready = blocking(store, |c| serp_tasks::find_ready(c)).await?;
-    for task in ready {
-        match api.serp_google_organic_task_get_regular(&task.task_id).await {
+    if ready.is_empty() {
+        return Ok(());
+    }
+
+    // Fetch and persist concurrently. Each network result is handed to a
+    // DB write as soon as it arrives, so a slow task_get does not stall
+    // persistence of the others. Per-family rate-limiting still bounds
+    // absolute throughput inside ApiClient.
+    stream::iter(ready.into_iter().map(|t| {
+        let api = api.clone();
+        async move {
+            let r = api.serp_google_organic_task_get_regular(&t.task_id).await;
+            (t.task_id, r)
+        }
+    }))
+    .buffer_unordered(TASK_GET_CONCURRENCY)
+    .map(Ok::<_, AppError>)
+    .try_for_each(|(task_id, result)| async move {
+        match result {
             Ok(resp) => {
-                let task_id = task.task_id.clone();
+                let id = task_id;
                 let cost = resp.cost;
                 blocking(store, move |c| {
-                    serp_results::insert_batch(c, &task_id, &resp.items)?;
-                    serp_tasks::mark_fetched(c, &task_id, cost)?;
+                    serp_results::insert_batch(c, &id, &resp.items)?;
+                    serp_tasks::mark_fetched(c, &id, cost)?;
                     Ok(())
                 })
                 .await?;
             }
             Err(e) => {
-                tracing::warn!(task_id = %task.task_id, error = %e, "task_get failed");
-                let task_id = task.task_id.clone();
+                tracing::warn!(task_id = %task_id, error = %e, "task_get failed");
+                let id = task_id;
                 let msg = e.to_string();
-                blocking(store, move |c| {
-                    serp_tasks::record_attempt(c, &task_id, Some(&msg))
-                })
-                .await?;
+                blocking(store, move |c| serp_tasks::record_attempt(c, &id, Some(&msg))).await?;
             }
         }
-    }
+        Ok(())
+    })
+    .await?;
 
     Ok(())
 }
