@@ -3,7 +3,7 @@ use tauri::State;
 use tokio::task;
 use ts_rs::TS;
 
-use crate::api::serp::SerpItem;
+use crate::api::serp::{MapsItem, SerpItem};
 use crate::commands::ledger::run_with_ledger;
 use crate::domain::cost::{self, CostAction};
 use crate::domain::endpoints;
@@ -253,4 +253,166 @@ pub async fn serp_task_recent_batches(
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+// ---------- SERP Ads / News / Maps live ----------
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn serp_ads_live(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+    depth: u32,
+) -> Result<SerpLiveBatch> {
+    let estimated_usd = cost::estimate(&CostAction::Serp {
+        count: 1,
+        mode: Mode::Live,
+        depth,
+        extra_params: 0,
+    });
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_GOOGLE_ADS_LIVE,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_google_ads_live(&keyword, location_code, &language_code, depth)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(SerpLiveBatch {
+        keyword: resp.keyword,
+        items: resp.items.into_iter().map(SerpResultItem::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn serp_news_live(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+    depth: u32,
+) -> Result<SerpLiveBatch> {
+    let estimated_usd = cost::estimate(&CostAction::Serp {
+        count: 1,
+        mode: Mode::Live,
+        depth,
+        extra_params: 0,
+    });
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_GOOGLE_NEWS_LIVE,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_google_news_live(&keyword, location_code, &language_code, depth)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(SerpLiveBatch {
+        keyword: resp.keyword,
+        items: resp.items.into_iter().map(SerpResultItem::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct MapsResultItem {
+    pub kind: String,
+    pub rank_absolute: Option<i32>,
+    pub title: Option<String>,
+    pub url: Option<String>,
+    pub domain: Option<String>,
+    pub address: Option<String>,
+    pub phone: Option<String>,
+    pub rating: Option<f64>,
+    pub rating_count: Option<i64>,
+    pub place_id: Option<String>,
+    pub category: Option<String>,
+}
+
+impl From<MapsItem> for MapsResultItem {
+    fn from(it: MapsItem) -> Self {
+        Self {
+            kind: it.kind,
+            rank_absolute: it.rank_absolute,
+            title: it.title,
+            url: it.url,
+            domain: it.domain,
+            address: it.address,
+            phone: it.phone,
+            rating: it.rating,
+            rating_count: it.rating_count,
+            place_id: it.place_id,
+            category: it.category,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct MapsLiveBatch {
+    pub keyword: String,
+    pub items: Vec<MapsResultItem>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn serp_maps_live(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+    depth: u32,
+) -> Result<MapsLiveBatch> {
+    let estimated_usd = cost::estimate(&CostAction::Serp {
+        count: 1,
+        mode: Mode::Live,
+        depth,
+        extra_params: 0,
+    });
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_GOOGLE_MAPS_LIVE,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_google_maps_live(&keyword, location_code, &language_code, depth)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(MapsLiveBatch {
+        keyword: resp.keyword,
+        items: resp.items.into_iter().map(MapsResultItem::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
 }

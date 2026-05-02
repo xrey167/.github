@@ -1,11 +1,17 @@
 import { useState } from "react";
 
+import AdsTab from "./serp/AdsTab";
 import BulkTab from "./serp/BulkTab";
+import MapsTab from "./serp/MapsTab";
+import NewsTab from "./serp/NewsTab";
 import QuickTab from "./serp/QuickTab";
 
 const TABS = [
-  { id: "quick", label: "Quick (Live)" },
-  { id: "bulk", label: "Bulk (Standard Queue)" },
+  { id: "quick", label: "Organic" },
+  { id: "ads", label: "Ads" },
+  { id: "news", label: "News" },
+  { id: "maps", label: "Maps" },
+  { id: "bulk", label: "Bulk (Queue)" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -18,8 +24,8 @@ export default function SerpPage() {
       <header>
         <h2 className="text-xl font-semibold">SERP</h2>
         <p className="text-sm text-slate-600">
-          Live single-keyword check or bulk Standard-Queue tasks. Bulk results stream into the Tasks page as the
-          background poller fetches them.
+          Live keyword SERP checks — organic, paid ads, news, and local maps. Bulk
+          organic tasks run through the Standard Queue and stream into the Tasks page.
         </p>
       </header>
 
@@ -41,6 +47,9 @@ export default function SerpPage() {
       </nav>
 
       {active === "quick" && <QuickTab />}
+      {active === "ads" && <AdsTab />}
+      {active === "news" && <NewsTab />}
+      {active === "maps" && <MapsTab />}
       {active === "bulk" && <BulkTab />}
     </section>
   );

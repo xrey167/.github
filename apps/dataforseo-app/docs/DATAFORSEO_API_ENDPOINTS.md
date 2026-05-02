@@ -86,9 +86,9 @@ each.
 | --- | --- | --- | --- | --- |
 | Google · Organic | `/v3/serp/google/organic/{live,task_post,task_get/...}` | 0.002 | 0.0006 | ✅ done |
 | Google · Organic AI Mode | `/v3/serp/google/ai_mode/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
-| Google · Ads | `/v3/serp/google/ads/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
-| Google · News | `/v3/serp/google/news/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
-| Google · Maps | `/v3/serp/google/maps/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
+| Google · Ads | `/v3/serp/google/ads/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
+| Google · News | `/v3/serp/google/news/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
+| Google · Maps | `/v3/serp/google/maps/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
 | Google · Local Pack | `/v3/serp/google/local_pack/{live,task_post,...}` | 0.002 | 0.0006 | 🟦 plan |
 | Google · Images | `/v3/serp/google/images/{live,task_post,...}` | 0.002 | 0.0006 | 🟦 plan |
 | Google · Events | `/v3/serp/google/events/{live,task_post,...}` | 0.002 | 0.0006 | 🟦 plan |

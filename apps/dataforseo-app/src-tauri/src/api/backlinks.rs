@@ -144,8 +144,10 @@ impl ApiClient {
             .unwrap_or(0);
         let items = result
             .pointer("/items")
+            .and_then(|v| v.as_array())
             .cloned()
-            .unwrap_or(Value::Array(Vec::new()));
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new()));
 
         Ok(BacklinksDetailResponse {
             target: args.target.to_string(),
@@ -274,8 +276,10 @@ impl ApiClient {
             .unwrap_or(0);
         let items = result
             .pointer("/items")
+            .and_then(|v| v.as_array())
             .cloned()
-            .unwrap_or(Value::Array(Vec::new()));
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new()));
         Ok(BacklinksListResponse {
             target: args.target.to_string(),
             total_count,
@@ -315,8 +319,10 @@ impl ApiClient {
             .unwrap_or(0);
         let items = result
             .pointer("/items")
+            .and_then(|v| v.as_array())
             .cloned()
-            .unwrap_or(Value::Array(Vec::new()));
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new()));
         // History has no total_count; fold items_count into both for the
         // shared response shape.
         Ok(BacklinksListResponse {
@@ -374,8 +380,10 @@ impl ApiClient {
             .unwrap_or(0);
         let items = result
             .pointer("/items")
+            .and_then(|v| v.as_array())
             .cloned()
-            .unwrap_or(Value::Array(Vec::new()));
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new()));
         Ok(BacklinksListResponse {
             // Combine the two targets into the response label so the UI
             // can show "a vs b" without storing them separately.

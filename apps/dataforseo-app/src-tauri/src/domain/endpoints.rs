@@ -20,3 +20,6 @@ pub const BACKLINKS_HISTORY: &str = "backlinks.history";
 pub const BACKLINKS_DOMAIN_INTERSECTION: &str = "backlinks.domain_intersection";
 pub const DOMAIN_ANALYTICS_WHOIS_OVERVIEW: &str = "domain_analytics.whois.overview";
 pub const DOMAIN_ANALYTICS_TECHNOLOGIES: &str = "domain_analytics.technologies.domain";
+pub const SERP_GOOGLE_ADS_LIVE: &str = "serp.google.ads.live";
+pub const SERP_GOOGLE_NEWS_LIVE: &str = "serp.google.news.live";
+pub const SERP_GOOGLE_MAPS_LIVE: &str = "serp.google.maps.live";

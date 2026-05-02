@@ -97,6 +97,15 @@ export const tauriApi = {
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
     invoke<SerpLiveBatch>("serp_live", args),
 
+  serpAdsLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
+    invoke<SerpLiveBatch>("serp_ads_live", args),
+
+  serpNewsLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
+    invoke<SerpLiveBatch>("serp_news_live", args),
+
+  serpMapsLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
+    invoke<MapsLiveBatch>("serp_maps_live", args),
+
   serpTaskCreate: (args: {
     keywords: string[];
     locationCode: number;
@@ -487,6 +496,27 @@ export interface BulkDifficultyItem {
 
 export interface BulkDifficultyView {
   items: BulkDifficultyItem[];
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface MapsResultItem {
+  kind: string;
+  rank_absolute: number | null;
+  title: string | null;
+  url: string | null;
+  domain: string | null;
+  address: string | null;
+  phone: string | null;
+  rating: number | null;
+  rating_count: number | null;
+  place_id: string | null;
+  category: string | null;
+}
+
+export interface MapsLiveBatch {
+  keyword: string;
+  items: MapsResultItem[];
   cost_usd: number;
   estimated_usd: number;
 }
