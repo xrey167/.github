@@ -135,7 +135,7 @@ export default function QuickTab() {
             {formatUsd(batch.estimated_usd)})
           </span>
           <ExportMenu
-            filenameStem={`serp-${batch.keyword.replace(/\s+/g, "-").toLowerCase()}`}
+            filenameStem={`serp-${batch.keyword}`}
             rows={batch.items}
             columns={exportColumns}
           />

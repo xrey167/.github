@@ -15,16 +15,19 @@ function csvEscape(value: string): string {
 }
 
 /// Resolve a column header to a string. tanstack-table allows the header to
-/// be a string, function, or React node; we want the same label that's
-/// painted in the UI for free-form headers and fall back to the column id.
+/// be a string, function, or React node; for non-string headers fall back
+/// to the explicit `id`, and finally to `accessorKey` (which tanstack-table
+/// itself uses as the implicit id when neither is given).
 function headerLabel<T>(column: ColumnDef<T, unknown>): string {
   if (typeof column.header === "string") return column.header;
-  return String(column.id ?? "");
+  const accessorKey = (column as { accessorKey?: string }).accessorKey;
+  return String(column.id ?? accessorKey ?? "");
 }
 
 /// Resolve a row's value for one column. Honors accessorFn first (custom
-/// projections), then accessorKey (declarative field access). Returns ""
-/// for unresolved cells so the CSV stays well-formed.
+/// projections), then accessorKey (with dotted-path support — tanstack-table
+/// supports nested keys like "user.profile.name"). Returns "" for unresolved
+/// cells so the CSV stays well-formed.
 function cellValue<T>(column: ColumnDef<T, unknown>, row: T, index: number): string {
   type WithFn = { accessorFn?: (row: T, index: number) => unknown };
   type WithKey = { accessorKey?: string };
@@ -35,7 +38,13 @@ function cellValue<T>(column: ColumnDef<T, unknown>, row: T, index: number): str
   }
   const key = (column as WithKey).accessorKey;
   if (typeof key === "string") {
-    const v = (row as Record<string, unknown>)[key];
+    const v = key
+      .split(".")
+      .reduce<unknown>(
+        (acc, part) =>
+          acc == null ? undefined : (acc as Record<string, unknown>)[part],
+        row,
+      );
     return v == null ? "" : String(v);
   }
   return "";
@@ -61,8 +70,10 @@ export function downloadCsv<T>(
   const header = columns.map((c) => csvEscape(headerLabel(c))).join(",");
   const body = rows
     .map((r, i) => columns.map((c) => csvEscape(cellValue(c, r, i))).join(","))
-    .join("\n");
-  triggerBlobDownload(`${header}\n${body}\n`, filename, "text/csv;charset=utf-8");
+    .join("\r\n");
+  // RFC 4180 says records are CRLF-delimited. Excel/Sheets/Numbers all
+  // accept LF too, but CRLF is the safe default for downstream tooling.
+  triggerBlobDownload(`${header}\r\n${body}\r\n`, filename, "text/csv;charset=utf-8");
 }
 
 export function downloadJson<T>(rows: T[], filename: string): void {
@@ -70,10 +81,12 @@ export function downloadJson<T>(rows: T[], filename: string): void {
 }
 
 /// Stamp a filename with a sortable timestamp so users can collect repeat
-/// exports without overwriting.
+/// exports without overwriting. Sanitises the stem so it cannot blow up on
+/// Windows: drops any of <>:"/\|?* and collapses runs of whitespace.
 export function timestampedFilename(stem: string, ext: "csv" | "json"): string {
+  const safe = stem.replace(/[<>:"/\\|?*\s]+/g, "-").replace(/^-+|-+$/g, "") || "export";
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
   const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  return `${stem}-${stamp}.${ext}`;
+  return `${safe}-${stamp}.${ext}`;
 }
