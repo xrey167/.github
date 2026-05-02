@@ -105,7 +105,13 @@ impl Filter {
                 let mut out = Vec::with_capacity(nodes.len() * 2 - 1);
                 for (i, node) in nodes.iter().enumerate() {
                     out.push(node.to_wire());
-                    if let Some(conn) = connectors.get(i) {
+                    // Always emit a connector between nodes — defaulting to
+                    // And if `connectors` is shorter than `nodes.len() - 1`.
+                    // Without this, a malformed Group with too few connectors
+                    // would serialize as `[cond1, cond2]`, which DataForSEO
+                    // rejects as invalid filter syntax.
+                    if i < nodes.len() - 1 {
+                        let conn = connectors.get(i).unwrap_or(&Logical::And);
                         out.push(json!(match conn {
                             Logical::And => "and",
                             Logical::Or => "or",
@@ -228,5 +234,35 @@ mod tests {
     fn empty_group_serializes_to_empty_array() {
         let f = Filter::Group { nodes: vec![], connectors: vec![] };
         assert_eq!(f.to_wire(), json!([]));
+    }
+
+    #[test]
+    fn missing_connector_defaults_to_and() {
+        // Malformed group with two nodes but no connectors. We default to
+        // "and" so the wire form is still valid filter syntax instead of
+        // `[cond1, cond2]` (which DataForSEO rejects).
+        let f = Filter::Group {
+            nodes: vec![
+                Filter::Condition {
+                    field: "dofollow".into(),
+                    operator: Operator::Eq,
+                    value: json!(true),
+                },
+                Filter::Condition {
+                    field: "rank".into(),
+                    operator: Operator::Gt,
+                    value: json!(30),
+                },
+            ],
+            connectors: vec![],
+        };
+        assert_eq!(
+            f.to_wire(),
+            json!([
+                ["dofollow", "=", true],
+                "and",
+                ["rank", ">", 30]
+            ])
+        );
     }
 }

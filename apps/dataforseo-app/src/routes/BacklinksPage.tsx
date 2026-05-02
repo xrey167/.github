@@ -361,9 +361,18 @@ function DetailTab() {
                 min={1}
                 max={1000}
                 value={limit}
+                // Allow intermediate values during typing — clamping here
+                // would jump 1→empty→0 to 1, blocking the user from
+                // editing digit-by-digit. We finalise on blur instead.
                 onChange={(e) => {
-                  const n = Number(e.target.value);
-                  setLimit(Number.isFinite(n) ? Math.max(1, Math.min(1000, n)) : 100);
+                  const n = e.target.valueAsNumber;
+                  setLimit(Number.isFinite(n) ? n : 0);
+                }}
+                onBlur={(e) => {
+                  const n = e.target.valueAsNumber;
+                  setLimit(
+                    Number.isFinite(n) ? Math.max(1, Math.min(1000, n)) : 100,
+                  );
                 }}
                 disabled={busy}
                 className="rounded border px-2 py-1 disabled:bg-slate-50"

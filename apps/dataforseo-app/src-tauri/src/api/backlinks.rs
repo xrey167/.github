@@ -94,20 +94,32 @@ impl ApiClient {
         if let Some(filter) = args.filter {
             // DataForSEO's /backlinks/live takes the filter as an array,
             // even for a single condition. The DSL's `to_wire()` returns
-            // a 3-elem array for a Condition leaf, so wrap that case so
-            // the API sees `[[field, op, value]]`.
+            // a 3-elem array for a Condition leaf — its first element is
+            // the field name (string), which is the most reliable leaf
+            // marker. A Group's wire form starts with another array, so
+            // it's already in the outer-array shape DataForSEO expects.
+            //
+            // Only attach `filters` if there's actually something to send;
+            // an empty Group would otherwise produce `[[]]`, which the API
+            // rejects.
             let wire = filter.to_wire();
-            let filters = if wire
+            let is_leaf = wire
                 .as_array()
                 .and_then(|a| a.first())
-                .map(|v| !v.is_array())
-                .unwrap_or(true)
-            {
+                .map(|v| v.is_string())
+                .unwrap_or(false);
+            let filters = if is_leaf {
                 serde_json::json!([wire])
             } else {
                 wire
             };
-            payload["filters"] = filters;
+            if filters
+                .as_array()
+                .map(|a| !a.is_empty())
+                .unwrap_or(false)
+            {
+                payload["filters"] = filters;
+            }
         }
         if let Some(order) = args.order_by {
             payload["order_by"] = serde_json::json!(order);
