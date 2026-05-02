@@ -4,11 +4,12 @@ use tokio::task;
 use ts_rs::TS;
 
 use crate::api::serp::SerpItem;
+use crate::commands::ledger::run_with_ledger;
 use crate::domain::cost::{self, CostAction};
+use crate::domain::endpoints;
 use crate::domain::types::Mode;
-use crate::errors::Result;
+use crate::errors::{AppError, Result};
 use crate::state::AppState;
-use crate::store::ledger::{self, LedgerEntry};
 
 #[derive(Debug, Serialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
@@ -59,36 +60,22 @@ pub async fn serp_live(
         extra_params: 0,
     });
 
-    let start = std::time::Instant::now();
-    let resp = state
-        .api
-        .serp_google_organic_live(&keyword, location_code, &language_code, depth)
-        .await?;
-    let duration_ms = start.elapsed().as_millis() as i64;
-
-    let store = state.store.clone();
-    let cost = resp.cost;
-    task::spawn_blocking(move || -> Result<()> {
-        store.with_conn(|c| {
-            ledger::record(
-                c,
-                &LedgerEntry {
-                    endpoint: "serp.google.organic.live",
-                    mode: "live",
-                    cost_usd: cost,
-                    estimated_usd: Some(estimated_usd),
-                    // request_size is keyword count, not response item count.
-                    request_size: Some(1),
-                    response_status: Some(20000),
-                    duration_ms: Some(duration_ms),
-                    task_id: None,
-                    error: None,
-                },
-            )
-        })
-    })
-    .await
-    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))??;
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_GOOGLE_ORGANIC_LIVE,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_google_organic_live(&keyword, location_code, &language_code, depth)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
 
     Ok(SerpLiveBatch {
         keyword: resp.keyword,
@@ -131,12 +118,10 @@ pub async fn serp_task_create(
         .collect();
 
     if cleaned.is_empty() {
-        return Err(crate::errors::AppError::Validation(
-            "at least one keyword required".into(),
-        ));
+        return Err(AppError::Validation("at least one keyword required".into()));
     }
     if cleaned.len() > 100 {
-        return Err(crate::errors::AppError::Validation(
+        return Err(AppError::Validation(
             "task_create accepts at most 100 keywords per batch".into(),
         ));
     }
@@ -202,8 +187,8 @@ pub async fn serp_task_create(
                      response_status, duration_ms, task_id, error)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
                 duckdb::params![
-                    "serp.google.organic.task_post",
-                    "standard",
+                    endpoints::SERP_GOOGLE_ORGANIC_TASK_POST,
+                    Mode::Standard.as_str(),
                     api_cost,
                     Some(estimated_usd),
                     Some(request_size),
@@ -218,7 +203,7 @@ pub async fn serp_task_create(
         })
     })
     .await
-    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))??;
+    .map_err(|e| AppError::Internal(e.to_string()))??;
 
     Ok(TaskBatchId {
         batch_id,
@@ -251,7 +236,7 @@ pub async fn serp_task_status(
         })
     })
     .await
-    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))??;
+    .map_err(|e| AppError::Internal(e.to_string()))??;
 
     Ok(TaskBatchStatus { batch_id, tasks, results })
 }
@@ -267,5 +252,5 @@ pub async fn serp_task_recent_batches(
         store.with_conn(|c| crate::store::serp_tasks::list_recent_batches(c, limit))
     })
     .await
-    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?
+    .map_err(|e| AppError::Internal(e.to_string()))?
 }

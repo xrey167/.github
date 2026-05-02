@@ -2,13 +2,14 @@ use duckdb::{params, Connection};
 use serde::Serialize;
 use ts_rs::TS;
 
+use crate::domain::types::Mode;
 use crate::errors::Result;
 
 #[derive(Debug, Clone, Serialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct LedgerEntry<'a> {
     pub endpoint: &'a str,
-    pub mode: &'a str,
+    pub mode: Mode,
     pub cost_usd: f64,
     pub estimated_usd: Option<f64>,
     pub request_size: Option<i64>,
@@ -26,7 +27,7 @@ pub fn record(conn: &mut Connection, entry: &LedgerEntry) -> Result<()> {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         params![
             entry.endpoint,
-            entry.mode,
+            entry.mode.as_str(),
             entry.cost_usd,
             entry.estimated_usd,
             entry.request_size,
