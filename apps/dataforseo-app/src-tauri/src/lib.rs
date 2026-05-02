@@ -51,6 +51,7 @@ pub fn run() {
             commands::serp::serp_task_create,
             commands::serp::serp_task_status,
             commands::serp::serp_task_recent_batches,
+            commands::backlinks::backlinks_summary,
             commands::ai::ai_provider_status,
             commands::ai::ai_save_provider_key,
             commands::ai::ai_clear_provider_key,
