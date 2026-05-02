@@ -153,8 +153,10 @@ are single-page; the Task variants run a multi-page crawl.
 | Lighthouse · Live · JSON | `/v3/on_page/lighthouse/live/json` | 0.0025 | ✅ done |
 | Lighthouse · Audits | `/v3/on_page/lighthouse/audits` | free | 🟦 plan |
 | Lighthouse · Versions | `/v3/on_page/lighthouse/versions` | free | n/a |
-| Task Post (full crawl) | `/v3/on_page/task_post` | 0.000125 / page | 🟦 plan |
-| Pages | `/v3/on_page/pages` | 0.0001 / row | 🟦 plan |
+| Task Post (full crawl) | `/v3/on_page/task_post` | 0.000125 / page | ✅ done |
+| Summary | `/v3/on_page/summary/{id}` | free | ✅ done |
+| Tasks Ready | `/v3/on_page/tasks_ready` | free | ✅ done |
+| Pages | `/v3/on_page/pages` | free (rolled into task_post) | ✅ done |
 | Pages By Resource | `/v3/on_page/pages_by_resource` | 0.0001 / row | 🟦 plan |
 | Resources | `/v3/on_page/resources` | 0.0001 / row | 🟦 plan |
 | Duplicate Tags | `/v3/on_page/duplicate_tags` | 0.0001 / row | 🟦 plan |

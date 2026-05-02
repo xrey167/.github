@@ -1,6 +1,7 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 
 import AdsPage from "./routes/AdsPage";
+import AuditPage from "./routes/AuditPage";
 import BacklinksPage from "./routes/BacklinksPage";
 import ChatPage from "./routes/ChatPage";
 import ComparePage from "./routes/ComparePage";
@@ -24,6 +25,7 @@ const navItems = [
   { to: "/backlinks", label: "Backlinks" },
   { to: "/domain-analytics", label: "Domain Analytics" },
   { to: "/on-page", label: "On-Page" },
+  { to: "/audit", label: "Site Audit" },
   { to: "/traffic", label: "Traffic" },
   { to: "/ads", label: "Ads" },
   { to: "/social", label: "Social" },
@@ -61,6 +63,7 @@ export default function App() {
           <Route path="/backlinks" element={<BacklinksPage />} />
           <Route path="/domain-analytics" element={<DomainAnalyticsPage />} />
           <Route path="/on-page" element={<OnPagePage />} />
+          <Route path="/audit" element={<AuditPage />} />
           <Route path="/traffic" element={<TrafficPage />} />
           <Route path="/ads" element={<AdsPage />} />
           <Route path="/social" element={<SocialPage />} />

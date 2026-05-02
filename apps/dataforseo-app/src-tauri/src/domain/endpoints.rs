@@ -28,4 +28,5 @@ pub const LABS_COMPETITORS_DOMAIN: &str = "labs.competitors_domain";
 pub const LABS_DOMAIN_INTERSECTION: &str = "labs.domain_intersection";
 pub const ON_PAGE_INSTANT_PAGES: &str = "on_page.instant_pages";
 pub const ON_PAGE_LIGHTHOUSE: &str = "on_page.lighthouse";
+pub const ON_PAGE_TASK_POST: &str = "on_page.task_post";
 pub const LABS_BULK_SEARCH_VOLUME: &str = "labs.bulk_search_volume";

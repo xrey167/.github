@@ -54,6 +54,11 @@ pub enum CostAction {
     /// volume in the catalogue — 750× cheaper than Google Ads for bulk
     /// research (trades some long-tail accuracy).
     LabsBulkSearchVolume { count: u32 },
+    /// On-Page full-site audit · 0.000125 USD per crawled page. Fans
+    /// out from a single task_post and returns a per-URL audit set
+    /// once /pages is fetched. UI pre-charges max_pages so the cost
+    /// preview matches what we'd be billed at the cap.
+    OnPageAudit { max_pages: u32 },
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -109,6 +114,7 @@ pub fn estimate(action: &CostAction) -> f64 {
         OnPageInstantPages => 0.0025,
         OnPageLighthouse => 0.0025,
         LabsBulkSearchVolume { count } => (*count as f64).max(1.0) * 0.0001,
+        OnPageAudit { max_pages } => (*max_pages as f64).max(1.0) * 0.000125,
     }
 }
 

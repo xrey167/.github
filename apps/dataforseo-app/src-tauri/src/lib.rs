@@ -37,17 +37,28 @@ pub fn run() {
                     let _ = evict_store.with_conn(|c| {
                         store::response_cache::evict_older_than(c, chrono::Duration::days(60))
                     });
+                    // Drop old completed audits too — they're large
+                    // (one summary + N page rows each) and the user
+                    // rarely needs week-old crawls.
+                    let _ = evict_store.with_conn(|c| {
+                        store::audits::evict_completed_older_than(c, chrono::Duration::days(90))
+                    });
                 })
                 .await;
             });
             let tracker_api = api.clone();
             let tracker_store = store.clone();
+            let audit_api = api.clone();
+            let audit_store = store.clone();
             app.manage(state);
             tauri::async_runtime::spawn(async move {
                 tasks::poller::run(api, store).await;
             });
             tauri::async_runtime::spawn(async move {
                 tasks::tracker::run(tracker_api, tracker_store).await;
+            });
+            tauri::async_runtime::spawn(async move {
+                tasks::audit_poller::run(audit_api, audit_store).await;
             });
             Ok(())
         })
@@ -97,6 +108,11 @@ pub fn run() {
             commands::tracking::tracking_remove,
             commands::tracking::tracking_history,
             commands::tracking::tracking_run_now,
+            commands::audit::audit_start,
+            commands::audit::audit_list,
+            commands::audit::audit_get,
+            commands::audit::audit_pages,
+            commands::audit::audit_delete,
             commands::ai::ai_provider_status,
             commands::ai::ai_save_provider_key,
             commands::ai::ai_clear_provider_key,

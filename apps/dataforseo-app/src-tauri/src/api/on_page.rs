@@ -18,6 +18,12 @@ use crate::errors::{AppError, Result};
 use crate::ratelimit::Family;
 
 #[derive(Debug)]
+pub struct TaskPostResult {
+    pub task_id: String,
+    pub cost: f64,
+}
+
+#[derive(Debug)]
 pub struct OnPageInstantResponse {
     pub url: String,
     /// Raw items array — typically a single row for one URL, but the API
@@ -65,6 +71,91 @@ impl ApiClient {
             items,
             cost,
         })
+    }
+
+    /// Submit a multi-page crawl. Returns the task_id; the background
+    /// audit poller advances it through tasks_ready → summary → pages.
+    pub async fn on_page_task_post(
+        &self,
+        target: &str,
+        max_crawl_pages: u32,
+    ) -> Result<TaskPostResult> {
+        let body = serde_json::json!([{
+            "target": target,
+            "max_crawl_pages": max_crawl_pages.clamp(1, 1000),
+            "load_resources": true,
+            "enable_javascript": true,
+            "enable_browser_rendering": false,
+        }]);
+        let raw = self
+            .post_json(Family::OnPage, "/v3/on_page/task_post", &body)
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let task_id = raw
+            .pointer("/tasks/0/id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| AppError::Parse("task_post response missing tasks[0].id".into()))?
+            .to_owned();
+        Ok(TaskPostResult { task_id, cost })
+    }
+
+    /// Returns the task_ids that have completed and are ready to fetch
+    /// /summary and /pages for. Empty list when nothing's ready yet.
+    pub async fn on_page_tasks_ready(&self) -> Result<Vec<String>> {
+        let raw = self
+            .get_json(Family::OnPage, "/v3/on_page/tasks_ready")
+            .await?;
+        ensure_api_success(&raw)?;
+        let ids = raw
+            .pointer("/tasks/0/result")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|t| t.pointer("/id").and_then(|v| v.as_str()).map(|s| s.to_owned()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        Ok(ids)
+    }
+
+    /// Crawl summary blob — domain-level metrics, broken-link counts,
+    /// duplicate-content totals, etc. UI surfaces the well-known fields.
+    pub async fn on_page_summary(&self, task_id: &str) -> Result<serde_json::Value> {
+        let path = format!("/v3/on_page/summary/{task_id}");
+        let raw = self.get_json(Family::OnPage, &path).await?;
+        ensure_api_success(&raw)?;
+        let summary = raw
+            .pointer("/tasks/0/result/0")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
+        Ok(summary)
+    }
+
+    /// Per-page audit data. POST not GET because the API takes filters
+    /// in the body. Returns the items array verbatim — caller extracts
+    /// the well-known fields and stores `raw_json` for drill-down.
+    pub async fn on_page_pages(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<serde_json::Value> {
+        let body = serde_json::json!([{
+            "id": task_id,
+            "limit": limit.clamp(1, 1000),
+            "offset": offset,
+        }]);
+        let raw = self
+            .post_json(Family::OnPage, "/v3/on_page/pages", &body)
+            .await?;
+        ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+        Ok(items)
     }
 
     pub async fn on_page_lighthouse_live_json(

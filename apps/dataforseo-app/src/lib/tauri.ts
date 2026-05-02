@@ -123,6 +123,18 @@ export const tauriApi = {
 
   trackingRunNow: (args: { id: number }) => invoke<void>("tracking_run_now", args),
 
+  auditStart: (args: { target: string; maxCrawlPages: number }) =>
+    invoke<number>("audit_start", args),
+
+  auditList: (args: { limit: number }) => invoke<AuditRun[]>("audit_list", args),
+
+  auditGet: (args: { id: number }) => invoke<AuditRun | null>("audit_get", args),
+
+  auditPages: (args: { id: number; limit: number; offset: number }) =>
+    invoke<AuditPage[]>("audit_pages", args),
+
+  auditDelete: (args: { id: number }) => invoke<void>("audit_delete", args),
+
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
     invoke<SerpLiveBatch>("serp_live", args),
 
@@ -642,6 +654,36 @@ export interface RankPoint {
   fetched_at: string;
   rank_absolute: number | null;
   url: string | null;
+}
+
+export interface AuditRun {
+  id: number;
+  target: string;
+  task_id: string | null;
+  max_crawl_pages: number;
+  // 'pending' | 'running' | 'ready' | 'failed'
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  last_polled_at: string | null;
+  cost_usd: number | null;
+  // Raw summary blob from /v3/on_page/summary; UI extracts known fields.
+  summary: Record<string, unknown> | null;
+  error: string | null;
+  page_count: number;
+}
+
+export interface AuditPage {
+  id: number;
+  url: string;
+  status_code: number | null;
+  title: string | null;
+  description: string | null;
+  h1: string | null;
+  plain_text_word_count: number | null;
+  page_timing_ttfb: number | null;
+  onpage_score: number | null;
+  raw: Record<string, unknown> | null;
 }
 
 export interface BulkVolumeItem {
