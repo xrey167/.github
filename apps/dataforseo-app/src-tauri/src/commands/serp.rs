@@ -59,14 +59,15 @@ pub async fn serp_live(
         extra_params: 0,
     });
 
+    let start = std::time::Instant::now();
     let resp = state
         .api
         .serp_google_organic_live(&keyword, location_code, &language_code, depth)
         .await?;
+    let duration_ms = start.elapsed().as_millis() as i64;
 
     let store = state.store.clone();
     let cost = resp.cost;
-    let items_len = resp.items.len() as i64;
     task::spawn_blocking(move || -> Result<()> {
         store.with_conn(|c| {
             ledger::record(
@@ -76,9 +77,10 @@ pub async fn serp_live(
                     mode: "live",
                     cost_usd: cost,
                     estimated_usd: Some(estimated_usd),
-                    request_size: Some(items_len),
+                    // request_size is keyword count, not response item count.
+                    request_size: Some(1),
                     response_status: Some(20000),
-                    duration_ms: None,
+                    duration_ms: Some(duration_ms),
                     task_id: None,
                     error: None,
                 },
