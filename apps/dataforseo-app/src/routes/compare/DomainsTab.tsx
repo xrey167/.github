@@ -2,16 +2,22 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import BucketTab from "../../components/BucketTab";
 import ChatWithResultsButton from "../../components/ChatWithResultsButton";
 import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
 import ResultsTable from "../../components/ResultsTable";
+import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatCount, formatUsd } from "../../lib/format";
 import { tauriApi, type RankedKeyword } from "../../lib/tauri";
 
-const DEFAULT_LOCATION = 2276;
-const DEFAULT_LANGUAGE = "de";
 const KEYWORD_LIMIT = 200;
+
+const BUCKET_LABELS: Record<"common" | "a" | "b", string> = {
+  common: "common",
+  a: "Only A",
+  b: "Only B",
+};
 
 interface DomainCompareRow {
   keyword: string;
@@ -215,7 +221,7 @@ export default function DomainsTab() {
             <span className="ml-auto flex gap-2">
               <ChatWithResultsButton
                 rows={filtered}
-                summary={`${filtered.length} ${bucket} keywords for ${trimmedA} vs ${trimmedB}`}
+                summary={`${filtered.length} ${BUCKET_LABELS[bucket]} keywords for ${trimmedA} vs ${trimmedB}`}
               />
               <ExportMenu
                 filenameStem={`compare-${trimmedA}-vs-${trimmedB}-${bucket}`}
@@ -255,27 +261,5 @@ export default function DomainsTab() {
         </div>
       )}
     </div>
-  );
-}
-
-function BucketTab({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded border px-3 py-1 text-xs ${
-        active ? "border-slate-800 bg-slate-100" : "hover:bg-slate-50"
-      }`}
-    >
-      {label}
-    </button>
   );
 }

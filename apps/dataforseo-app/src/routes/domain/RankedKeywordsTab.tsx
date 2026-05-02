@@ -8,9 +8,7 @@ import ExportMenu from "../../components/ExportMenu";
 import ResultsTable from "../../components/ResultsTable";
 import { formatCount, formatUsd } from "../../lib/format";
 import { tauriApi, type RankedBatch, type RankedKeyword } from "../../lib/tauri";
-
-const DEFAULT_LOCATION = 2276;
-const DEFAULT_LANGUAGE = "de";
+import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 
 interface Props {
   target: string;

@@ -6,9 +6,8 @@ import BulkKeywordInput, { parseKeywords } from "../../components/BulkKeywordInp
 import CostPreview from "../../components/CostPreview";
 import { formatUsd } from "../../lib/format";
 import { tauriApi } from "../../lib/tauri";
+import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 
-const DEFAULT_LOCATION = 2276;
-const DEFAULT_LANGUAGE = "de";
 const MAX_KEYWORDS = 100;
 
 export default function BulkTab() {

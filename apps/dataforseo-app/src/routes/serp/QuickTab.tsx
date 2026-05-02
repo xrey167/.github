@@ -6,9 +6,7 @@ import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
 import { formatUsd } from "../../lib/format";
 import { tauriApi, type SerpLiveBatch, type SerpResultItem } from "../../lib/tauri";
-
-const DEFAULT_LOCATION = 2276;
-const DEFAULT_LANGUAGE = "de";
+import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 
 const KIND_COLORS: Record<string, string> = {
   organic: "bg-slate-100 text-slate-700",

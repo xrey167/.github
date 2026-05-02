@@ -3,9 +3,7 @@ import { useMemo, useState } from "react";
 import type { CostAction } from "../../lib/cost";
 import { tauriApi } from "../../lib/tauri";
 import SeedTab from "./SeedTab";
-
-const DEFAULT_LOCATION = 2276;
-const DEFAULT_LANGUAGE = "de";
+import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 
 export default function RelatedTab() {
   const [depth, setDepth] = useState(2);
