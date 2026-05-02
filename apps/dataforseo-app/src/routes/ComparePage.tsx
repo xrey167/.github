@@ -41,50 +41,43 @@ export default function ComparePage() {
     keywordsA.length > 1000 || keywordsB.length > 1000 || totalUnique > 1000;
 
   async function onCompare() {
-    if (
-      keywordsA.length === 0 ||
-      keywordsB.length === 0 ||
-      keywordsA.length > 1000 ||
-      keywordsB.length > 1000
-    ) {
+    if (keywordsA.length === 0 || keywordsB.length === 0 || overLimit) {
       return;
     }
     setBusy(true);
     try {
-      // Cache deduplicates the request per side; if the user pastes the same
-      // keyword in both sets, the second call is a free cache hit.
-      const [batchA, batchB] = await Promise.all([
-        tauriApi.keywordsSearchVolume({
-          keywords: keywordsA,
-          locationCode: DEFAULT_LOCATION,
-          languageCode: DEFAULT_LANGUAGE,
-          useCache: true,
-        }),
-        tauriApi.keywordsSearchVolume({
-          keywords: keywordsB,
-          locationCode: DEFAULT_LOCATION,
-          languageCode: DEFAULT_LANGUAGE,
-          useCache: true,
-        }),
-      ]);
+      // One request for the union — search_volume's cache already
+      // deduplicates per (keyword, location, language) so paying for
+      // overlap is impossible. Iterating the input keyword sets (not
+      // the response) means missing API rows still show up in the
+      // result with null volume instead of vanishing.
+      const allUnique = Array.from(new Set([...keywordsA, ...keywordsB]));
+      const batch = await tauriApi.keywordsSearchVolume({
+        keywords: allUnique,
+        locationCode: DEFAULT_LOCATION,
+        languageCode: DEFAULT_LANGUAGE,
+        useCache: true,
+      });
 
-      const mapA = new Map(batchA.items.map((it: KeywordVolume) => [it.keyword, it]));
-      const mapB = new Map(batchB.items.map((it: KeywordVolume) => [it.keyword, it]));
+      const resultMap = new Map(
+        batch.items.map((it: KeywordVolume) => [it.keyword, it]),
+      );
+      const setA = new Set(keywordsA);
+      const setB = new Set(keywordsB);
 
-      const all = new Set<string>([...mapA.keys(), ...mapB.keys()]);
-      const compareRows: CompareRow[] = Array.from(all).map((keyword) => {
-        const a = mapA.get(keyword);
-        const b = mapB.get(keyword);
-        const set: CompareRow["set"] = a && b ? "common" : a ? "a" : "b";
+      const compareRows: CompareRow[] = allUnique.map((keyword) => {
+        const data = resultMap.get(keyword);
+        const inA = setA.has(keyword);
+        const inB = setB.has(keyword);
         return {
           keyword,
-          set,
-          volume_a: a?.search_volume ?? null,
-          volume_b: b?.search_volume ?? null,
-          cpc_a: a?.cpc ?? null,
-          cpc_b: b?.cpc ?? null,
-          competition_a: a?.competition ?? null,
-          competition_b: b?.competition ?? null,
+          set: inA && inB ? "common" : inA ? "a" : "b",
+          volume_a: inA ? (data?.search_volume ?? null) : null,
+          volume_b: inB ? (data?.search_volume ?? null) : null,
+          cpc_a: inA ? (data?.cpc ?? null) : null,
+          cpc_b: inB ? (data?.cpc ?? null) : null,
+          competition_a: inA ? (data?.competition ?? null) : null,
+          competition_b: inB ? (data?.competition ?? null) : null,
         };
       });
       compareRows.sort((x, y) => {
@@ -93,9 +86,8 @@ export default function ComparePage() {
         return yv - xv;
       });
       setRows(compareRows);
-      const cost = batchA.cost_usd + batchB.cost_usd;
       toast.success(
-        `${compareRows.length} keywords compared (${formatUsd(cost)} fresh, rest from cache)`,
+        `${compareRows.length} keywords compared (${formatUsd(batch.cost_usd)} fresh, rest from cache)`,
       );
     } catch (e) {
       toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
