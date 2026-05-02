@@ -103,6 +103,15 @@ export const tauriApi = {
   backlinksDetail: (params: BacklinksDetailParams) =>
     invoke<BacklinksDetailView>("backlinks_detail", { params }),
 
+  backlinksReferringDomains: (params: BacklinksListParams) =>
+    invoke<BacklinksListView>("backlinks_referring_domains", { params }),
+
+  backlinksAnchors: (params: BacklinksListParams) =>
+    invoke<BacklinksListView>("backlinks_anchors", { params }),
+
+  backlinksHistory: (params: BacklinksHistoryParams) =>
+    invoke<BacklinksListView>("backlinks_history", { params }),
+
   getRecentCalls: (args: { limit: number }) =>
     invoke<CallLogRow[]>("get_recent_calls", args),
 
@@ -299,6 +308,32 @@ export interface BacklinksDetailView {
   items: Array<Record<string, unknown>>;
   cost_usd: number;
   estimated_usd: number;
+}
+
+// Shared shape for /referring_domains/live and /anchors/live commands.
+export interface BacklinksListParams {
+  target: string;
+  limit: number;
+  offset: number;
+  includeSubdomains: boolean;
+  filter: FilterTree | null;
+  orderBy: string[] | null;
+}
+
+export interface BacklinksListView {
+  target: string;
+  total_count: number;
+  items_count: number;
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface BacklinksHistoryParams {
+  target: string;
+  // YYYY-MM-DD; both ends optional.
+  dateFrom: string | null;
+  dateTo: string | null;
 }
 
 export interface TaskBatchId {

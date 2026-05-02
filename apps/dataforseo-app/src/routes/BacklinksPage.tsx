@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import CostPreview from "../components/CostPreview";
 import { formatCount, formatUsd } from "../lib/format";
@@ -8,11 +17,12 @@ import {
   type BacklinksDetailMode,
   type BacklinksDetailStatus,
   type BacklinksDetailView,
+  type BacklinksListView,
   type BacklinksSummaryView,
   type FilterTree,
 } from "../lib/tauri";
 
-type Tab = "summary" | "detail";
+type Tab = "summary" | "detail" | "domains" | "anchors" | "history";
 
 export default function BacklinksPage() {
   const [tab, setTab] = useState<Tab>("summary");
@@ -41,9 +51,22 @@ export default function BacklinksPage() {
         <TabButton active={tab === "detail"} onClick={() => setTab("detail")}>
           Detail
         </TabButton>
+        <TabButton active={tab === "domains"} onClick={() => setTab("domains")}>
+          Referring Domains
+        </TabButton>
+        <TabButton active={tab === "anchors"} onClick={() => setTab("anchors")}>
+          Anchors
+        </TabButton>
+        <TabButton active={tab === "history"} onClick={() => setTab("history")}>
+          History
+        </TabButton>
       </nav>
 
-      {tab === "summary" ? <SummaryTab /> : <DetailTab />}
+      {tab === "summary" && <SummaryTab />}
+      {tab === "detail" && <DetailTab />}
+      {tab === "domains" && <ReferringDomainsTab />}
+      {tab === "anchors" && <AnchorsTab />}
+      {tab === "history" && <HistoryTab />}
     </section>
   );
 }
@@ -510,4 +533,483 @@ function num(row: Record<string, unknown>, key: string): number | null {
 function bool(row: Record<string, unknown>, key: string): boolean | null {
   const v = row[key];
   return typeof v === "boolean" ? v : null;
+}
+
+// ---------- Referring Domains tab ----------
+
+function ReferringDomainsTab() {
+  const [target, setTarget] = useState("");
+  const [limit, setLimit] = useState(100);
+  const [includeSubdomains, setIncludeSubdomains] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<BacklinksListView | null>(null);
+
+  async function onRun() {
+    const trimmed = target.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      const result = await tauriApi.backlinksReferringDomains({
+        target: trimmed,
+        limit,
+        offset: 0,
+        includeSubdomains,
+        filter: null,
+        orderBy: ["rank,desc"],
+      });
+      setView(result);
+      toast.success(
+        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} domains (${formatUsd(result.cost_usd)})`,
+      );
+    } catch (e) {
+      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <ListInputs
+        target={target}
+        setTarget={setTarget}
+        limit={limit}
+        setLimit={setLimit}
+        includeSubdomains={includeSubdomains}
+        setIncludeSubdomains={setIncludeSubdomains}
+        busy={busy}
+        onRun={onRun}
+        runLabel="Load referring domains"
+        details={[
+          `Up to ${formatCount(limit)} domains`,
+          "Sorted by domain rank (desc)",
+        ]}
+      />
+      {view ? (
+        <ListTable
+          view={view}
+          columns={[
+            { key: "domain", label: "Domain", kind: "string" },
+            { key: "rank", label: "Rank", kind: "number", align: "right" },
+            { key: "backlinks", label: "Links", kind: "number", align: "right" },
+            {
+              key: "first_seen",
+              label: "First seen",
+              kind: "string",
+              transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
+            },
+            {
+              key: "lost_date",
+              label: "Lost",
+              kind: "string",
+              transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
+            },
+          ]}
+        />
+      ) : (
+        !busy && <EmptyHint label="Enter a domain and load referring domains." />
+      )}
+    </div>
+  );
+}
+
+// ---------- Anchors tab ----------
+
+function AnchorsTab() {
+  const [target, setTarget] = useState("");
+  const [limit, setLimit] = useState(100);
+  const [includeSubdomains, setIncludeSubdomains] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<BacklinksListView | null>(null);
+
+  async function onRun() {
+    const trimmed = target.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      const result = await tauriApi.backlinksAnchors({
+        target: trimmed,
+        limit,
+        offset: 0,
+        includeSubdomains,
+        filter: null,
+        orderBy: ["backlinks,desc"],
+      });
+      setView(result);
+      toast.success(
+        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} anchors (${formatUsd(result.cost_usd)})`,
+      );
+    } catch (e) {
+      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <ListInputs
+        target={target}
+        setTarget={setTarget}
+        limit={limit}
+        setLimit={setLimit}
+        includeSubdomains={includeSubdomains}
+        setIncludeSubdomains={setIncludeSubdomains}
+        busy={busy}
+        onRun={onRun}
+        runLabel="Load anchors"
+        details={[
+          `Up to ${formatCount(limit)} anchors`,
+          "Sorted by backlink count (desc)",
+        ]}
+      />
+      {view ? (
+        <ListTable
+          view={view}
+          columns={[
+            { key: "anchor", label: "Anchor", kind: "string" },
+            {
+              key: "backlinks",
+              label: "Backlinks",
+              kind: "number",
+              align: "right",
+            },
+            {
+              key: "referring_domains",
+              label: "Domains",
+              kind: "number",
+              align: "right",
+            },
+            {
+              key: "dofollow_backlinks",
+              label: "Dofollow",
+              kind: "number",
+              align: "right",
+            },
+          ]}
+        />
+      ) : (
+        !busy && <EmptyHint label="Enter a domain and load anchor texts." />
+      )}
+    </div>
+  );
+}
+
+// ---------- History tab ----------
+
+function HistoryTab() {
+  const [target, setTarget] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<BacklinksListView | null>(null);
+
+  async function onRun() {
+    const trimmed = target.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      const result = await tauriApi.backlinksHistory({
+        target: trimmed,
+        dateFrom: null,
+        dateTo: null,
+      });
+      setView(result);
+      toast.success(
+        `Loaded ${formatCount(result.items_count)} snapshots (${formatUsd(result.cost_usd)})`,
+      );
+    } catch (e) {
+      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const chartData = useMemo(() => {
+    if (!view) return [];
+    return view.items
+      .map((row) => ({
+        date: str(row, "date") ?? "",
+        backlinks: num(row, "backlinks") ?? 0,
+        referringDomains: num(row, "referring_domains") ?? 0,
+      }))
+      .filter((p) => p.date)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [view]);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-slate-700">Target domain</span>
+          <input
+            type="text"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            disabled={busy}
+            className="rounded border px-2 py-1 font-mono text-sm disabled:bg-slate-50"
+            placeholder="example.com"
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </label>
+        <div className="flex flex-col gap-3">
+          <CostPreview
+            action={{
+              kind: "Backlinks",
+              target_count: 1,
+              rows_per_target: 60,
+            }}
+            details={[
+              "One request, monthly snapshots",
+              "Up to ~5 years of history",
+            ]}
+            disabled={busy || !target.trim()}
+          />
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={busy || !target.trim()}
+            className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {busy ? "Loading…" : "Load history"}
+          </button>
+        </div>
+      </div>
+
+      {view && chartData.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <strong className="font-mono text-slate-700">{view.target}</strong>
+            <span>{formatCount(view.items_count)} snapshots</span>
+            <span className="ml-auto">
+              actual {formatUsd(view.cost_usd)} · estimated{" "}
+              {formatUsd(view.estimated_usd)}
+            </span>
+          </div>
+          <div className="h-72 rounded border bg-white p-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                <YAxis
+                  yAxisId="left"
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => formatCount(v as number)}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => formatCount(v as number)}
+                />
+                <Tooltip
+                  formatter={(value, name) => [formatCount(value as number), name]}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="backlinks"
+                  name="Backlinks"
+                  stroke="#1e293b"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="referringDomains"
+                  name="Referring domains"
+                  stroke="#0ea5e9"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {!view && !busy && <EmptyHint label="Enter a domain and load the history chart." />}
+    </div>
+  );
+}
+
+// ---------- Shared list helpers ----------
+
+function ListInputs(props: {
+  target: string;
+  setTarget: (v: string) => void;
+  limit: number;
+  setLimit: (v: number) => void;
+  includeSubdomains: boolean;
+  setIncludeSubdomains: (v: boolean) => void;
+  busy: boolean;
+  onRun: () => void;
+  runLabel: string;
+  details: string[];
+}) {
+  const {
+    target,
+    setTarget,
+    limit,
+    setLimit,
+    includeSubdomains,
+    setIncludeSubdomains,
+    busy,
+    onRun,
+    runLabel,
+    details,
+  } = props;
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-slate-700">Target domain</span>
+          <input
+            type="text"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            disabled={busy}
+            className="rounded border px-2 py-1 font-mono text-sm disabled:bg-slate-50"
+            placeholder="example.com"
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-slate-700">Limit</span>
+          <input
+            type="number"
+            min={1}
+            max={1000}
+            value={limit}
+            onChange={(e) => {
+              const n = e.target.valueAsNumber;
+              setLimit(Number.isFinite(n) ? n : 0);
+            }}
+            onBlur={(e) => {
+              const n = e.target.valueAsNumber;
+              setLimit(
+                Number.isFinite(n) ? Math.max(1, Math.min(1000, n)) : 100,
+              );
+            }}
+            disabled={busy}
+            className="rounded border px-2 py-1 disabled:bg-slate-50"
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <CostPreview
+          action={{
+            kind: "Backlinks",
+            target_count: 1,
+            rows_per_target: limit,
+          }}
+          details={details}
+          disabled={busy || !target.trim()}
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={includeSubdomains}
+            onChange={(e) => setIncludeSubdomains(e.target.checked)}
+            disabled={busy}
+          />
+          Include subdomains
+        </label>
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={busy || !target.trim()}
+          className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+        >
+          {busy ? "Loading…" : runLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface ListColumn {
+  key: string;
+  label: string;
+  kind: "string" | "number";
+  align?: "left" | "right";
+  transform?: (v: unknown) => string;
+}
+
+function ListTable({
+  view,
+  columns,
+}: {
+  view: BacklinksListView;
+  columns: ListColumn[];
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <strong className="font-mono text-slate-700">{view.target}</strong>
+        <span>
+          {formatCount(view.items_count)} of {formatCount(view.total_count)} rows
+        </span>
+        <span className="ml-auto">
+          actual {formatUsd(view.cost_usd)} · estimated{" "}
+          {formatUsd(view.estimated_usd)}
+        </span>
+      </div>
+
+      <div className="overflow-x-auto rounded border bg-white">
+        <table className="min-w-full text-xs">
+          <thead className="bg-slate-50 text-slate-600">
+            <tr>
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className={`px-2 py-1 ${
+                    col.align === "right" ? "text-right" : "text-left"
+                  }`}
+                >
+                  {col.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {view.items.map((row, i) => (
+              <tr key={i} className="border-t hover:bg-slate-50">
+                {columns.map((col) => {
+                  const raw = row[col.key];
+                  let cell: string;
+                  if (col.transform) {
+                    cell = col.transform(raw);
+                  } else if (col.kind === "number") {
+                    const n = num(row, col.key);
+                    cell = n != null ? formatCount(n) : "—";
+                  } else {
+                    cell = str(row, col.key) ?? "—";
+                  }
+                  return (
+                    <td
+                      key={col.key}
+                      className={`max-w-xs truncate px-2 py-1 ${
+                        col.align === "right" ? "text-right tabular-nums" : ""
+                      }`}
+                    >
+                      {cell}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function EmptyHint({ label }: { label: string }) {
+  return (
+    <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
+      {label}
+    </div>
+  );
 }
