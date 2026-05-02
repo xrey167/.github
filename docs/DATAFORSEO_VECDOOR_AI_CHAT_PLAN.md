@@ -120,9 +120,11 @@ Frontend-only — alle Daten liegen schon im React-State.
 ```typescript
 // src/lib/export.ts
 export function downloadCsv<T>(rows: T[], columns: ColumnDef<T>[], filename: string) {
-  const header = columns.map(c => c.header).join(",");
-  const body = rows.map(r =>
-    columns.map(c => csvEscape(c.accessorFn(r))).join(",")
+  const header = columns
+    .map(c => csvEscape(typeof c.header === "string" ? c.header : String(c.id)))
+    .join(",");
+  const body = rows.map((r, i) =>
+    columns.map(c => csvEscape(String(c.accessorFn?.(r, i) ?? ""))).join(","),
   ).join("\n");
   triggerBlobDownload(`${header}\n${body}`, filename, "text/csv");
 }
@@ -242,9 +244,30 @@ Besser: drei-stufiges Sampling:
 2. **Mittel (≤ 1.000 Zeilen):** Top-50 nach search_volume + Statistiken
    (Min/Max/Median pro Spalte) + ein Sample der Long-Tail (10 zufällige
    Zeilen).
-3. **Groß (> 1.000 Zeilen):** automatisches Cluster-Pre-Processing
-   serverseitig (siehe Teil 4.5), nur die Cluster-Zentroide gehen in den
-   Context.
+3. **Groß (> 1.000 Zeilen):** automatisches Cluster-Pre-Processing in der App
+   (siehe Teil 4.4a), nur die Cluster-Zentroide gehen in den Context.
+
+### 4.4a Cluster-Pre-Processing für große Anhänge
+
+Für > 1.000-Zeilen-Anhänge wird **lokal in der App** geclustert (kein
+LLM-Roundtrip), bevor der Context für den eigentlichen Chat gebaut wird.
+Pragmatischer Algorithmus, kein ML-Framework nötig:
+
+1. **Tokenisieren:** jedes Keyword in lowercase, Stopwörter entfernen,
+   Stemming (z. B. `rust-stemmers`-Crate), in Set von Token-Stems überführen.
+2. **Ähnlichkeit:** Jaccard-Distanz auf den Token-Sets pro Paar.
+3. **Clustering:** Hierarchisches Single-Linkage mit Cutoff bei
+   Ähnlichkeit ≥ 0.4. Implementierung in `src-tauri/src/ai/cluster.rs`,
+   ~150 Zeilen ohne Abhängigkeiten ausser `rust-stemmers`.
+4. **Cluster-Repräsentation:** Pro Cluster: Cluster-Name (häufigster
+   gemeinsamer Token-Stem), Anzahl Mitglieder, Top-3-Keywords nach
+   `search_volume`, Summe `search_volume`.
+5. **Resultat in Context:** statt 10.000 Keyword-Zeilen gehen 50–200
+   Cluster-Beschreibungen in den LLM-Prompt.
+
+Erweiterte Variante (Phase 2) mit lokalen Embeddings über das
+`ort`-Crate + ONNX (z. B. multilingual MiniLM): höhere semantische Qualität,
+~30 MB Modell-Download, optional aktivierbar in Settings.
 
 ### 4.4 Prompt-Templates
 
@@ -298,6 +321,12 @@ Pricing-Hinweis im UI vor jedem Chat-Send: „Geschätzte Kosten: $0.04".
 Gleiche UX wie der Cost-Estimator vor DataForSEO-Calls.
 
 ### 4.6 Datenmodell
+
+Hinweis: Die App nutzt **DuckDB**, nicht SQLite (siehe
+`apps/dataforseo-app/src-tauri/Cargo.toml`). Das Schema verwendet bewusst
+DuckDB-Syntax (`BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY`,
+`VARCHAR`, `JSON`, `DOUBLE`). Konsistent mit den bestehenden
+Tier-1-Migrationen (`migrations/v0001_initial.sql`).
 
 ```sql
 CREATE TABLE chat_sessions (
