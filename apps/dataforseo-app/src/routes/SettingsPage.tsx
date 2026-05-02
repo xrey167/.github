@@ -4,20 +4,33 @@ import toast from "react-hot-toast";
 import { formatUsd } from "../lib/format";
 import { tauriApi, type AiProviderStatus, type UserInfo } from "../lib/tauri";
 
+const PROVIDERS: { id: string; label: string; placeholder: string }[] = [
+  { id: "anthropic", label: "Anthropic Claude", placeholder: "sk-ant-..." },
+  { id: "openai", label: "OpenAI", placeholder: "sk-..." },
+];
+
 export default function SettingsPage() {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [info, setInfo] = useState<UserInfo | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const [anthropicKey, setAnthropicKey] = useState("");
   const [aiStatus, setAiStatus] = useState<AiProviderStatus[]>([]);
+  const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({});
+
+  async function refreshAi() {
+    try {
+      setAiStatus(await tauriApi.aiProviderStatus());
+    } catch {
+      setAiStatus([]);
+    }
+  }
 
   useEffect(() => {
-    tauriApi.aiProviderStatus().then(setAiStatus).catch(() => undefined);
+    refreshAi();
   }, []);
 
-  async function onSave() {
+  async function onSaveDataforseo() {
     setBusy(true);
     try {
       await tauriApi.saveCredentials(login, password);
@@ -43,14 +56,15 @@ export default function SettingsPage() {
     }
   }
 
-  async function onSaveAnthropic() {
-    if (!anthropicKey.trim()) return;
+  async function onSaveAi(provider: string) {
+    const key = keyDrafts[provider]?.trim();
+    if (!key) return;
     setBusy(true);
     try {
-      await tauriApi.aiSaveProviderKey({ provider: "anthropic", apiKey: anthropicKey });
-      setAnthropicKey("");
-      setAiStatus(await tauriApi.aiProviderStatus());
-      toast.success("Anthropic key gespeichert");
+      await tauriApi.aiSaveProviderKey({ provider, apiKey: key });
+      setKeyDrafts((d) => ({ ...d, [provider]: "" }));
+      await refreshAi();
+      toast.success(`${provider} key gespeichert`);
     } catch (e) {
       toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
     } finally {
@@ -58,12 +72,12 @@ export default function SettingsPage() {
     }
   }
 
-  async function onClearAnthropic() {
+  async function onClearAi(provider: string) {
     setBusy(true);
     try {
-      await tauriApi.aiClearProviderKey({ provider: "anthropic" });
-      setAiStatus(await tauriApi.aiProviderStatus());
-      toast.success("Anthropic key entfernt");
+      await tauriApi.aiClearProviderKey({ provider });
+      await refreshAi();
+      toast.success(`${provider} key entfernt`);
     } catch (e) {
       toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
     } finally {
@@ -71,7 +85,20 @@ export default function SettingsPage() {
     }
   }
 
-  const anthropic = aiStatus.find((s) => s.provider === "anthropic");
+  async function onActivate(provider: string) {
+    setBusy(true);
+    try {
+      await tauriApi.aiSetActiveProvider({ provider });
+      await refreshAi();
+      toast.success(`${provider} aktiv`);
+    } catch (e) {
+      toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const activeProvider = aiStatus.find((s) => s.model != null)?.provider;
 
   return (
     <section className="flex max-w-md flex-col gap-8">
@@ -103,7 +130,7 @@ export default function SettingsPage() {
             <button
               type="button"
               disabled={busy || !login || !password}
-              onClick={onSave}
+              onClick={onSaveDataforseo}
               className="rounded bg-slate-800 px-3 py-1 text-sm text-white disabled:opacity-50"
             >
               Save
@@ -134,49 +161,79 @@ export default function SettingsPage() {
       <div>
         <h2 className="text-xl font-semibold">AI Chat</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Powers /chat. Anthropic Claude is the only provider implemented today;
-          OpenAI and Ollama are planned.
+          Powers /chat. Anthropic and OpenAI both work; pick one as the active
+          provider. Keys live in the OS keychain.
         </p>
-        <div className="mt-4 space-y-3">
-          <div className="rounded border bg-slate-50 p-2 text-xs">
-            <div>
-              <strong>Anthropic:</strong>{" "}
-              {anthropic?.configured ? (
-                <span className="text-emerald-700">configured ({anthropic.model ?? "model unknown"})</span>
-              ) : (
-                <span className="text-amber-700">not configured</span>
-              )}
-            </div>
-          </div>
-          <label className="block">
-            <span className="text-sm text-slate-700">Anthropic API Key</span>
-            <input
-              type="password"
-              className="mt-1 w-full rounded border px-2 py-1 font-mono text-xs"
-              value={anthropicKey}
-              onChange={(e) => setAnthropicKey(e.target.value)}
-              placeholder="sk-ant-..."
-              autoComplete="off"
-            />
-          </label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={busy || !anthropicKey.trim()}
-              onClick={onSaveAnthropic}
-              className="rounded bg-slate-800 px-3 py-1 text-sm text-white disabled:opacity-50"
-            >
-              Save key
-            </button>
-            <button
-              type="button"
-              disabled={busy || !anthropic?.configured}
-              onClick={onClearAnthropic}
-              className="rounded border px-3 py-1 text-sm disabled:opacity-50"
-            >
-              Remove
-            </button>
-          </div>
+
+        <div className="mt-4 space-y-4">
+          {PROVIDERS.map((p) => {
+            const status = aiStatus.find((s) => s.provider === p.id);
+            const isActive = activeProvider === p.id;
+            const draft = keyDrafts[p.id] ?? "";
+            return (
+              <div key={p.id} className="rounded border p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    <strong>{p.label}</strong>
+                    <div className="text-xs text-slate-500">
+                      {status?.configured ? (
+                        isActive ? (
+                          <span className="text-emerald-700">
+                            active ({status.model ?? "model unknown"})
+                          </span>
+                        ) : (
+                          <span className="text-slate-600">stored, inactive</span>
+                        )
+                      ) : (
+                        <span className="text-amber-700">no key stored</span>
+                      )}
+                    </div>
+                  </div>
+                  {status?.configured && !isActive && (
+                    <button
+                      type="button"
+                      onClick={() => onActivate(p.id)}
+                      disabled={busy}
+                      className="rounded border px-2 py-0.5 text-xs disabled:opacity-50"
+                    >
+                      Activate
+                    </button>
+                  )}
+                </div>
+                <label className="mt-2 block">
+                  <span className="text-xs text-slate-600">API Key</span>
+                  <input
+                    type="password"
+                    className="mt-1 w-full rounded border px-2 py-1 font-mono text-xs"
+                    value={draft}
+                    onChange={(e) =>
+                      setKeyDrafts((d) => ({ ...d, [p.id]: e.target.value }))
+                    }
+                    placeholder={p.placeholder}
+                    autoComplete="off"
+                  />
+                </label>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy || !draft.trim()}
+                    onClick={() => onSaveAi(p.id)}
+                    className="rounded bg-slate-800 px-3 py-1 text-xs text-white disabled:opacity-50"
+                  >
+                    Save key
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || !status?.configured}
+                    onClick={() => onClearAi(p.id)}
+                    className="rounded border px-3 py-1 text-xs disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
