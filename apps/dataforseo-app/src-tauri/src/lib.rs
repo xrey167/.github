@@ -56,6 +56,7 @@ pub fn run() {
             commands::backlinks::backlinks_referring_domains,
             commands::backlinks::backlinks_anchors,
             commands::backlinks::backlinks_history,
+            commands::backlinks::backlinks_domain_intersection,
             commands::ai::ai_provider_status,
             commands::ai::ai_save_provider_key,
             commands::ai::ai_clear_provider_key,
