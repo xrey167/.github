@@ -8,8 +8,9 @@ use ts_rs::TS;
 
 use crate::ai::anthropic::AnthropicClient;
 use crate::ai::context::build_attachment_context;
+use crate::ai::openai::OpenAiClient;
 use crate::ai::prompts::{self, PromptTemplate, SYSTEM_PREAMBLE};
-use crate::ai::{ChatMessage, Role};
+use crate::ai::{AiClient, ChatMessage, Role};
 use crate::errors::{AppError, Result};
 use crate::secrets;
 use crate::state::AppState;
@@ -20,6 +21,12 @@ use crate::store::chat::{self, ChatSession, StoredChatMessage};
 /// catalogue) — not a typo for `claude-3-5-sonnet-latest`. Override per
 /// provider via the Settings page once a model picker exists.
 const DEFAULT_ANTHROPIC_MODEL: &str = "claude-sonnet-4-6";
+/// Default OpenAI model — gpt-4o-mini is the cheapest first-class option
+/// at the time of writing and works well as a sparmodus alternative to
+/// Anthropic for the prompt templates this app ships with.
+const DEFAULT_OPENAI_MODEL: &str = "gpt-4o-mini";
+
+const PROVIDERS: &[&str] = &["anthropic", "openai"];
 
 #[derive(Debug, Clone, Serialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
@@ -33,17 +40,37 @@ pub struct AiProviderStatus {
 #[tracing::instrument(skip(state))]
 pub async fn ai_provider_status(state: State<'_, AppState>) -> Result<Vec<AiProviderStatus>> {
     let active = state.ai.get().await;
-    let anthropic_configured = active
-        .as_ref()
-        .map(|c| c.provider_name() == "anthropic")
-        .unwrap_or(false)
-        || secrets::load_ai_key("anthropic")?.is_some();
-    let model = active.as_ref().map(|c| c.model().to_string());
-    Ok(vec![AiProviderStatus {
-        provider: "anthropic",
-        configured: anthropic_configured,
-        model,
-    }])
+    let active_name = active.as_ref().map(|c| c.provider_name());
+    let active_model = active.as_ref().map(|c| c.model().to_string());
+
+    let mut out = Vec::with_capacity(PROVIDERS.len());
+    for provider in PROVIDERS {
+        let stored = secrets::load_ai_key(provider)?.is_some();
+        let is_active = active_name == Some(*provider);
+        out.push(AiProviderStatus {
+            provider,
+            configured: stored,
+            model: if is_active { active_model.clone() } else { None },
+        });
+    }
+    Ok(out)
+}
+
+fn build_client(provider: &str, api_key: String) -> Result<Arc<dyn AiClient>> {
+    match provider {
+        "anthropic" => Ok(Arc::new(AnthropicClient::new(
+            api_key,
+            DEFAULT_ANTHROPIC_MODEL.to_string(),
+        ))),
+        "openai" => Ok(Arc::new(OpenAiClient::new(
+            api_key,
+            DEFAULT_OPENAI_MODEL.to_string(),
+        ))),
+        other => Err(AppError::Validation(format!(
+            "provider {other} not implemented; supported: {}",
+            PROVIDERS.join(", "),
+        ))),
+    }
 }
 
 #[tauri::command]
@@ -53,14 +80,9 @@ pub async fn ai_save_provider_key(
     provider: String,
     api_key: String,
 ) -> Result<()> {
-    if provider != "anthropic" {
-        return Err(AppError::Validation(format!(
-            "provider {provider} not implemented yet — only 'anthropic' for now"
-        )));
-    }
+    let client = build_client(&provider, api_key.clone())?;
     secrets::save_ai_key(&provider, &api_key)?;
-    let client = AnthropicClient::new(api_key, DEFAULT_ANTHROPIC_MODEL.to_string());
-    state.ai.set(Arc::new(client)).await;
+    state.ai.set(client).await;
     Ok(())
 }
 
@@ -68,7 +90,28 @@ pub async fn ai_save_provider_key(
 #[tracing::instrument(skip(state))]
 pub async fn ai_clear_provider_key(state: State<'_, AppState>, provider: String) -> Result<()> {
     secrets::clear_ai_key(&provider)?;
-    state.ai.clear().await;
+    // Only drop the active client if it matches the provider being cleared —
+    // a key for a non-active provider just disappears from the keychain and
+    // the user keeps chatting on whatever is registered.
+    if let Some(active) = state.ai.get().await {
+        if active.provider_name() == provider {
+            state.ai.clear().await;
+        }
+    }
+    Ok(())
+}
+
+/// Switch the active provider to one whose key is already stored. Useful
+/// for the Settings page's provider radio so the user doesn't have to
+/// re-enter their key just to flip from Anthropic to OpenAI.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn ai_set_active_provider(state: State<'_, AppState>, provider: String) -> Result<()> {
+    let key = secrets::load_ai_key(&provider)?.ok_or_else(|| {
+        AppError::Validation(format!("no API key stored for {provider}"))
+    })?;
+    let client = build_client(&provider, key)?;
+    state.ai.set(client).await;
     Ok(())
 }
 

@@ -117,6 +117,9 @@ export const tauriApi = {
   aiClearProviderKey: (args: { provider: string }) =>
     invoke<void>("ai_clear_provider_key", args),
 
+  aiSetActiveProvider: (args: { provider: string }) =>
+    invoke<void>("ai_set_active_provider", args),
+
   aiPromptTemplates: () => invoke<PromptTemplate[]>("ai_prompt_templates"),
 
   chatNewSession: (args: {

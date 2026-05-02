@@ -2,8 +2,9 @@
 //! docs/DATAFORSEO_VECDOOR_AI_CHAT_PLAN.md.
 
 pub mod anthropic;
-pub mod prompts;
 pub mod context;
+pub mod openai;
+pub mod prompts;
 
 use std::sync::Arc;
 

@@ -54,6 +54,7 @@ pub fn run() {
             commands::ai::ai_provider_status,
             commands::ai::ai_save_provider_key,
             commands::ai::ai_clear_provider_key,
+            commands::ai::ai_set_active_provider,
             commands::ai::ai_prompt_templates,
             commands::ai::chat_new_session,
             commands::ai::chat_list_sessions,
