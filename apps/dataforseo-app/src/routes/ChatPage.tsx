@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import MarkdownView from "../components/MarkdownView";
+import { downloadJson, downloadMarkdown, timestampedFilename } from "../lib/export";
 import { formatUsd } from "../lib/format";
 import {
   tauriApi,
@@ -167,7 +169,7 @@ export default function ChatPage() {
           )}
           {activeSession && (
             <>
-              <SessionHeader session={activeSession} />
+              <SessionHeader session={activeSession} messages={messages} />
               <ChatThread threadRef={threadRef} messages={messages} busy={busy} />
               <ChatInput
                 templates={templates}
@@ -226,19 +228,82 @@ function SessionsSidebar({
   );
 }
 
-function SessionHeader({ session }: { session: ChatSession }) {
+function SessionHeader({
+  session,
+  messages,
+}: {
+  session: ChatSession;
+  messages: StoredChatMessage[];
+}) {
+  function exportMarkdown() {
+    const stem = `chat-${session.title ?? session.id}`;
+    downloadMarkdown(threadToMarkdown(session, messages), timestampedFilename(stem, "md"));
+  }
+  function exportJson() {
+    const stem = `chat-${session.title ?? session.id}`;
+    downloadJson(messages, timestampedFilename(stem, "json"));
+  }
   return (
-    <div className="rounded border bg-slate-50 p-2 text-xs text-slate-600">
-      {session.attachment_summary && (
-        <div>
-          📎 <strong>Attached:</strong> {session.attachment_summary}
-        </div>
-      )}
+    <div className="flex items-start justify-between rounded border bg-slate-50 p-2 text-xs text-slate-600">
       <div>
-        {session.provider} · {session.model}
+        {session.attachment_summary && (
+          <div>
+            📎 <strong>Attached:</strong> {session.attachment_summary}
+          </div>
+        )}
+        <div>
+          {session.provider} · {session.model}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={exportMarkdown}
+          disabled={messages.length === 0}
+          className="rounded border bg-white px-2 py-0.5 text-xs disabled:opacity-50"
+          title="Download the thread as a Markdown file"
+        >
+          Export .md
+        </button>
+        <button
+          type="button"
+          onClick={exportJson}
+          disabled={messages.length === 0}
+          className="rounded border bg-white px-2 py-0.5 text-xs disabled:opacity-50"
+          title="Download the raw message history as JSON"
+        >
+          .json
+        </button>
       </div>
     </div>
   );
+}
+
+function threadToMarkdown(session: ChatSession, messages: StoredChatMessage[]): string {
+  const lines: string[] = [];
+  lines.push(`# Chat — ${session.title ?? `session ${session.id}`}`);
+  lines.push(`*${session.provider} · ${session.model}*`);
+  if (session.attachment_summary) {
+    lines.push(`*Attached:* ${session.attachment_summary}`);
+  }
+  lines.push("");
+  for (const m of messages) {
+    if (m.role === "system") continue; // system isn't a turn the user authored
+    const heading = m.role === "user" ? "**You**" : "**Assistant**";
+    lines.push(`---`);
+    lines.push("");
+    lines.push(heading);
+    lines.push("");
+    lines.push(m.content);
+    if (m.cost_usd != null) {
+      lines.push("");
+      lines.push(
+        `*${m.input_tokens ?? 0}+${m.output_tokens ?? 0} tok · ${formatUsd(m.cost_usd)}*`,
+      );
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
 }
 
 // `ref` is reserved on functional components in React 18 unless wrapped in
@@ -266,18 +331,26 @@ const ChatThread = ({
 
 function MessageBubble({ message }: { message: StoredChatMessage }) {
   const isUser = message.role === "user";
+  const isAssistant = message.role === "assistant";
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] rounded px-3 py-2 text-sm whitespace-pre-wrap ${
+        className={`max-w-[85%] rounded px-3 py-2 text-sm ${
           isUser
-            ? "bg-slate-800 text-white"
-            : message.role === "assistant"
+            ? "bg-slate-800 text-white whitespace-pre-wrap"
+            : isAssistant
               ? "bg-slate-100 text-slate-900"
-              : "bg-amber-50 text-amber-900 text-xs"
+              : "bg-amber-50 text-amber-900 text-xs whitespace-pre-wrap"
         }`}
       >
-        {message.content}
+        {/* Render assistant turns as Markdown — headings, lists, code, tables.
+            User turns stay plain so a stray ** doesn't render as bold against
+            the user's intent. */}
+        {isAssistant ? (
+          <MarkdownView content={message.content} />
+        ) : (
+          message.content
+        )}
         {message.cost_usd != null && (
           <div className="mt-1 text-[10px] opacity-60">
             {message.input_tokens}+{message.output_tokens} tok · {formatUsd(message.cost_usd)}
