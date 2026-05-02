@@ -153,9 +153,11 @@ pub async fn serp_task_create(
         .serp_google_organic_task_post(&cleaned, location_code, &language_code, depth)
         .await?;
 
+    // Millisecond precision so two batches submitted in the same second
+    // do not collide on batch_id (the primary group key in serp_tasks).
     let batch_id = format!(
         "batch-{}",
-        chrono::Utc::now().format("%Y%m%dT%H%M%SZ")
+        chrono::Utc::now().format("%Y%m%dT%H%M%S%.3fZ")
     );
 
     let store = state.store.clone();
@@ -168,33 +170,51 @@ pub async fn serp_task_create(
 
     task::spawn_blocking(move || -> Result<()> {
         store.with_conn(|c| {
-            for (idx, task_id) in task_ids.iter().enumerate() {
-                if let Some(kw) = kws.get(idx) {
-                    crate::store::serp_tasks::insert_pending(
-                        c,
-                        task_id,
-                        &bid,
-                        kw,
-                        location_code,
-                        &lang,
-                        depth,
-                    )?;
+            // Wrap the insert_pending loop + ledger row in one transaction:
+            // DuckDB autocommits per-statement otherwise, which is slow and
+            // leaves a window where some tasks are persisted but the ledger
+            // row is missing if the process dies mid-batch.
+            let tx = c.transaction()?;
+            {
+                let mut insert_task = tx.prepare(
+                    "INSERT INTO serp_tasks
+                        (task_id, batch_id, keyword, location_code, language_code, depth,
+                         status, poll_attempts)
+                     VALUES ($1, $2, $3, $4, $5, $6, 'pending', 0)
+                     ON CONFLICT (task_id) DO NOTHING",
+                )?;
+                for (idx, task_id) in task_ids.iter().enumerate() {
+                    if let Some(kw) = kws.get(idx) {
+                        insert_task.execute(duckdb::params![
+                            task_id,
+                            &bid,
+                            kw,
+                            location_code as i64,
+                            &lang,
+                            depth as i64,
+                        ])?;
+                    }
                 }
             }
-            ledger::record(
-                c,
-                &LedgerEntry {
-                    endpoint: "serp.google.organic.task_post",
-                    mode: "standard",
-                    cost_usd: api_cost,
-                    estimated_usd: Some(estimated_usd),
-                    request_size: Some(request_size),
-                    response_status: Some(20000),
-                    duration_ms: None,
-                    task_id: None,
-                    error: None,
-                },
-            )
+            tx.execute(
+                "INSERT INTO api_calls
+                    (endpoint, mode, cost_usd, estimated_usd, request_size,
+                     response_status, duration_ms, task_id, error)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                duckdb::params![
+                    "serp.google.organic.task_post",
+                    "standard",
+                    api_cost,
+                    Some(estimated_usd),
+                    Some(request_size),
+                    Some(20000_i64),
+                    None::<i64>,
+                    None::<&str>,
+                    None::<&str>,
+                ],
+            )?;
+            tx.commit()?;
+            Ok(())
         })
     })
     .await
@@ -219,14 +239,13 @@ pub async fn serp_task_status(
     let (tasks, results) = task::spawn_blocking(move || -> Result<_> {
         store.with_conn(|c| {
             let tasks = crate::store::serp_tasks::list_batch(c, &bid)?;
-            let mut results = std::collections::HashMap::new();
-            for t in &tasks {
-                if t.status == "fetched" {
-                    let items = crate::store::serp_results::list_for_task(c, &t.task_id)?;
-                    if !items.is_empty() {
-                        results.insert(t.task_id.clone(), items);
-                    }
-                }
+            // Single JOIN-backed query for every result row in this batch,
+            // grouped in Rust afterward. Was N+1: one list_for_task per task.
+            let all_items = crate::store::serp_results::list_for_batch(c, &bid)?;
+            let mut results: std::collections::HashMap<String, Vec<_>> =
+                std::collections::HashMap::new();
+            for item in all_items {
+                results.entry(item.task_id.clone()).or_default().push(item);
             }
             Ok((tasks, results))
         })
