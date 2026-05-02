@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
   Bar,
@@ -29,26 +29,39 @@ export default function UsagePage() {
   const [recent, setRecent] = useState<CallLogRow[] | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function refresh() {
+  // Summary depends on `days`; the recent-calls list does not (it always
+  // shows the last 50). Splitting the two effects avoids re-fetching the
+  // call log on every range change.
+  const refreshSummary = useCallback(async () => {
     setBusy(true);
     try {
-      const [s, r] = await Promise.all([
-        tauriApi.getUsageSummary({ days }),
-        tauriApi.getRecentCalls({ limit: 50 }),
-      ]);
-      setSummary(s);
-      setRecent(r);
+      setSummary(await tauriApi.getUsageSummary({ days }));
     } catch (e) {
       toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
     } finally {
       setBusy(false);
     }
-  }
+  }, [days]);
+
+  const refreshRecent = useCallback(async () => {
+    try {
+      setRecent(await tauriApi.getRecentCalls({ limit: 50 }));
+    } catch (e) {
+      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    }
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshSummary(), refreshRecent()]);
+  }, [refreshSummary, refreshRecent]);
 
   useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days]);
+    refreshSummary();
+  }, [refreshSummary]);
+
+  useEffect(() => {
+    refreshRecent();
+  }, [refreshRecent]);
 
   const chartData = useMemo(
     () =>

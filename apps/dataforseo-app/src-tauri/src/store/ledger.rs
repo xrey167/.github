@@ -62,7 +62,7 @@ pub fn recent(conn: &mut Connection, limit: u32) -> Result<Vec<CallLogRow>> {
     )?;
     let rows = stmt.query_map([limit as i64], |row| {
         Ok(CallLogRow {
-            ts: row.get::<_, String>(0).unwrap_or_default(),
+            ts: row.get(0)?,
             endpoint: row.get(1)?,
             mode: row.get(2)?,
             cost_usd: row.get(3)?,
@@ -72,11 +72,7 @@ pub fn recent(conn: &mut Connection, limit: u32) -> Result<Vec<CallLogRow>> {
             error: row.get(7)?,
         })
     })?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+    Ok(rows.collect::<duckdb::Result<Vec<_>>>()?)
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -98,38 +94,33 @@ pub struct UsageSummary {
 }
 
 pub fn summary(conn: &mut Connection, days: u32) -> Result<UsageSummary> {
-    let cutoff_sql = format!("CURRENT_TIMESTAMP - INTERVAL '{} days'", days);
-    let totals_sql = format!(
-        "SELECT COUNT(*),
-                COALESCE(SUM(cost_usd), 0),
-                COALESCE(SUM(estimated_usd), 0)
-           FROM api_calls
-          WHERE ts >= {cutoff_sql}"
-    );
-    let (total_calls, total_cost_usd, total_estimated_usd): (i64, f64, f64) =
-        conn.query_row(&totals_sql, [], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
-        })?;
+    let days_i = days as i64;
 
-    let by_endpoint_sql = format!(
-        "SELECT endpoint, COUNT(*), COALESCE(SUM(cost_usd), 0)
+    let (total_calls, total_cost_usd, total_estimated_usd): (i64, f64, f64) = conn.query_row(
+        "SELECT COUNT(*),
+                COALESCE(SUM(cost_usd), 0.0),
+                COALESCE(SUM(estimated_usd), 0.0)
            FROM api_calls
-          WHERE ts >= {cutoff_sql}
+          WHERE ts >= CURRENT_TIMESTAMP - INTERVAL '1 day' * $1",
+        [days_i],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+
+    let mut stmt = conn.prepare(
+        "SELECT endpoint, COUNT(*), COALESCE(SUM(cost_usd), 0.0)
+           FROM api_calls
+          WHERE ts >= CURRENT_TIMESTAMP - INTERVAL '1 day' * $1
           GROUP BY endpoint
-          ORDER BY 3 DESC"
-    );
-    let mut stmt = conn.prepare(&by_endpoint_sql)?;
-    let rows = stmt.query_map([], |row| {
+          ORDER BY 3 DESC",
+    )?;
+    let rows = stmt.query_map([days_i], |row| {
         Ok(UsageByEndpoint {
             endpoint: row.get(0)?,
             call_count: row.get(1)?,
             cost_usd: row.get(2)?,
         })
     })?;
-    let mut by_endpoint = Vec::new();
-    for r in rows {
-        by_endpoint.push(r?);
-    }
+    let by_endpoint: Vec<UsageByEndpoint> = rows.collect::<duckdb::Result<_>>()?;
 
     Ok(UsageSummary {
         days: days as i32,
