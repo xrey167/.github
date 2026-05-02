@@ -105,6 +105,12 @@ export const tauriApi = {
   labsDomainIntersection: (args: { target1: string; target2: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<DomainIntersectionView>("labs_domain_intersection", args),
 
+  labsBulkSearchVolume: (args: { keywords: string[]; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<BulkVolumeView>("labs_bulk_search_volume", args),
+
+  keywordGap: (args: { yours: string; competitor: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<KeywordGapView>("keyword_gap", args),
+
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
     invoke<SerpLiveBatch>("serp_live", args),
 
@@ -598,6 +604,45 @@ export interface DomainIntersectionView {
   estimated_usd: number;
   from_cache: boolean;
   fetched_at: string | null;
+}
+
+export interface BulkVolumeItem {
+  keyword: string;
+  search_volume: number | null;
+  competition: number | null;
+  competition_level: string | null;
+  cpc: number | null;
+}
+
+export interface BulkVolumeView {
+  items: BulkVolumeItem[];
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface GapKeyword {
+  keyword: string;
+  search_volume: number | null;
+  keyword_difficulty: number | null;
+  cpc: number | null;
+  rank_yours: number | null;
+  rank_theirs: number | null;
+  // "missing" | "weak" | "strong" | "unique"
+  bucket: string;
+}
+
+export interface KeywordGapView {
+  yours: string;
+  competitor: string;
+  items: GapKeyword[];
+  missing_count: number;
+  weak_count: number;
+  strong_count: number;
+  unique_count: number;
+  cost_usd: number;
+  estimated_usd: number;
 }
 
 export interface OnPageInstantView {

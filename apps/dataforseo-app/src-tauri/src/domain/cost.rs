@@ -50,6 +50,10 @@ pub enum CostAction {
     /// On-Page Lighthouse · 0.0025 USD per request. Google Lighthouse
     /// audit (performance, accessibility, best-practices, SEO, PWA).
     OnPageLighthouse,
+    /// Labs Bulk Search Volume · 0.0001 USD per keyword. Cheapest per-kw
+    /// volume in the catalogue — 750× cheaper than Google Ads for bulk
+    /// research (trades some long-tail accuracy).
+    LabsBulkSearchVolume { count: u32 },
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -104,6 +108,7 @@ pub fn estimate(action: &CostAction) -> f64 {
         LabsDomainIntersection => 0.0125,
         OnPageInstantPages => 0.0025,
         OnPageLighthouse => 0.0025,
+        LabsBulkSearchVolume { count } => (*count as f64).max(1.0) * 0.0001,
     }
 }
 

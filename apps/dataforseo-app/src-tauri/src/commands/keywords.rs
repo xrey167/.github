@@ -8,8 +8,8 @@ use ts_rs::TS;
 
 use crate::api::keywords_data::SearchVolumeRequest;
 use crate::api::labs::{
-    CompetitorsDomainItem, DomainIntersectionItem, LabsKeywordItem, RankedKeywordItem,
-    SerpCompetitorItem,
+    BulkSearchVolumeItem, CompetitorsDomainItem, DomainIntersectionItem, LabsKeywordItem,
+    RankedKeywordItem, SerpCompetitorItem,
 };
 use crate::commands::cached::{self, CachedOutcome};
 use crate::commands::ledger::run_with_ledger;
@@ -920,6 +920,305 @@ pub async fn labs_domain_intersection(
             .into_iter()
             .map(IntersectionKeyword::from)
             .collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
+// ---------- Labs Bulk Search Volume ----------
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct BulkVolumeItem {
+    pub keyword: String,
+    pub search_volume: Option<i64>,
+    pub competition: Option<f64>,
+    pub competition_level: Option<String>,
+    pub cpc: Option<f64>,
+}
+
+impl From<BulkSearchVolumeItem> for BulkVolumeItem {
+    fn from(it: BulkSearchVolumeItem) -> Self {
+        Self {
+            keyword: it.keyword,
+            search_volume: it.search_volume,
+            competition: it.competition,
+            competition_level: it.competition_level,
+            cpc: it.cpc,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct BulkVolumeView {
+    pub items: Vec<BulkVolumeItem>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+const BULK_VOLUME_MAX: usize = 1000;
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_bulk_search_volume(
+    state: State<'_, AppState>,
+    keywords: Vec<String>,
+    location_code: u32,
+    language_code: String,
+    use_cache: bool,
+) -> Result<BulkVolumeView> {
+    let mut seen = HashSet::new();
+    let mut cleaned: Vec<String> = keywords
+        .into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty() && seen.insert(k.clone()))
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one keyword required".into()));
+    }
+    if cleaned.len() > BULK_VOLUME_MAX {
+        cleaned.truncate(BULK_VOLUME_MAX);
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsBulkSearchVolume {
+        count: cleaned.len() as u32,
+    });
+    let endpoint = endpoints::LABS_BULK_SEARCH_VOLUME;
+    let mut sorted_keywords = cleaned.clone();
+    sorted_keywords.sort();
+    let cache_params = serde_json::json!({
+        "keywords": sorted_keywords,
+        "location_code": location_code,
+        "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<BulkVolumeView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let cleaned_for_call = cleaned.clone();
+    let request_size = cleaned.len() as i64;
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        request_size,
+        move || async move {
+            let r = api
+                .labs_bulk_search_volume(&cleaned_for_call, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = BulkVolumeView {
+        items: resp.items.into_iter().map(BulkVolumeItem::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
+// ---------- True Keyword Gap ----------
+//
+// Orchestration on top of labs_ranked_keywords. Runs the call for both
+// targets (re-using the response cache via the existing 1d TTL) and
+// computes three sets in Rust so the UI doesn't have to ship two
+// 1000-row payloads to the renderer just to set-difference them.
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct GapKeyword {
+    pub keyword: String,
+    pub search_volume: Option<i64>,
+    pub keyword_difficulty: Option<i32>,
+    pub cpc: Option<f64>,
+    pub rank_yours: Option<i32>,
+    pub rank_theirs: Option<i32>,
+    /// "missing" = competitor ranks, you don't.
+    /// "weak"    = both rank but competitor outranks you.
+    /// "strong"  = both rank and you outrank competitor.
+    /// "unique"  = you rank, competitor doesn't.
+    pub bucket: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct KeywordGapView {
+    pub yours: String,
+    pub competitor: String,
+    pub items: Vec<GapKeyword>,
+    pub missing_count: u32,
+    pub weak_count: u32,
+    pub strong_count: u32,
+    pub unique_count: u32,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn keyword_gap(
+    state: State<'_, AppState>,
+    yours: String,
+    competitor: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+    use_cache: bool,
+) -> Result<KeywordGapView> {
+    let yours = yours.trim().to_owned();
+    let competitor = competitor.trim().to_owned();
+    if yours.is_empty() || competitor.is_empty() {
+        return Err(AppError::Validation("both yours and competitor required".into()));
+    }
+    // Two ranked_keywords calls — both go through their own cache (TTL 1d).
+    // We don't add a third cache layer for the gap result itself because
+    // the merge is cheap and cache hits on the underlying calls already
+    // make this near-free.
+    let your_ranked = inner_keywords_ranked(
+        &state, yours.clone(), location_code, language_code.clone(), limit, use_cache,
+    ).await?;
+    let comp_ranked = inner_keywords_ranked(
+        &state, competitor.clone(), location_code, language_code.clone(), limit, use_cache,
+    ).await?;
+
+    let mut your_map: std::collections::HashMap<String, &RankedKeyword> =
+        std::collections::HashMap::with_capacity(your_ranked.items.len());
+    for k in &your_ranked.items {
+        your_map.insert(k.keyword.clone(), k);
+    }
+    let mut comp_map: std::collections::HashMap<String, &RankedKeyword> =
+        std::collections::HashMap::with_capacity(comp_ranked.items.len());
+    for k in &comp_ranked.items {
+        comp_map.insert(k.keyword.clone(), k);
+    }
+
+    let mut items: Vec<GapKeyword> = Vec::new();
+    let mut missing = 0u32;
+    let mut weak = 0u32;
+    let mut strong = 0u32;
+    let mut unique = 0u32;
+
+    // Walk competitor's set first — captures missing + weak/strong overlap.
+    for (kw, c) in &comp_map {
+        let y = your_map.get(kw);
+        let bucket = match (y.and_then(|y| y.rank_absolute), c.rank_absolute) {
+            (None, Some(_)) => { missing += 1; "missing" }
+            (Some(yr), Some(cr)) if cr < yr => { weak += 1; "weak" }
+            (Some(yr), Some(cr)) if yr < cr => { strong += 1; "strong" }
+            _ => continue,
+        };
+        items.push(GapKeyword {
+            keyword: kw.clone(),
+            search_volume: c.search_volume.or_else(|| y.and_then(|y| y.search_volume)),
+            keyword_difficulty: c.keyword_difficulty.or_else(|| y.and_then(|y| y.keyword_difficulty)),
+            cpc: c.cpc.or_else(|| y.and_then(|y| y.cpc)),
+            rank_yours: y.and_then(|y| y.rank_absolute),
+            rank_theirs: c.rank_absolute,
+            bucket: bucket.into(),
+        });
+    }
+    // Then yours-only.
+    for (kw, y) in &your_map {
+        if comp_map.contains_key(kw) { continue; }
+        unique += 1;
+        items.push(GapKeyword {
+            keyword: kw.clone(),
+            search_volume: y.search_volume,
+            keyword_difficulty: y.keyword_difficulty,
+            cpc: y.cpc,
+            rank_yours: y.rank_absolute,
+            rank_theirs: None,
+            bucket: "unique".into(),
+        });
+    }
+    // Stable sort: by volume desc, then keyword asc.
+    items.sort_by(|a, b| {
+        b.search_volume.unwrap_or(0).cmp(&a.search_volume.unwrap_or(0))
+            .then_with(|| a.keyword.cmp(&b.keyword))
+    });
+
+    // Cost is whatever the two underlying calls actually charged. If both
+    // were cache hits, this is 0.0 and the user pays nothing for the gap.
+    let total_cost = your_ranked.cost_usd + comp_ranked.cost_usd;
+    let estimated = your_ranked.estimated_usd + comp_ranked.estimated_usd;
+    Ok(KeywordGapView {
+        yours,
+        competitor,
+        items,
+        missing_count: missing,
+        weak_count: weak,
+        strong_count: strong,
+        unique_count: unique,
+        cost_usd: total_cost,
+        estimated_usd: estimated,
+    })
+}
+
+async fn inner_keywords_ranked(
+    state: &State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+    use_cache: bool,
+) -> Result<RankedBatch> {
+    // Re-implements the keywords_ranked body inline to avoid round-tripping
+    // through the Tauri command dispatcher. Identical caching semantics.
+    let endpoint = endpoints::LABS_RANKED_KEYWORDS;
+    let estimated_usd = cost::estimate(&CostAction::KeywordsForDomain { mode: Mode::Live });
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<RankedBatch>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_volatile(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_ranked_keywords(&target, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = RankedBatch {
+        items: resp.items.into_iter().map(RankedKeyword::from).collect(),
         cost_usd: resp.cost,
         estimated_usd,
         from_cache: false,

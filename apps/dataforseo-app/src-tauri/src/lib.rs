@@ -27,6 +27,19 @@ pub fn run() {
             let state = AppState::new(db_path);
             let api = state.api.clone();
             let store = state.store.clone();
+            // One-shot cache eviction at startup. We evict response_cache
+            // rows older than 60 days — every endpoint's TTL is much
+            // shorter than that, so anything that old is guaranteed dead.
+            // Spawned non-blocking so a slow disk doesn't delay app start.
+            let evict_store = store.clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = tokio::task::spawn_blocking(move || {
+                    let _ = evict_store.with_conn(|c| {
+                        store::response_cache::evict_older_than(c, chrono::Duration::days(60))
+                    });
+                })
+                .await;
+            });
             app.manage(state);
             tauri::async_runtime::spawn(async move {
                 tasks::poller::run(api, store).await;
@@ -55,6 +68,8 @@ pub fn run() {
             commands::keywords::labs_serp_competitors,
             commands::keywords::labs_competitors_domain,
             commands::keywords::labs_domain_intersection,
+            commands::keywords::labs_bulk_search_volume,
+            commands::keywords::keyword_gap,
             commands::serp::serp_live,
             commands::serp::serp_ads_live,
             commands::serp::serp_news_live,

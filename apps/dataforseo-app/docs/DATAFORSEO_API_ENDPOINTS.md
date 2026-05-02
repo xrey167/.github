@@ -63,7 +63,7 @@ DataForSEO's own crawl).
 | Google · Domain Rank Overview | `/v3/dataforseo_labs/google/domain_rank_overview/live` | 0.0125 | ✅ done |
 | Google · Historical Rank Overview | `/v3/dataforseo_labs/google/historical_rank_overview/live` | 0.0125 | 🟦 plan |
 | Google · Bulk Keyword Difficulty | `/v3/dataforseo_labs/google/bulk_keyword_difficulty/live` | 0.0001 / kw | ✅ done |
-| Google · Bulk Search Volume | `/v3/dataforseo_labs/google/bulk_search_volume/live` | 0.0001 / kw | 🟡 next |
+| Google · Bulk Search Volume | `/v3/dataforseo_labs/google/bulk_search_volume/live` | 0.0001 / kw | ✅ done |
 | Google · Search Intent | `/v3/dataforseo_labs/google/search_intent/live` | 0.0125 | 🟡 next |
 | Google · Keyword Overview | `/v3/dataforseo_labs/google/keyword_overview/live` | 0.0125 | 🟡 next |
 | Google · Keyword Ideas | `/v3/dataforseo_labs/google/keyword_ideas/live` | 0.0125 | 🟦 plan |

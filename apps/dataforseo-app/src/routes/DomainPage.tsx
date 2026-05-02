@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import CompetitorsDomainTab from "./domain/CompetitorsDomainTab";
 import DomainIntersectionTab from "./domain/DomainIntersectionTab";
+import KeywordGapTab from "./domain/KeywordGapTab";
 import KeywordsForSiteTab from "./domain/KeywordsForSiteTab";
 import RankOverviewTab from "./domain/RankOverviewTab";
 import RankedKeywordsTab from "./domain/RankedKeywordsTab";
@@ -11,6 +12,7 @@ const TABS = [
   { id: "keywords", label: "Keywords" },
   { id: "ranked", label: "Ranked" },
   { id: "competitors", label: "Competitors" },
+  { id: "gap", label: "Keyword Gap" },
   { id: "intersection", label: "Intersection" },
 ] as const;
 
@@ -63,6 +65,7 @@ export default function DomainPage() {
       {active === "keywords" && <KeywordsForSiteTab target={target} />}
       {active === "ranked" && <RankedKeywordsTab target={target} />}
       {active === "competitors" && <CompetitorsDomainTab target={target} />}
+      {active === "gap" && <KeywordGapTab />}
       {active === "intersection" && <DomainIntersectionTab />}
     </section>
   );

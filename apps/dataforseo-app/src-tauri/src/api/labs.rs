@@ -478,6 +478,24 @@ pub struct BulkDifficultyResponse {
     pub cost: f64,
 }
 
+/// Bulk Search Volume — Labs equivalent of Google Ads Search Volume but
+/// at 0.0001 USD per keyword (vs 0.075 / 1k Google Ads). Trades some
+/// accuracy on long-tail terms for ~750× cost savings on large batches.
+#[derive(Debug, Deserialize)]
+pub struct BulkSearchVolumeItem {
+    pub keyword: String,
+    pub search_volume: Option<i64>,
+    pub competition: Option<f64>,
+    pub competition_level: Option<String>,
+    pub cpc: Option<f64>,
+}
+
+#[derive(Debug)]
+pub struct BulkSearchVolumeResponse {
+    pub items: Vec<BulkSearchVolumeItem>,
+    pub cost: f64,
+}
+
 impl ApiClient {
     /// Domain Rank Overview — single target. Returns aggregate
     /// SERP-position metrics for both organic and paid placements.
@@ -559,5 +577,41 @@ impl ApiClient {
             })
             .unwrap_or_default();
         Ok(BulkDifficultyResponse { items, cost })
+    }
+
+    /// Bulk Search Volume — Labs version. Cheapest per-keyword volume
+    /// option in the catalogue (0.0001 USD/kw). Up to 1000 keywords per
+    /// request; the caller dedups + caps before invoking.
+    pub async fn labs_bulk_search_volume(
+        &self,
+        keywords: &[String],
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<BulkSearchVolumeResponse> {
+        let body = serde_json::json!([{
+            "keywords": keywords,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/bulk_search_volume/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items: Vec<BulkSearchVolumeItem> = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw_item| {
+                        serde_json::from_value::<BulkSearchVolumeItem>(raw_item.clone()).ok()
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(BulkSearchVolumeResponse { items, cost })
     }
 }

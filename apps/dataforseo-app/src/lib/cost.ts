@@ -25,7 +25,8 @@ export type CostAction =
   | { kind: "LabsCompetitorsDomain" }
   | { kind: "LabsDomainIntersection" }
   | { kind: "OnPageInstantPages" }
-  | { kind: "OnPageLighthouse" };
+  | { kind: "OnPageLighthouse" }
+  | { kind: "LabsBulkSearchVolume"; count: number };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -80,5 +81,7 @@ export function estimate(action: CostAction): number {
     case "OnPageInstantPages":
     case "OnPageLighthouse":
       return 0.0025;
+    case "LabsBulkSearchVolume":
+      return Math.max(1, action.count) * 0.0001;
   }
 }
