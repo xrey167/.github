@@ -125,7 +125,7 @@ pub async fn keywords_search_volume(
                         cost_usd: api_cost,
                         estimated_usd: Some(estimated_usd),
                         request_size: Some(request_size),
-                        response_status: Some(200),
+                        response_status: Some(20000),
                         duration_ms: None,
                         task_id: None,
                         error: None,

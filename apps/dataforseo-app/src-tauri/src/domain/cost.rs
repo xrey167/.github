@@ -1,6 +1,4 @@
 //! Pure cost estimation. Mirrors src/lib/cost.ts on the frontend.
-//!
-//! Source: docs/DATAFORSEO_API_MAPPING.md (Teil 4) and DATAFORSEO_ARCHITECTURE.md (Teil 5).
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

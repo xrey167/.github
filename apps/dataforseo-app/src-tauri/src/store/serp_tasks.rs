@@ -1,8 +1,6 @@
-//! Persistent SERP-Task tracking.
-//!
-//! Source: docs/DATAFORSEO_ARCHITECTURE.md Teil 7. Tasks created by
-//! task_post are persisted with status='pending'; the background poller
-//! transitions them through 'ready' to 'fetched' (or 'failed').
+//! Persistent SERP-Task tracking. Tasks created by task_post are persisted
+//! with status='pending'; the background poller transitions them through
+//! 'ready' to 'fetched' (or 'failed').
 
 use duckdb::{params, Connection};
 use serde::Serialize;

@@ -1,12 +1,13 @@
 //! DataForSEO Labs API — Google endpoints.
 //!
 //! Suggestions and Related share a near-identical response shape, so they
-//! return the same LabsKeywordItem type. Other Labs endpoints (for_site,
-//! ranked_keywords) live in their own modules with their own response types.
+//! return the same LabsKeywordItem type. Ranked-keywords carries a SERP
+//! element and gets its own type.
 
 use serde::Deserialize;
 
 use crate::api::client::ApiClient;
+use crate::api::ensure_api_success;
 use crate::errors::{AppError, Result};
 use crate::ratelimit::Family;
 
@@ -139,19 +140,7 @@ pub struct RankedResponse {
 }
 
 fn parse_ranked_response(raw: &serde_json::Value) -> Result<RankedResponse> {
-    let api_status = raw.pointer("/status_code").and_then(|v| v.as_u64()).unwrap_or(0);
-    if api_status != 20000 {
-        let message = raw
-            .pointer("/status_message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown DataForSEO error");
-        return Err(AppError::Api {
-            status_code: api_status as u32,
-            message: message.into(),
-        });
-    }
-
-    let cost = raw.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let cost = ensure_api_success(raw)?;
 
     let raw_items = raw
         .pointer("/tasks/0/result/0/items")
@@ -196,19 +185,7 @@ fn parse_ranked_response(raw: &serde_json::Value) -> Result<RankedResponse> {
 }
 
 fn parse_labs_response(raw: &serde_json::Value) -> Result<LabsResponse> {
-    let api_status = raw.pointer("/status_code").and_then(|v| v.as_u64()).unwrap_or(0);
-    if api_status != 20000 {
-        let message = raw
-            .pointer("/status_message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown DataForSEO error");
-        return Err(AppError::Api {
-            status_code: api_status as u32,
-            message: message.into(),
-        });
-    }
-
-    let cost = raw.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let cost = ensure_api_success(raw)?;
 
     // Both endpoints nest the keyword list at tasks[0].result[0].items[].
     // The keyword payload itself sits at .keyword_data.keyword for related,

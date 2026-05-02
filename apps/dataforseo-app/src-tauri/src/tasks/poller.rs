@@ -1,6 +1,4 @@
-//! Background poller for SERP standard-queue tasks.
-//!
-//! Source: docs/DATAFORSEO_ARCHITECTURE.md Teil 7. Spawned once at app
+//! Background poller for SERP standard-queue tasks. Spawned once at app
 //! startup; on each tick it advances pending tasks to 'ready' (via
 //! /tasks_ready) and fetches results for ready tasks.
 
@@ -19,10 +17,12 @@ const POLL_INTERVAL_SECS: u64 = 30;
 pub async fn run(api: Arc<ApiClient>, store: Arc<Store>) {
     tracing::info!("serp task poller started (interval {}s)", POLL_INTERVAL_SECS);
     loop {
-        time::sleep(Duration::from_secs(POLL_INTERVAL_SECS)).await;
+        // Tick first, then sleep — otherwise a fresh batch sits dormant for
+        // a full POLL_INTERVAL_SECS before the first /tasks_ready check.
         if let Err(e) = poll_once(&api, &store).await {
             tracing::warn!(error = %e, "serp poller iteration failed");
         }
+        time::sleep(Duration::from_secs(POLL_INTERVAL_SECS)).await;
     }
 }
 
