@@ -54,9 +54,9 @@ DataForSEO's own crawl).
 | Google · Related Keywords | `/v3/dataforseo_labs/google/related_keywords/live` | 0.0125 / depth | ✅ done |
 | Google · Keywords for Site | `/v3/dataforseo_labs/google/keywords_for_site/live` | 0.0125 | ✅ done |
 | Google · Ranked Keywords | `/v3/dataforseo_labs/google/ranked_keywords/live` | 0.0125 | ✅ done |
-| Google · SERP Competitors | `/v3/dataforseo_labs/google/serp_competitors/live` | 0.0125 | 🟡 next |
-| Google · Competitors Domain | `/v3/dataforseo_labs/google/competitors_domain/live` | 0.0125 | 🟡 next |
-| Google · Domain Intersection | `/v3/dataforseo_labs/google/domain_intersection/live` | 0.0125 | 🟡 next |
+| Google · SERP Competitors | `/v3/dataforseo_labs/google/serp_competitors/live` | 0.0125 | ✅ done |
+| Google · Competitors Domain | `/v3/dataforseo_labs/google/competitors_domain/live` | 0.0125 | ✅ done |
+| Google · Domain Intersection | `/v3/dataforseo_labs/google/domain_intersection/live` | 0.0125 | ✅ done |
 | Google · Subdomains | `/v3/dataforseo_labs/google/subdomains/live` | 0.0125 | 🟦 plan |
 | Google · Relevant Pages | `/v3/dataforseo_labs/google/relevant_pages/live` | 0.0125 | 🟦 plan |
 | Google · Page Intersection | `/v3/dataforseo_labs/google/page_intersection/live` | 0.0125 | 🟦 plan |

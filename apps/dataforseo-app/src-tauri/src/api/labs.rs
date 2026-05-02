@@ -234,6 +234,225 @@ fn parse_labs_response(raw: &serde_json::Value) -> Result<LabsResponse> {
     Ok(LabsResponse { items, cost })
 }
 
+// ---------- Competitive Intelligence ----------
+
+/// One competitor domain returned by SERP Competitors.
+#[derive(Debug, Deserialize)]
+pub struct SerpCompetitorItem {
+    pub domain: Option<String>,
+    pub avg_position: Option<f64>,
+    pub median_position: Option<f64>,
+    pub rating: Option<f64>,
+    pub etv: Option<f64>,
+    pub count: Option<i64>,
+}
+
+#[derive(Debug)]
+pub struct SerpCompetitorsResponse {
+    pub keyword: String,
+    pub items: Vec<SerpCompetitorItem>,
+    pub cost: f64,
+}
+
+/// One competing domain returned by Competitors Domain.
+#[derive(Debug, Deserialize)]
+pub struct CompetitorsDomainItem {
+    pub domain: Option<String>,
+    pub avg_position: Option<f64>,
+    pub sum_position: Option<i64>,
+    pub intersections: Option<i64>,
+}
+
+#[derive(Debug)]
+pub struct CompetitorsDomainResponse {
+    pub target: String,
+    pub items: Vec<CompetitorsDomainItem>,
+    pub cost: f64,
+}
+
+/// One keyword in the Domain Intersection result — extracted from the
+/// deeply nested `keyword_data / *_domain_serp_element` shape.
+#[derive(Debug)]
+pub struct DomainIntersectionItem {
+    pub keyword: String,
+    pub search_volume: Option<i64>,
+    pub keyword_difficulty: Option<i32>,
+    pub rank_first: Option<i32>,
+    pub rank_second: Option<i32>,
+    pub url_first: Option<String>,
+    pub url_second: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct DomainIntersectionResponse {
+    pub target1: String,
+    pub target2: String,
+    pub items: Vec<DomainIntersectionItem>,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    /// SERP Competitors — which domains appear in SERP results for a keyword,
+    /// with position metrics and estimated traffic value.
+    pub async fn labs_serp_competitors(
+        &self,
+        keyword: &str,
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<SerpCompetitorsResponse> {
+        let body = serde_json::json!([{
+            "keyword": keyword,
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.min(1000),
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/serp_competitors/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let raw_items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw_item| {
+                        serde_json::from_value::<SerpCompetitorItem>(raw_item.clone()).ok()
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(SerpCompetitorsResponse {
+            keyword: keyword.to_owned(),
+            items: raw_items,
+            cost,
+        })
+    }
+
+    /// Competitors Domain — which domains share the most keyword overlap
+    /// with a target domain, sorted by number of intersecting keywords.
+    pub async fn labs_competitors_domain(
+        &self,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<CompetitorsDomainResponse> {
+        let body = serde_json::json!([{
+            "target": target,
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.min(1000),
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/competitors_domain/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let raw_items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw_item| {
+                        serde_json::from_value::<CompetitorsDomainItem>(raw_item.clone()).ok()
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(CompetitorsDomainResponse {
+            target: target.to_owned(),
+            items: raw_items,
+            cost,
+        })
+    }
+
+    /// Domain Intersection — keywords that both `target1` and `target2` rank
+    /// for in the SERP, with position data for each domain. Useful for
+    /// identifying the competitive keyword overlap between two domains.
+    pub async fn labs_domain_intersection(
+        &self,
+        target1: &str,
+        target2: &str,
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<DomainIntersectionResponse> {
+        let body = serde_json::json!([{
+            "target1": target1,
+            "target2": target2,
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.min(1000),
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/domain_intersection/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw_item| {
+                        let kd = raw_item.pointer("/keyword_data")?;
+                        let keyword = kd.pointer("/keyword").and_then(|v| v.as_str())?.to_owned();
+                        let search_volume = kd
+                            .pointer("/keyword_info/search_volume")
+                            .and_then(|v| v.as_i64());
+                        let keyword_difficulty = kd
+                            .pointer("/keyword_properties/keyword_difficulty")
+                            .and_then(|v| v.as_i64())
+                            .map(|n| n as i32);
+                        let rank_first = raw_item
+                            .pointer("/first_domain_serp_element/serp_item/rank_absolute")
+                            .and_then(|v| v.as_i64())
+                            .map(|n| n as i32);
+                        let rank_second = raw_item
+                            .pointer("/second_domain_serp_element/serp_item/rank_absolute")
+                            .and_then(|v| v.as_i64())
+                            .map(|n| n as i32);
+                        let url_first = raw_item
+                            .pointer("/first_domain_serp_element/serp_item/url")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_owned());
+                        let url_second = raw_item
+                            .pointer("/second_domain_serp_element/serp_item/url")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_owned());
+                        Some(DomainIntersectionItem {
+                            keyword,
+                            search_volume,
+                            keyword_difficulty,
+                            rank_first,
+                            rank_second,
+                            url_first,
+                            url_second,
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(DomainIntersectionResponse {
+            target1: target1.to_owned(),
+            target2: target2.to_owned(),
+            items,
+            cost,
+        })
+    }
+}
+
 // ---------- Domain Rank Overview ----------
 
 /// SEMrush-style domain overview: organic traffic, keyword count, rank

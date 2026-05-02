@@ -94,6 +94,15 @@ export const tauriApi = {
   labsBulkKeywordDifficulty: (args: { keywords: string[]; locationCode: number; languageCode: string }) =>
     invoke<BulkDifficultyView>("labs_bulk_keyword_difficulty", args),
 
+  labsSerpCompetitors: (args: { keyword: string; locationCode: number; languageCode: string; limit: number }) =>
+    invoke<SerpCompetitorsView>("labs_serp_competitors", args),
+
+  labsCompetitorsDomain: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
+    invoke<CompetitorsDomainView>("labs_competitors_domain", args),
+
+  labsDomainIntersection: (args: { target1: string; target2: string; locationCode: number; languageCode: string; limit: number }) =>
+    invoke<DomainIntersectionView>("labs_domain_intersection", args),
+
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
     invoke<SerpLiveBatch>("serp_live", args),
 
@@ -496,6 +505,54 @@ export interface BulkDifficultyItem {
 
 export interface BulkDifficultyView {
   items: BulkDifficultyItem[];
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface SerpCompetitor {
+  domain: string | null;
+  avg_position: number | null;
+  median_position: number | null;
+  rating: number | null;
+  etv: number | null;
+  count: number | null;
+}
+
+export interface SerpCompetitorsView {
+  keyword: string;
+  items: SerpCompetitor[];
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface CompetitorDomain {
+  domain: string | null;
+  avg_position: number | null;
+  sum_position: number | null;
+  intersections: number | null;
+}
+
+export interface CompetitorsDomainView {
+  target: string;
+  items: CompetitorDomain[];
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface IntersectionKeyword {
+  keyword: string;
+  search_volume: number | null;
+  keyword_difficulty: number | null;
+  rank_first: number | null;
+  rank_second: number | null;
+  url_first: string | null;
+  url_second: string | null;
+}
+
+export interface DomainIntersectionView {
+  target1: string;
+  target2: string;
+  items: IntersectionKeyword[];
   cost_usd: number;
   estimated_usd: number;
 }

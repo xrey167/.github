@@ -7,7 +7,10 @@ use tokio::task;
 use ts_rs::TS;
 
 use crate::api::keywords_data::SearchVolumeRequest;
-use crate::api::labs::{LabsKeywordItem, RankedKeywordItem};
+use crate::api::labs::{
+    CompetitorsDomainItem, DomainIntersectionItem, LabsKeywordItem, RankedKeywordItem,
+    SerpCompetitorItem,
+};
 use crate::commands::ledger::run_with_ledger;
 use crate::domain::cost::{self, CostAction};
 use crate::domain::endpoints;
@@ -473,6 +476,226 @@ pub async fn labs_bulk_keyword_difficulty(
                 keyword: i.keyword,
                 keyword_difficulty: i.keyword_difficulty,
             })
+            .collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+// ---------- Competitive Intelligence ----------
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct SerpCompetitor {
+    pub domain: Option<String>,
+    pub avg_position: Option<f64>,
+    pub median_position: Option<f64>,
+    pub rating: Option<f64>,
+    pub etv: Option<f64>,
+    pub count: Option<i64>,
+}
+
+impl From<SerpCompetitorItem> for SerpCompetitor {
+    fn from(it: SerpCompetitorItem) -> Self {
+        Self {
+            domain: it.domain,
+            avg_position: it.avg_position,
+            median_position: it.median_position,
+            rating: it.rating,
+            etv: it.etv,
+            count: it.count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct SerpCompetitorsView {
+    pub keyword: String,
+    pub items: Vec<SerpCompetitor>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_serp_competitors(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+) -> Result<SerpCompetitorsView> {
+    let estimated_usd = cost::estimate(&CostAction::LabsSerpCompetitors);
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_SERP_COMPETITORS,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_serp_competitors(&keyword, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(SerpCompetitorsView {
+        keyword: resp.keyword,
+        items: resp.items.into_iter().map(SerpCompetitor::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct CompetitorDomain {
+    pub domain: Option<String>,
+    pub avg_position: Option<f64>,
+    pub sum_position: Option<i64>,
+    pub intersections: Option<i64>,
+}
+
+impl From<CompetitorsDomainItem> for CompetitorDomain {
+    fn from(it: CompetitorsDomainItem) -> Self {
+        Self {
+            domain: it.domain,
+            avg_position: it.avg_position,
+            sum_position: it.sum_position,
+            intersections: it.intersections,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct CompetitorsDomainView {
+    pub target: String,
+    pub items: Vec<CompetitorDomain>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_competitors_domain(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+) -> Result<CompetitorsDomainView> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsCompetitorsDomain);
+    let api = state.api.clone();
+    let target_for_call = target.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_COMPETITORS_DOMAIN,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_competitors_domain(&target_for_call, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(CompetitorsDomainView {
+        target,
+        items: resp.items.into_iter().map(CompetitorDomain::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct IntersectionKeyword {
+    pub keyword: String,
+    pub search_volume: Option<i64>,
+    pub keyword_difficulty: Option<i32>,
+    pub rank_first: Option<i32>,
+    pub rank_second: Option<i32>,
+    pub url_first: Option<String>,
+    pub url_second: Option<String>,
+}
+
+impl From<DomainIntersectionItem> for IntersectionKeyword {
+    fn from(it: DomainIntersectionItem) -> Self {
+        Self {
+            keyword: it.keyword,
+            search_volume: it.search_volume,
+            keyword_difficulty: it.keyword_difficulty,
+            rank_first: it.rank_first,
+            rank_second: it.rank_second,
+            url_first: it.url_first,
+            url_second: it.url_second,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct DomainIntersectionView {
+    pub target1: String,
+    pub target2: String,
+    pub items: Vec<IntersectionKeyword>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_domain_intersection(
+    state: State<'_, AppState>,
+    target1: String,
+    target2: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+) -> Result<DomainIntersectionView> {
+    let target1 = target1.trim().to_owned();
+    let target2 = target2.trim().to_owned();
+    if target1.is_empty() || target2.is_empty() {
+        return Err(AppError::Validation("both target1 and target2 required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsDomainIntersection);
+    let api = state.api.clone();
+    let t1 = target1.clone();
+    let t2 = target2.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::LABS_DOMAIN_INTERSECTION,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_domain_intersection(&t1, &t2, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(DomainIntersectionView {
+        target1,
+        target2,
+        items: resp
+            .items
+            .into_iter()
+            .map(IntersectionKeyword::from)
             .collect(),
         cost_usd: resp.cost,
         estimated_usd,

@@ -20,7 +20,10 @@ export type CostAction =
   | { kind: "DomainAnalyticsWhois"; rows: number }
   | { kind: "DomainAnalyticsTechnologies" }
   | { kind: "LabsDomainRankOverview" }
-  | { kind: "LabsBulkKeywordDifficulty"; count: number };
+  | { kind: "LabsBulkKeywordDifficulty"; count: number }
+  | { kind: "LabsSerpCompetitors" }
+  | { kind: "LabsCompetitorsDomain" }
+  | { kind: "LabsDomainIntersection" };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -68,5 +71,9 @@ export function estimate(action: CostAction): number {
       return 0.0125;
     case "LabsBulkKeywordDifficulty":
       return Math.max(1, action.count) * 0.0001;
+    case "LabsSerpCompetitors":
+    case "LabsCompetitorsDomain":
+    case "LabsDomainIntersection":
+      return 0.0125;
   }
 }

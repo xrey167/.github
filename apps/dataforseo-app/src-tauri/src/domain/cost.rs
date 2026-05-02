@@ -35,6 +35,15 @@ pub enum CostAction {
     /// strictly per keyword regardless of how many requests we
     /// have to fan out under the hood.
     LabsBulkKeywordDifficulty { count: u32 },
+    /// Labs SERP Competitors · 0.0125 USD per request. Returns the
+    /// domains ranking for a keyword with position metrics.
+    LabsSerpCompetitors,
+    /// Labs Competitors Domain · 0.0125 USD per request. Returns the
+    /// domains that compete most with a target domain.
+    LabsCompetitorsDomain,
+    /// Labs Domain Intersection · 0.0125 USD per request. Returns
+    /// keywords both target domains rank for (competitive overlap).
+    LabsDomainIntersection,
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -84,6 +93,9 @@ pub fn estimate(action: &CostAction) -> f64 {
         DomainAnalyticsTechnologies => 0.001,
         LabsDomainRankOverview => 0.0125,
         LabsBulkKeywordDifficulty { count } => (*count as f64).max(1.0) * 0.0001,
+        LabsSerpCompetitors => 0.0125,
+        LabsCompetitorsDomain => 0.0125,
+        LabsDomainIntersection => 0.0125,
     }
 }
 

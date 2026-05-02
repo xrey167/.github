@@ -69,10 +69,12 @@ impl ApiClient {
         let items = result
             .pointer("/items")
             .and_then(|v| v.as_array())
-            .ok_or_else(|| AppError::Parse("serp response missing items array".into()))?
-            .iter()
-            .filter_map(|raw| serde_json::from_value::<SerpItem>(raw.clone()).ok())
-            .collect();
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw| serde_json::from_value::<SerpItem>(raw.clone()).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
 
         Ok(SerpLiveResponse {
             keyword: keyword_out,
@@ -168,10 +170,12 @@ impl ApiClient {
         let items = result
             .pointer("/items")
             .and_then(|v| v.as_array())
-            .ok_or_else(|| AppError::Parse("task_get response missing items array".into()))?
-            .iter()
-            .filter_map(|raw| serde_json::from_value::<SerpItem>(raw.clone()).ok())
-            .collect();
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw| serde_json::from_value::<SerpItem>(raw.clone()).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
 
         Ok(SerpLiveResponse { keyword: keyword_out, items, cost })
     }
@@ -313,10 +317,12 @@ impl ApiClient {
         let items = result
             .pointer("/items")
             .and_then(|v| v.as_array())
-            .ok_or_else(|| AppError::Parse(format!("{path} response missing items array")))?
-            .iter()
-            .filter_map(|raw| serde_json::from_value::<SerpItem>(raw.clone()).ok())
-            .collect();
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw| serde_json::from_value::<SerpItem>(raw.clone()).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
         Ok(SerpLiveResponse { keyword: keyword_out, items, cost })
     }
 }
