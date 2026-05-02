@@ -14,7 +14,7 @@ pub fn get_summary(
 ) -> Result<Option<(serde_json::Value, f64, String)>> {
     let cutoff: DateTime<Utc> = Utc::now() - max_age;
     let mut stmt = conn.prepare(
-        "SELECT summary_json, cost_usd, fetched_at
+        "SELECT summary_json, cost_usd, CAST(fetched_at AS VARCHAR)
            FROM backlinks_summary_cache
           WHERE target = $1 AND fetched_at >= $2",
     )?;
@@ -36,7 +36,9 @@ pub fn put_summary(
     summary: &serde_json::Value,
     cost_usd: f64,
 ) -> Result<()> {
-    let json_str = serde_json::to_string(summary).unwrap_or_default();
+    // Use "null" instead of "" if serialization fails — empty string is
+    // not valid JSON and DuckDB would reject the insert at parse time.
+    let json_str = serde_json::to_string(summary).unwrap_or_else(|_| "null".to_string());
     conn.execute(
         "INSERT INTO backlinks_summary_cache (target, summary_json, cost_usd, fetched_at)
          VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
