@@ -284,10 +284,17 @@ impl ApiClient {
         // Like the other Labs endpoints, treat a successful empty result
         // as "no data" rather than a parse error — DataForSEO returns
         // an empty items array for tiny / freshly-registered domains.
+        // Going through `.as_array()` first explicitly bottoms out at an
+        // empty Vec when the field is missing OR a JSON null; without
+        // that step, `Some(&Value::Null).cloned()` short-circuits the
+        // unwrap_or and leaks Value::Null into the frontend (which
+        // expects an array).
         let items = raw
             .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
             .cloned()
-            .unwrap_or(serde_json::Value::Array(Vec::new()));
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
         Ok(LabsDomainRankOverviewResponse { items, cost })
     }
 
