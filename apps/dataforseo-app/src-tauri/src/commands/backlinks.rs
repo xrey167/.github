@@ -5,7 +5,7 @@ use tauri::State;
 use tokio::task;
 use ts_rs::TS;
 
-use crate::api::backlinks::BacklinksDetailArgs;
+use crate::api::backlinks::{BacklinksDetailArgs, BacklinksListArgs};
 use crate::commands::ledger::run_with_ledger;
 use crate::domain::cost::{self, CostAction};
 use crate::domain::endpoints;
@@ -209,6 +209,200 @@ pub async fn backlinks_detail(
     .await?;
 
     Ok(BacklinksDetailView {
+        target: resp.target,
+        total_count: resp.total_count,
+        items_count: resp.items_count,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+// ---------- Referring Domains, Anchors, History ----------
+
+/// Inputs for the two list endpoints (referring_domains, anchors). They
+/// share the target/limit/offset/filter shape — only the URL differs, which
+/// the backend picks based on which command the frontend invokes.
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+#[serde(rename_all = "camelCase")]
+pub struct BacklinksListParams {
+    pub target: String,
+    pub limit: u32,
+    pub offset: u32,
+    pub include_subdomains: bool,
+    pub filter: Option<Filter>,
+    pub order_by: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct BacklinksListView {
+    pub target: String,
+    pub total_count: i64,
+    pub items_count: i64,
+    pub items: Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+const LIST_MAX_LIMIT: u32 = 1000;
+
+#[tauri::command]
+#[tracing::instrument(skip(state, params))]
+pub async fn backlinks_referring_domains(
+    state: State<'_, AppState>,
+    params: BacklinksListParams,
+) -> Result<BacklinksListView> {
+    let target = params.target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let limit = params.limit.clamp(1, LIST_MAX_LIMIT);
+    let estimated_usd = cost::estimate(&CostAction::Backlinks {
+        target_count: 1,
+        rows_per_target: limit,
+    });
+    let api = state.api.clone();
+    let filter = params.filter.clone();
+    let order_by = params.order_by.clone();
+    let target_for_call = target.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::BACKLINKS_REFERRING_DOMAINS,
+        Mode::Live,
+        estimated_usd,
+        limit as i64,
+        move || async move {
+            let args = BacklinksListArgs {
+                target: &target_for_call,
+                limit,
+                offset: params.offset,
+                include_subdomains: params.include_subdomains,
+                filter: filter.as_ref(),
+                order_by,
+            };
+            let r = api.backlinks_referring_domains_live(args).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(BacklinksListView {
+        target: resp.target,
+        total_count: resp.total_count,
+        items_count: resp.items_count,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state, params))]
+pub async fn backlinks_anchors(
+    state: State<'_, AppState>,
+    params: BacklinksListParams,
+) -> Result<BacklinksListView> {
+    let target = params.target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let limit = params.limit.clamp(1, LIST_MAX_LIMIT);
+    let estimated_usd = cost::estimate(&CostAction::Backlinks {
+        target_count: 1,
+        rows_per_target: limit,
+    });
+    let api = state.api.clone();
+    let filter = params.filter.clone();
+    let order_by = params.order_by.clone();
+    let target_for_call = target.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::BACKLINKS_ANCHORS,
+        Mode::Live,
+        estimated_usd,
+        limit as i64,
+        move || async move {
+            let args = BacklinksListArgs {
+                target: &target_for_call,
+                limit,
+                offset: params.offset,
+                include_subdomains: params.include_subdomains,
+                filter: filter.as_ref(),
+                order_by,
+            };
+            let r = api.backlinks_anchors_live(args).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(BacklinksListView {
+        target: resp.target,
+        total_count: resp.total_count,
+        items_count: resp.items_count,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+#[serde(rename_all = "camelCase")]
+pub struct BacklinksHistoryParams {
+    pub target: String,
+    /// YYYY-MM-DD; both ends are optional. DataForSEO defaults to the last
+    /// available year if not specified.
+    pub date_from: Option<String>,
+    pub date_to: Option<String>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state, params))]
+pub async fn backlinks_history(
+    state: State<'_, AppState>,
+    params: BacklinksHistoryParams,
+) -> Result<BacklinksListView> {
+    let target = params.target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    // History is billed per-request only — no per-row component, even
+    // though one call returns ~60 monthly snapshots. Match the summary
+    // endpoint (which is also flat-fee) and pass rows_per_target: 1 so
+    // the cost preview shows the same 0.02 USD as the actual charge.
+    let estimated_usd = cost::estimate(&CostAction::Backlinks {
+        target_count: 1,
+        rows_per_target: 1,
+    });
+
+    let api = state.api.clone();
+    let target_for_call = target.clone();
+    let date_from = params.date_from.clone();
+    let date_to = params.date_to.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::BACKLINKS_HISTORY,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .backlinks_history_live(
+                    &target_for_call,
+                    date_from.as_deref(),
+                    date_to.as_deref(),
+                )
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+
+    Ok(BacklinksListView {
         target: resp.target,
         total_count: resp.total_count,
         items_count: resp.items_count,
