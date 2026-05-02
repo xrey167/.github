@@ -258,7 +258,8 @@ function TechnologiesTab() {
 
 function TechnologiesResult({ view }: { view: TechnologiesView }) {
   // result.technologies is a map keyed by category → object whose values
-  // are arrays of tech names. We flatten it to {category, names[]}.
+  // are arrays of tech names. Flatten to {category, names[]} via
+  // flatMap on the inner values, then dedupe + sort each category.
   const groups = useMemo(() => {
     const tech = (view.result as Record<string, unknown> | null)?.[
       "technologies"
@@ -266,16 +267,11 @@ function TechnologiesResult({ view }: { view: TechnologiesView }) {
     if (!tech || typeof tech !== "object") return [];
     return Object.entries(tech as Record<string, unknown>)
       .map(([category, sub]) => {
-        const names: string[] = [];
-        if (sub && typeof sub === "object") {
-          for (const value of Object.values(sub as Record<string, unknown>)) {
-            if (Array.isArray(value)) {
-              for (const n of value) {
-                if (typeof n === "string") names.push(n);
-              }
-            }
-          }
-        }
+        const names = Object.values(
+          (sub && typeof sub === "object" ? sub : {}) as Record<string, unknown>,
+        )
+          .flatMap((v) => (Array.isArray(v) ? v : []))
+          .filter((n): n is string => typeof n === "string");
         return { category, names: Array.from(new Set(names)).sort() };
       })
       .filter((g) => g.names.length > 0)

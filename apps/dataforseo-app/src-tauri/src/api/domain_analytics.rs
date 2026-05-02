@@ -49,19 +49,21 @@ impl ApiClient {
             )
             .await?;
         let cost = ensure_api_success(&raw)?;
-        let result = raw.pointer("/tasks/0/result/0").ok_or_else(|| {
-            AppError::Parse("whois overview missing tasks[0].result[0]".into())
-        })?;
+        // A successful response with an unregistered or privacy-shielded
+        // target returns `result: null` or an empty result array — that's
+        // valid data, not a parse error. Fall through with empty
+        // counts/items so the UI can render its empty-state message.
+        let result = raw.pointer("/tasks/0/result/0");
         let items_count = result
-            .pointer("/items_count")
+            .and_then(|r| r.pointer("/items_count"))
             .and_then(|v| v.as_i64())
             .unwrap_or(0);
         let total_count = result
-            .pointer("/total_count")
+            .and_then(|r| r.pointer("/total_count"))
             .and_then(|v| v.as_i64())
             .unwrap_or(0);
         let items = result
-            .pointer("/items")
+            .and_then(|r| r.pointer("/items"))
             .cloned()
             .unwrap_or(Value::Array(Vec::new()));
         Ok(WhoisOverviewResponse {
@@ -86,12 +88,15 @@ impl ApiClient {
             )
             .await?;
         let cost = ensure_api_success(&raw)?;
+        // Domains DataForSEO has no tech-stack data on (unregistered,
+        // tiny sites, robots.txt-blocked) come back as a successful
+        // response with `result: null`. That's not a parse error — we
+        // pass Null through and let the UI show its "no technologies
+        // detected" state.
         let result = raw
             .pointer("/tasks/0/result/0")
             .cloned()
-            .ok_or_else(|| {
-                AppError::Parse("domain_technologies missing tasks[0].result[0]".into())
-            })?;
+            .unwrap_or(Value::Null);
         Ok(TechnologiesResponse { result, cost })
     }
 }
