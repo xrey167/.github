@@ -80,7 +80,26 @@ export const tauriApi = {
 
   keywordsRanked: (args: { target: string; locationCode: number; languageCode: string; limit: number }) =>
     invoke<RankedBatch>("keywords_ranked", args),
+
+  serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
+    invoke<SerpLiveBatch>("serp_live", args),
 };
+
+export interface SerpResultItem {
+  kind: string;
+  rank_absolute: number | null;
+  url: string | null;
+  title: string | null;
+  description: string | null;
+  domain: string | null;
+}
+
+export interface SerpLiveBatch {
+  keyword: string;
+  items: SerpResultItem[];
+  cost_usd: number;
+  estimated_usd: number;
+}
 
 export interface RankedKeyword {
   keyword: string;
