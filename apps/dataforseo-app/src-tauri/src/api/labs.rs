@@ -233,3 +233,112 @@ fn parse_labs_response(raw: &serde_json::Value) -> Result<LabsResponse> {
 
     Ok(LabsResponse { items, cost })
 }
+
+// ---------- Domain Rank Overview ----------
+
+/// SEMrush-style domain overview: organic traffic, keyword count, rank
+/// distribution by SERP position bucket, paid metrics. We pass the raw
+/// nested shape through and let the UI extract the well-known fields.
+#[derive(Debug)]
+pub struct LabsDomainRankOverviewResponse {
+    pub items: serde_json::Value,
+    pub cost: f64,
+}
+
+/// Bulk keyword-difficulty: cheap (0.0001 USD per kw) lookup of the
+/// per-keyword difficulty score. Used in the Keywords > Difficulty tab.
+#[derive(Debug, Deserialize)]
+pub struct BulkDifficultyItem {
+    pub keyword: String,
+    pub keyword_difficulty: Option<i32>,
+}
+
+#[derive(Debug)]
+pub struct BulkDifficultyResponse {
+    pub items: Vec<BulkDifficultyItem>,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    /// Domain Rank Overview — single target. Returns aggregate
+    /// SERP-position metrics for both organic and paid placements.
+    pub async fn labs_domain_rank_overview(
+        &self,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<LabsDomainRankOverviewResponse> {
+        let body = serde_json::json!([{
+            "target": target,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/domain_rank_overview/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        // Like the other Labs endpoints, treat a successful empty result
+        // as "no data" rather than a parse error — DataForSEO returns
+        // an empty items array for tiny / freshly-registered domains.
+        // Going through `.as_array()` first explicitly bottoms out at an
+        // empty Vec when the field is missing OR a JSON null; without
+        // that step, `Some(&Value::Null).cloned()` short-circuits the
+        // unwrap_or and leaks Value::Null into the frontend (which
+        // expects an array).
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+        Ok(LabsDomainRankOverviewResponse { items, cost })
+    }
+
+    /// Bulk Keyword Difficulty for up to 1000 keywords per request.
+    /// The frontend caps the input at 1000 so we don't have to fan
+    /// out multiple requests under the hood.
+    pub async fn labs_bulk_keyword_difficulty(
+        &self,
+        keywords: &[String],
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<BulkDifficultyResponse> {
+        let body = serde_json::json!([{
+            "keywords": keywords,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/bulk_keyword_difficulty/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items: Vec<BulkDifficultyItem> = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw_item| {
+                        let keyword = raw_item.pointer("/keyword").and_then(|v| v.as_str())?.to_owned();
+                        let keyword_difficulty = raw_item
+                            .pointer("/keyword_difficulty")
+                            .and_then(|v| v.as_i64())
+                            .map(|n| n as i32);
+                        Some(BulkDifficultyItem {
+                            keyword,
+                            keyword_difficulty,
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(BulkDifficultyResponse { items, cost })
+    }
+}

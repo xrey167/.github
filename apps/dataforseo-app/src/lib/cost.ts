@@ -18,7 +18,9 @@ export type CostAction =
     }
   | { kind: "Backlinks"; target_count: number; rows_per_target: number }
   | { kind: "DomainAnalyticsWhois"; rows: number }
-  | { kind: "DomainAnalyticsTechnologies" };
+  | { kind: "DomainAnalyticsTechnologies" }
+  | { kind: "LabsDomainRankOverview" }
+  | { kind: "LabsBulkKeywordDifficulty"; count: number };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -62,5 +64,9 @@ export function estimate(action: CostAction): number {
       return Math.max(1, action.rows) * 0.0001;
     case "DomainAnalyticsTechnologies":
       return 0.001;
+    case "LabsDomainRankOverview":
+      return 0.0125;
+    case "LabsBulkKeywordDifficulty":
+      return Math.max(1, action.count) * 0.0001;
   }
 }
