@@ -1,6 +1,8 @@
 pub mod keywords_cache;
 pub mod ledger;
 pub mod schema;
+pub mod serp_results;
+pub mod serp_tasks;
 
 use std::path::PathBuf;
 use std::sync::Mutex;

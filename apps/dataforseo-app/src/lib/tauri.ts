@@ -83,7 +83,68 @@ export const tauriApi = {
 
   serpLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
     invoke<SerpLiveBatch>("serp_live", args),
+
+  serpTaskCreate: (args: {
+    keywords: string[];
+    locationCode: number;
+    languageCode: string;
+    depth: number;
+  }) => invoke<TaskBatchId>("serp_task_create", args),
+
+  serpTaskStatus: (args: { batchId: string }) =>
+    invoke<TaskBatchStatus>("serp_task_status", args),
+
+  serpTaskRecentBatches: (args: { limit: number }) =>
+    invoke<BatchSummary[]>("serp_task_recent_batches", args),
 };
+
+export interface TaskBatchId {
+  batch_id: string;
+  task_count: number;
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface SerpTask {
+  task_id: string;
+  batch_id: string;
+  keyword: string;
+  location_code: number;
+  language_code: string;
+  depth: number;
+  status: string;
+  posted_at: string | null;
+  fetched_at: string | null;
+  poll_attempts: number;
+  cost_usd: number | null;
+  error: string | null;
+}
+
+export interface StoredSerpItem {
+  task_id: string;
+  position: number;
+  kind: string;
+  url: string | null;
+  title: string | null;
+  description: string | null;
+  domain: string | null;
+}
+
+export interface TaskBatchStatus {
+  batch_id: string;
+  tasks: SerpTask[];
+  results: Record<string, StoredSerpItem[]>;
+}
+
+export interface BatchSummary {
+  batch_id: string;
+  total: number;
+  pending: number;
+  ready: number;
+  fetched: number;
+  failed: number;
+  posted_at: string | null;
+}
 
 export interface SerpResultItem {
   kind: string;

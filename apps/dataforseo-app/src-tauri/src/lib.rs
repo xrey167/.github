@@ -23,7 +23,13 @@ pub fn run() {
                 .app_local_data_dir()
                 .expect("app_local_data_dir resolves on supported platforms");
             let db_path = dir.join("dataforseo-app.duckdb");
-            app.manage(AppState::new(db_path));
+            let state = AppState::new(db_path);
+            let api = state.api.clone();
+            let store = state.store.clone();
+            app.manage(state);
+            tauri::async_runtime::spawn(async move {
+                tasks::poller::run(api, store).await;
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -37,6 +43,9 @@ pub fn run() {
             commands::keywords::keywords_for_domain,
             commands::keywords::keywords_ranked,
             commands::serp::serp_live,
+            commands::serp::serp_task_create,
+            commands::serp::serp_task_status,
+            commands::serp::serp_task_recent_batches,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
