@@ -100,6 +100,9 @@ export const tauriApi = {
   backlinksSummary: (args: { target: string; useCache: boolean }) =>
     invoke<BacklinksSummaryView>("backlinks_summary", args),
 
+  backlinksDetail: (params: BacklinksDetailParams) =>
+    invoke<BacklinksDetailView>("backlinks_detail", { params }),
+
   getRecentCalls: (args: { limit: number }) =>
     invoke<CallLogRow[]>("get_recent_calls", args),
 
@@ -242,6 +245,60 @@ export interface BacklinksSummaryView {
   estimated_usd: number;
   from_cache: boolean;
   fetched_at: string | null;
+}
+
+export type BacklinksDetailMode = "as_is" | "one_per_domain" | "one_per_anchor";
+export type BacklinksDetailStatus = "all" | "live" | "lost";
+
+// Mirrors the recursive Filter enum in domain::filters. Mostly built by the
+// preset dropdown for now; the full visual builder is a future milestone.
+export type FilterTree =
+  | {
+      kind: "condition";
+      field: string;
+      operator: FilterOperator;
+      value: unknown;
+    }
+  | { kind: "group"; nodes: FilterTree[]; connectors: FilterLogical[] };
+
+export type FilterOperator =
+  | "eq"
+  | "ne"
+  | "gt"
+  | "lt"
+  | "ge"
+  | "le"
+  | "in"
+  | "not_in"
+  | "like"
+  | "not_like"
+  | "ilike"
+  | "not_ilike"
+  | "match"
+  | "not_match";
+
+export type FilterLogical = "and" | "or";
+
+export interface BacklinksDetailParams {
+  target: string;
+  mode: BacklinksDetailMode;
+  status: BacklinksDetailStatus;
+  limit: number;
+  offset: number;
+  includeSubdomains: boolean;
+  filter: FilterTree | null;
+  orderBy: string[] | null;
+}
+
+export interface BacklinksDetailView {
+  target: string;
+  total_count: number;
+  items_count: number;
+  // DataForSEO returns ~25 fields per row — we keep them as `unknown` and
+  // let the table component pick the columns it can render.
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
 }
 
 export interface TaskBatchId {
