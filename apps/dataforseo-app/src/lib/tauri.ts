@@ -27,11 +27,16 @@ export interface KeywordVolumeBatch {
   estimated_usd: number;
 }
 
+// Index signature is required so this satisfies @tauri-apps/api's
+// `InvokeArgs = Record<string, unknown>` constraint. Tauri tightened the
+// invoke signature in a recent SDK version; named interfaces without an
+// index signature get rejected even though they're structurally fine.
 export interface KeywordsSearchVolumeArgs {
   keywords: string[];
   locationCode: number;
   languageCode: string;
   useCache: boolean;
+  [k: string]: unknown;
 }
 
 export interface LabsKeyword {
@@ -53,6 +58,8 @@ export interface LabsSeedArgs {
   seed: string;
   locationCode: number;
   languageCode: string;
+  // See KeywordsSearchVolumeArgs — needed for Tauri's InvokeArgs constraint.
+  [k: string]: unknown;
 }
 
 export const tauriApi = {
