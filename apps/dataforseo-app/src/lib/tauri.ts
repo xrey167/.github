@@ -103,6 +103,12 @@ export const tauriApi = {
   getUsageSummary: (args: { days: number }) =>
     invoke<UsageSummary>("get_usage_summary", args),
 
+  getAiRecentCalls: (args: { limit: number }) =>
+    invoke<AiCallRow[]>("get_ai_recent_calls", args),
+
+  getAiUsageSummary: (args: { days: number }) =>
+    invoke<AiUsageSummary>("get_ai_usage_summary", args),
+
   aiProviderStatus: () => invoke<AiProviderStatus[]>("ai_provider_status"),
 
   aiSaveProviderKey: (args: { provider: string; apiKey: string }) =>
@@ -189,6 +195,36 @@ export interface UsageSummary {
   total_cost_usd: number;
   total_estimated_usd: number;
   by_endpoint: UsageByEndpoint[];
+}
+
+export interface AiCallRow {
+  ts: string;
+  provider: string;
+  model: string;
+  purpose: string;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  duration_ms: number | null;
+  error: string | null;
+}
+
+export interface AiUsageByModel {
+  provider: string;
+  model: string;
+  call_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+}
+
+export interface AiUsageSummary {
+  days: number;
+  total_calls: number;
+  total_cost_usd: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  by_model: AiUsageByModel[];
 }
 
 export interface TaskBatchId {

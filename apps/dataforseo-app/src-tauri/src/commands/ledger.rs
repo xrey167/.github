@@ -7,7 +7,7 @@ use crate::domain::cost::{self, CostAction};
 use crate::domain::types::Mode;
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
-use crate::store::ledger::{self, CallLogRow, LedgerEntry, UsageSummary};
+use crate::store::ledger::{self, AiCallRow, AiUsageSummary, CallLogRow, LedgerEntry, UsageSummary};
 use crate::store::Store;
 
 #[tauri::command]
@@ -120,6 +120,34 @@ pub async fn get_usage_summary(
     let store = state.store.clone();
     task::spawn_blocking(move || -> Result<_> {
         store.with_conn(|c| ledger::summary(c, days))
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn get_ai_recent_calls(
+    state: State<'_, AppState>,
+    limit: u32,
+) -> Result<Vec<AiCallRow>> {
+    let store = state.store.clone();
+    task::spawn_blocking(move || -> Result<_> {
+        store.with_conn(|c| ledger::ai_recent(c, limit))
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn get_ai_usage_summary(
+    state: State<'_, AppState>,
+    days: u32,
+) -> Result<AiUsageSummary> {
+    let store = state.store.clone();
+    task::spawn_blocking(move || -> Result<_> {
+        store.with_conn(|c| ledger::ai_summary(c, days))
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?
