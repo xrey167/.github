@@ -21,6 +21,7 @@ import TrackingPage from "./routes/TrackingPage";
 import SocialPage from "./routes/SocialPage";
 import TasksPage from "./routes/TasksPage";
 import TrafficPage from "./routes/TrafficPage";
+import ReportsPage from "./routes/ReportsPage";
 import UsagePage from "./routes/UsagePage";
 import SettingsPage from "./routes/SettingsPage";
 
@@ -42,6 +43,7 @@ const navItems = [
   { to: "/compare", label: "Compare" },
   { to: "/tasks", label: "Tasks" },
   { to: "/chat", label: "Chat" },
+  { to: "/reports", label: "Reports" },
   { to: "/usage", label: "Usage" },
   { to: "/settings", label: "Settings" },
 ];
@@ -131,6 +133,7 @@ function AppShell() {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:sessionId" element={<ChatPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/usage" element={<UsagePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>

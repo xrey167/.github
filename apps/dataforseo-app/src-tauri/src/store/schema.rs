@@ -12,6 +12,7 @@ const MIGRATIONS: &[(u32, &str)] = &[
     (5, include_str!("../../migrations/v0005_position_tracking.sql")),
     (6, include_str!("../../migrations/v0006_site_audit.sql")),
     (7, include_str!("../../migrations/v0007_projects.sql")),
+    (8, include_str!("../../migrations/v0008_reports.sql")),
 ];
 
 pub fn ensure_current(conn: &mut Connection) -> Result<()> {

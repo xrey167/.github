@@ -1,4 +1,5 @@
 pub mod audits;
+pub mod reports;
 pub mod backlinks;
 pub mod chat;
 pub mod cost_budget;
