@@ -34,8 +34,10 @@ describe("formatError", () => {
     });
     expect(out).toMatch(/weird/);
     expect(out).toMatch(/99999/);
-    // Should not contain a hint paragraph (no second sentence).
-    expect(out.split(".").filter(Boolean).length).toBeLessThanOrEqual(2);
+    // Unknown codes produce exactly one sentence (the bare message).
+    // toBeLessThanOrEqual would still pass if a hint sneaked in;
+    // toHaveLength(1) actually pins the contract.
+    expect(out.split(".").filter(Boolean)).toHaveLength(1);
   });
 
   it("formats Validation errors verbatim", () => {
