@@ -43,6 +43,11 @@ pub fn run() {
                     let _ = evict_store.with_conn(|c| {
                         store::audits::evict_completed_older_than(c, chrono::Duration::days(90))
                     });
+                    // Backfill projects for any pre-existing tracked
+                    // keywords / audit runs. Idempotent — re-runs are
+                    // a single SELECT + zero updates after the first
+                    // post-upgrade boot.
+                    let _ = evict_store.with_conn(|c| store::projects::backfill(c));
                 })
                 .await;
             });
@@ -139,6 +144,10 @@ pub fn run() {
             commands::app_data::app_data_apple_app_searches,
             commands::app_data::app_data_google_play_app_reviews,
             commands::app_data::app_data_apple_app_reviews,
+            commands::projects::projects_list,
+            commands::projects::projects_create,
+            commands::projects::projects_rename,
+            commands::projects::projects_delete,
             commands::keywords::labs_keyword_overview,
             commands::keywords::labs_search_intent,
             commands::keywords::google_trends_explore,

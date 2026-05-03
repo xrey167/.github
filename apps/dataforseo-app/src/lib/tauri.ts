@@ -313,6 +313,13 @@ export const tauriApi = {
   appDataAppleAppReviews: (args: { appId: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<AppDataView>("app_data_apple_app_reviews", args),
 
+  projectsList: () => invoke<Project[]>("projects_list"),
+  projectsCreate: (args: { name: string; target: string }) =>
+    invoke<number>("projects_create", args),
+  projectsRename: (args: { id: number; name: string }) =>
+    invoke<void>("projects_rename", args),
+  projectsDelete: (args: { id: number }) => invoke<void>("projects_delete", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -781,6 +788,13 @@ export interface AppDataView {
   estimated_usd: number;
   from_cache: boolean;
   fetched_at: string | null;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  target: string;
+  created_at: string | null;
 }
 
 export interface WhoisView {

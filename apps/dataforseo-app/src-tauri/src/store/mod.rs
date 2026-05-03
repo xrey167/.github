@@ -4,6 +4,7 @@ pub mod chat;
 pub mod cost_budget;
 pub mod keywords_cache;
 pub mod ledger;
+pub mod projects;
 pub mod response_cache;
 pub mod schema;
 pub mod serp_results;

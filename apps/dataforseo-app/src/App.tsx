@@ -1,5 +1,7 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 
+import ProjectSwitcher from "./components/ProjectSwitcher";
+import { ProjectProvider } from "./lib/project-store";
 import AdsPage from "./routes/AdsPage";
 import AppsPage from "./routes/AppsPage";
 import AuditPage from "./routes/AuditPage";
@@ -44,9 +46,18 @@ const navItems = [
 
 export default function App() {
   return (
+    <ProjectProvider>
+      <AppShell />
+    </ProjectProvider>
+  );
+}
+
+function AppShell() {
+  return (
     <div className="flex h-screen">
       <aside className="w-56 border-r bg-slate-50 p-4">
-        <h1 className="mb-6 text-lg font-semibold">DataForSEO</h1>
+        <h1 className="mb-3 text-lg font-semibold">DataForSEO</h1>
+        <ProjectSwitcher />
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => (
             <Link
