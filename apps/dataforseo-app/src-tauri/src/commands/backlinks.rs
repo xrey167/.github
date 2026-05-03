@@ -963,6 +963,9 @@ pub async fn backlinks_domain_pages_summary(
     }
     let api = state.api.clone();
     let target_for_call = target.clone();
+    // Return the wrapped envelope (result + cost) from the closure so the
+    // billed cost survives back to the view. Setting cost_usd=0.0 here
+    // would leak the placeholder into the cache and into Usage analytics.
     let resp = run_with_ledger(
         state.store.clone(),
         endpoint,
@@ -974,20 +977,21 @@ pub async fn backlinks_domain_pages_summary(
                 .backlinks_domain_pages_summary_live(&target_for_call, include_subdomains)
                 .await?;
             let cost = r.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let result = r.pointer("/result").cloned().unwrap_or(Value::Null);
-            Ok((result, cost))
+            Ok((r, cost))
         },
     )
     .await?;
+    let cost_usd = resp.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let result = resp.pointer("/result").cloned().unwrap_or(Value::Null);
     let view = DomainPagesSummaryView {
         target: target.clone(),
-        result: resp,
-        cost_usd: 0.0, // cost is captured via run_with_ledger; field shown is what was billed
+        result,
+        cost_usd,
         estimated_usd,
         from_cache: false,
         fetched_at: None,
     };
-    crate::commands::cached::store_view(state.store.clone(), endpoint, &cache_params, &view, view.cost_usd).await?;
+    crate::commands::cached::store_view(state.store.clone(), endpoint, &cache_params, &view, cost_usd).await?;
     Ok(view)
 }
 

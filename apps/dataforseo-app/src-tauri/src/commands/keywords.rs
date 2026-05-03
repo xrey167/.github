@@ -1703,3 +1703,261 @@ pub async fn google_ads_keywords_for_keywords(
     cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
     Ok(view)
 }
+
+// ---------- Phase A.2: Labs Historical / Subdomains / Relevant / PageIntersection / KeywordIdeas / TopSearches / CategoriesForKeywords ----------
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct LabsRawView {
+    /// Raw items array — UI extracts the well-known fields per endpoint.
+    pub items: serde_json::Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+async fn labs_flat_command<F, Fut>(
+    state: &State<'_, AppState>,
+    endpoint: &'static str,
+    cache_params: serde_json::Value,
+    use_cache: bool,
+    op: F,
+) -> Result<LabsRawView>
+where
+    F: FnOnce(std::sync::Arc<crate::api::client::ApiClient>) -> Fut + Send + 'static,
+    Fut: std::future::Future<Output = Result<crate::api::labs::LabsRawValueResponse>> + Send,
+{
+    let estimated_usd = cost::estimate(&CostAction::LabsFlat);
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<LabsRawView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_short(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = op(api).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = LabsRawView {
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_historical_rank_overview(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    use_cache: bool,
+) -> Result<LabsRawView> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let cache_params = serde_json::json!({
+        "target": &target, "location_code": location_code, "language_code": &language_code,
+    });
+    let lang = language_code.clone();
+    labs_flat_command(&state, endpoints::LABS_HISTORICAL_RANK_OVERVIEW, cache_params, use_cache, move |api| async move {
+        api.labs_historical_rank_overview(&target, location_code, &lang).await
+    }).await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_subdomains(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    use_cache: bool,
+) -> Result<LabsRawView> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let cache_params = serde_json::json!({
+        "target": &target, "location_code": location_code, "language_code": &language_code,
+    });
+    let lang = language_code.clone();
+    labs_flat_command(&state, endpoints::LABS_SUBDOMAINS, cache_params, use_cache, move |api| async move {
+        api.labs_subdomains(&target, location_code, &lang).await
+    }).await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_relevant_pages(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    use_cache: bool,
+) -> Result<LabsRawView> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let cache_params = serde_json::json!({
+        "target": &target, "location_code": location_code, "language_code": &language_code,
+    });
+    let lang = language_code.clone();
+    labs_flat_command(&state, endpoints::LABS_RELEVANT_PAGES, cache_params, use_cache, move |api| async move {
+        api.labs_relevant_pages(&target, location_code, &lang).await
+    }).await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_page_intersection(
+    state: State<'_, AppState>,
+    pages: Vec<String>,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+    use_cache: bool,
+) -> Result<LabsRawView> {
+    let pages: Vec<String> = pages.into_iter().map(|p| p.trim().to_owned()).filter(|p| !p.is_empty()).collect();
+    if pages.len() < 2 {
+        return Err(AppError::Validation("at least 2 pages required".into()));
+    }
+    let mut sorted = pages.clone();
+    sorted.sort();
+    let cache_params = serde_json::json!({
+        "pages": sorted, "location_code": location_code, "language_code": &language_code, "limit": limit,
+    });
+    let pages_for_call = pages.clone();
+    let lang = language_code.clone();
+    labs_flat_command(&state, endpoints::LABS_PAGE_INTERSECTION, cache_params, use_cache, move |api| async move {
+        api.labs_page_intersection(&pages_for_call, location_code, &lang, limit).await
+    }).await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_keyword_ideas(
+    state: State<'_, AppState>,
+    keywords: Vec<String>,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+    use_cache: bool,
+) -> Result<LabsRawView> {
+    let mut seen = HashSet::new();
+    let cleaned: Vec<String> = keywords.into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty() && seen.insert(k.clone())).collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one keyword required".into()));
+    }
+    let mut sorted = cleaned.clone();
+    sorted.sort();
+    let cache_params = serde_json::json!({
+        "keywords": sorted, "location_code": location_code, "language_code": &language_code, "limit": limit,
+    });
+    let kw_for_call = cleaned.clone();
+    let lang = language_code.clone();
+    labs_flat_command(&state, endpoints::LABS_KEYWORD_IDEAS, cache_params, use_cache, move |api| async move {
+        api.labs_keyword_ideas(&kw_for_call, location_code, &lang, limit).await
+    }).await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_top_searches(
+    state: State<'_, AppState>,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+    use_cache: bool,
+) -> Result<LabsRawView> {
+    let cache_params = serde_json::json!({
+        "location_code": location_code, "language_code": &language_code, "limit": limit,
+    });
+    let lang = language_code.clone();
+    labs_flat_command(&state, endpoints::LABS_TOP_SEARCHES, cache_params, use_cache, move |api| async move {
+        api.labs_top_searches(location_code, &lang, limit).await
+    }).await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_categories_for_keywords(
+    state: State<'_, AppState>,
+    keywords: Vec<String>,
+    language_code: String,
+    use_cache: bool,
+) -> Result<LabsRawView> {
+    let mut seen = HashSet::new();
+    let cleaned: Vec<String> = keywords.into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty() && seen.insert(k.clone())).collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one keyword required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsCategoriesForKeywords);
+    let endpoint = endpoints::LABS_CATEGORIES_FOR_KEYWORDS;
+    let mut sorted = cleaned.clone();
+    sorted.sort();
+    let cache_params = serde_json::json!({
+        "keywords": sorted, "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<LabsRawView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let kw_for_call = cleaned.clone();
+    let lang = language_code.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        cleaned.len() as i64,
+        move || async move {
+            let r = api.labs_categories_for_keywords(&kw_for_call, &lang).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = LabsRawView {
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}

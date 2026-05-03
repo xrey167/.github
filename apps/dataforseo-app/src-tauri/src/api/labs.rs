@@ -806,8 +806,12 @@ impl ApiClient {
         .await
     }
 
-    /// Page Intersection — keywords that two URLs both rank for. Like
-    /// domain_intersection but at the page level.
+    /// Page Intersection — keywords that a SET of URLs (up to 20) all rank
+    /// for. Like domain_intersection but at the page level. The
+    /// `intersections` parameter sets the minimum number of supplied
+    /// pages a keyword must appear under for the row to be included; we
+    /// default to "every page must rank" by using the supplied count
+    /// (clamped to ≤ 20 by the API).
     pub async fn labs_page_intersection(
         &self,
         pages: &[String],
@@ -815,14 +819,19 @@ impl ApiClient {
         language_code: &str,
         limit: u32,
     ) -> Result<LabsRawValueResponse> {
-        // The API takes pages keyed by index ("1": url, "2": url) plus an
-        // intersections count. We pass the first two for simplicity.
+        // The API takes pages keyed by index ("1": url, "2": url, ...) up
+        // to 20 entries. We send all supplied pages (clamped to 20) and
+        // explicitly set `intersections` so the caller controls the
+        // overlap requirement instead of relying on an implicit default.
         let mut payload = serde_json::Map::new();
-        for (i, p) in pages.iter().take(20).enumerate() {
-            payload.insert(format!("{}", i + 1), serde_json::Value::String(p.clone()));
+        let kept: Vec<&String> = pages.iter().take(20).collect();
+        for (i, p) in kept.iter().enumerate() {
+            payload.insert(format!("{}", i + 1), serde_json::Value::String((*p).clone()));
         }
+        let intersections = kept.len().max(1) as u32;
         let body = serde_json::json!([{
             "pages": payload,
+            "intersections": intersections,
             "location_code": location_code,
             "language_code": language_code,
             "limit": limit.min(1000),

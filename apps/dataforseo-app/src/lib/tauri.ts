@@ -249,6 +249,51 @@ export const tauriApi = {
   backlinksAvailableFilters: (args: { useCache: boolean }) =>
     invoke<AvailableFiltersView>("backlinks_available_filters", args),
 
+  labsHistoricalRankOverview: (args: { target: string; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<LabsRawView>("labs_historical_rank_overview", args),
+  labsSubdomains: (args: { target: string; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<LabsRawView>("labs_subdomains", args),
+  labsRelevantPages: (args: { target: string; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<LabsRawView>("labs_relevant_pages", args),
+  labsPageIntersection: (args: { pages: string[]; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<LabsRawView>("labs_page_intersection", args),
+  labsKeywordIdeas: (args: { keywords: string[]; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<LabsRawView>("labs_keyword_ideas", args),
+  labsTopSearches: (args: { locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<LabsRawView>("labs_top_searches", args),
+  labsCategoriesForKeywords: (args: { keywords: string[]; languageCode: string; useCache: boolean }) =>
+    invoke<LabsRawView>("labs_categories_for_keywords", args),
+
+  onPagePages: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_pages_get", args),
+  onPagePagesByResource: (args: { taskId: string; url: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_pages_by_resource_get", args),
+  onPageResources: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_resources_get", args),
+  onPageDuplicateTags: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_duplicate_tags_get", args),
+  onPageDuplicateContent: (args: { taskId: string; url: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_duplicate_content_get", args),
+  onPageLinks: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_links_get", args),
+  onPageNonIndexable: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_non_indexable_get", args),
+  onPageRedirectChains: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_redirect_chains_get", args),
+  onPageMicrodata: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_microdata_get", args),
+  onPageKeywordDensity: (args: { taskId: string; limit: number; offset: number; useCache: boolean }) =>
+    invoke<OnPageItemsView>("on_page_keyword_density_get", args),
+  onPageContentParsing: (args: { url: string }) =>
+    invoke<unknown>("on_page_content_parsing_command", args),
+  onPageLighthouseAudits: () =>
+    invoke<unknown>("on_page_lighthouse_audits_get"),
+
+  domainAnalyticsDomainsByTechnology: (args: { technologies: string[]; limit: number; useCache: boolean }) =>
+    invoke<unknown>("domain_analytics_domains_by_technology", args),
+  domainAnalyticsAggregationTechnologies: (args: { targets: string[]; useCache: boolean }) =>
+    invoke<unknown>("domain_analytics_aggregation_technologies", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -682,6 +727,27 @@ export interface DomainPagesSummaryView {
 export interface AvailableFiltersView {
   // DataForSEO returns a nested map of fields → operators per endpoint.
   result: Record<string, unknown> | null;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface LabsRawView {
+  // Raw Labs items array — UI extracts known fields per endpoint
+  // (historical_rank_overview, subdomains, relevant_pages, etc.).
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface OnPageItemsView {
+  // On-Page sub-endpoint items (pages, resources, links, etc.).
+  items: Array<Record<string, unknown>>;
+  items_count: number;
+  total_count: number;
+  cost_usd: number;
+  estimated_usd: number;
   from_cache: boolean;
   fetched_at: string | null;
 }
