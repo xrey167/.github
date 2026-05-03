@@ -39,12 +39,11 @@ jobs:
   rust:
     name: Rust (clippy + test)
     runs-on: ubuntu-latest
-    # Local cargo (1.94.0 stable) on a GTK-equipped machine: clippy
-    # exits 0 (16 idiomatic warnings, 0 errors), `cargo test` runs 122
-    # tests with 0 failures. CI used to fail opaquely; now we capture
-    # full cargo output to artifacts so any divergence is debuggable.
-    # Still advisory while we shake out the last CI-only flakes.
-    continue-on-error: true
+    # Cargo 1.94 on GTK runners: clippy exits 0 (16 idiomatic
+    # warnings, 0 errors), `cargo test` runs 122 tests with 0
+    # failures. Full output is teed to log files and uploaded as the
+    # `rust-ci-logs` artifact on failure so any future divergence is
+    # debuggable from the GitHub UI.
     env:
       RUST_BACKTRACE: full
       CARGO_TERM_COLOR: never
