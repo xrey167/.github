@@ -55,14 +55,10 @@ pub fn create_schedule(
     kind: &str,
     cadence: &str,
 ) -> Result<i64> {
-    conn.execute(
-        "INSERT INTO report_schedules (project_id, kind, cadence)
-         VALUES ($1, $2, $3)",
-        params![project_id, kind, cadence],
-    )?;
     let id: i64 = conn.query_row(
-        "SELECT MAX(id) FROM report_schedules",
-        [],
+        "INSERT INTO report_schedules (project_id, kind, cadence)
+         VALUES ($1, $2, $3) RETURNING id",
+        params![project_id, kind, cadence],
         |row| row.get(0),
     )?;
     Ok(id)
@@ -76,9 +72,13 @@ pub fn toggle_schedule(conn: &mut Connection, id: i64, active: bool) -> Result<(
     Ok(())
 }
 
+/// Cascade-deletes child runs before removing the schedule row. The FK
+/// `ON DELETE CASCADE` on report_runs.schedule_id handles this automatically,
+/// but the explicit delete is kept as a safety net for environments without
+/// FK enforcement.
 pub fn delete_schedule(conn: &mut Connection, id: i64) -> Result<()> {
-    conn.execute("DELETE FROM report_runs    WHERE schedule_id = $1", params![id])?;
-    conn.execute("DELETE FROM report_schedules WHERE id = $1", params![id])?;
+    conn.execute("DELETE FROM report_runs      WHERE schedule_id = $1", params![id])?;
+    conn.execute("DELETE FROM report_schedules WHERE id = $1",          params![id])?;
     Ok(())
 }
 
@@ -102,13 +102,9 @@ pub fn list_runs(conn: &mut Connection, schedule_id: i64, limit: u32) -> Result<
 }
 
 pub fn record_run(conn: &mut Connection, schedule_id: i64, pdf_path: &str) -> Result<i64> {
-    conn.execute(
-        "INSERT INTO report_runs (schedule_id, pdf_path) VALUES ($1, $2)",
-        params![schedule_id, pdf_path],
-    )?;
     let id: i64 = conn.query_row(
-        "SELECT MAX(id) FROM report_runs WHERE schedule_id = $1",
-        params![schedule_id],
+        "INSERT INTO report_runs (schedule_id, pdf_path) VALUES ($1, $2) RETURNING id",
+        params![schedule_id, pdf_path],
         |row| row.get(0),
     )?;
     Ok(id)
@@ -122,7 +118,7 @@ pub fn mark_ran(conn: &mut Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
-/// Pull schedules that are due: active + overdue for their cadence.
+/// Pull schedules that are active and overdue for their cadence.
 pub fn due_schedules(conn: &mut Connection) -> Result<Vec<ReportSchedule>> {
     let mut stmt = conn.prepare(
         "SELECT id, project_id, kind, cadence, active,

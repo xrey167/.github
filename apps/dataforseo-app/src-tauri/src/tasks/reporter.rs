@@ -21,10 +21,14 @@ use crate::store::Store;
 
 const TICK_INTERVAL_SECS: u64 = 60 * 60; // 1h
 
+/// Uses `interval` (not `sleep`) so the first tick fires immediately on
+/// startup — any schedule that became due while the app was closed gets
+/// picked up right away rather than waiting a full hour.
 pub async fn run(store: Arc<Store>, docs_dir: Option<PathBuf>) {
     tracing::info!("reporter started (interval {}s)", TICK_INTERVAL_SECS);
+    let mut interval = time::interval(Duration::from_secs(TICK_INTERVAL_SECS));
     loop {
-        time::sleep(Duration::from_secs(TICK_INTERVAL_SECS)).await;
+        interval.tick().await;
         if let Err(e) = tick(&store, docs_dir.as_deref()).await {
             tracing::warn!(error = %e, "reporter tick failed");
         }
@@ -63,8 +67,8 @@ async fn generate_one(
 
     let pdf_bytes = match sched.kind.as_str() {
         "daily-tracking" => build_tracking_pdf(store, sched).await?,
-        "weekly-audit" => build_audit_pdf(sched),
-        "weekly-brand" => build_brand_pdf(sched),
+        "weekly-audit"   => build_audit_pdf(sched)?,
+        "weekly-brand"   => build_brand_pdf(sched)?,
         other => {
             tracing::warn!(kind = %other, "unknown report kind — skipping");
             return Ok(());
@@ -112,49 +116,39 @@ async fn build_tracking_pdf(store: &Arc<Store>, sched: &ReportSchedule) -> Resul
         let rank = r
             .current_rank
             .map(|v| v.to_string())
-            .unwrap_or_else(|| "—".into());
+            .unwrap_or_else(|| "-".into());
         lines.push((r.keyword.keyword.clone(), rank, r.keyword.target.clone()));
     }
 
     build_table_pdf(&title, "Daily Tracking Report", &lines)
 }
 
-/// Audit report: placeholder (live data lives in response_cache by audit_run_id).
-fn build_audit_pdf(sched: &ReportSchedule) -> Vec<u8> {
-    let title = "Site Audit Weekly Report";
+/// Audit report: summary placeholder (detailed data lives in the Audit tab).
+fn build_audit_pdf(sched: &ReportSchedule) -> Result<Vec<u8>> {
     let lines = vec![
         ("Section".into(), "Value".into(), "".into()),
         ("Schedule".into(), sched.kind.clone(), "".into()),
         ("Cadence".into(), sched.cadence.clone(), "".into()),
-        (
-            "Note".into(),
-            "Open the Audit tab for detailed results.".into(),
-            "".into(),
-        ),
+        ("Note".into(), "Open the Audit tab for detailed results.".into(), "".into()),
     ];
-    build_table_pdf(title, "Weekly Site Audit Summary", &lines).unwrap_or_default()
+    build_table_pdf("Site Audit Weekly Report", "Weekly Site Audit Summary", &lines)
 }
 
-/// Brand report: placeholder summary.
-fn build_brand_pdf(sched: &ReportSchedule) -> Vec<u8> {
-    let title = "Brand Monitor Weekly Report";
+/// Brand report: summary placeholder (detailed data lives in the Brand Monitor tab).
+fn build_brand_pdf(sched: &ReportSchedule) -> Result<Vec<u8>> {
     let lines = vec![
         ("Section".into(), "Value".into(), "".into()),
         ("Schedule".into(), sched.kind.clone(), "".into()),
         ("Cadence".into(), sched.cadence.clone(), "".into()),
-        (
-            "Note".into(),
-            "Open the Brand Monitor tab for detailed results.".into(),
-            "".into(),
-        ),
+        ("Note".into(), "Open the Brand Monitor tab for detailed results.".into(), "".into()),
     ];
-    build_table_pdf(title, "Weekly Brand Monitor Summary", &lines).unwrap_or_default()
+    build_table_pdf("Brand Monitor Weekly Report", "Weekly Brand Monitor Summary", &lines)
 }
 
 // ── Generic PDF table builder ───────────────────────────────────────────────
 
-/// Build a simple A4 PDF with a heading and a 3-column table.
-/// Returns raw PDF bytes on success.
+/// Build an A4 PDF with a heading and a 3-column table. Adds extra pages
+/// automatically when the table overflows the first page.
 fn build_table_pdf(
     document_title: &str,
     heading: &str,
@@ -169,43 +163,63 @@ fn build_table_pdf(
         .add_builtin_font(BuiltinFont::HelveticaBold)
         .map_err(|e| AppError::Internal(format!("font bold: {e}")))?;
 
-    let layer = doc.get_page(page1).get_layer(layer1);
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
 
-    // Header
-    layer.use_text(heading, 16.0, Mm(20.0), Mm(272.0), &bold);
-    layer.use_text(&now, 9.0, Mm(20.0), Mm(265.0), &regular);
+    // Draw first-page header via a temporary layer reference.
+    {
+        let layer = doc.get_page(page1).get_layer(layer1);
+        layer.use_text(heading, 16.0, Mm(20.0), Mm(272.0), &bold);
+        layer.use_text(&now, 9.0, Mm(20.0), Mm(265.0), &regular);
+        layer.use_text(&"-".repeat(100), 8.0, Mm(20.0), Mm(261.0), &regular);
+    }
 
-    // Separator line — ASCII only (built-in PDF fonts are Latin-1).
-    layer.use_text(
-        &"-".repeat(100),
-        8.0,
-        Mm(20.0),
-        Mm(261.0),
-        &regular,
-    );
-
-    // Table rows — col widths: 90 / 40 / 50 mm
+    // Table layout constants.
     const COL1: f32 = 20.0;
     const COL2: f32 = 115.0;
     const COL3: f32 = 160.0;
     const ROW_H: f32 = 7.0;
-    let mut y = 255.0_f32;
-    let bottom_margin = 20.0_f32;
+    const BOTTOM_MARGIN: f32 = 20.0;
+    const TOP_Y: f32 = 255.0;        // first row y on page 1 (below header)
+    const CONT_TOP_Y: f32 = 277.0;   // first row y on continuation pages
+
+    let mut cur_page = page1;
+    let mut cur_layer = layer1;
+    let mut y = TOP_Y;
+    let mut page_num = 1u32;
 
     for (i, (c1, c2, c3)) in rows.iter().enumerate() {
-        if y < bottom_margin {
-            break; // don't overflow — add more pages in a future iteration
+        // Overflow → new page.
+        if y < BOTTOM_MARGIN {
+            page_num += 1;
+            let (np, nl) = doc.add_page(Mm(210.0), Mm(297.0), format!("Layer {page_num}"));
+            cur_page = np;
+            cur_layer = nl;
+            y = CONT_TOP_Y;
+            // Repeat the column header row on the continuation page.
+            if let Some((h1, h2, h3)) = rows.first() {
+                doc.get_page(cur_page).get_layer(cur_layer)
+                    .use_text(truncate(h1, 38), 9.0, Mm(COL1), Mm(y), &bold);
+                doc.get_page(cur_page).get_layer(cur_layer)
+                    .use_text(truncate(h2, 20), 9.0, Mm(COL2), Mm(y), &bold);
+                doc.get_page(cur_page).get_layer(cur_layer)
+                    .use_text(truncate(h3, 22), 9.0, Mm(COL3), Mm(y), &bold);
+                y -= ROW_H;
+            }
         }
+
         let font = if i == 0 { &bold } else { &regular };
-        layer.use_text(truncate(c1, 38), 9.0, Mm(COL1), Mm(y), font);
-        layer.use_text(truncate(c2, 20), 9.0, Mm(COL2), Mm(y), font);
-        layer.use_text(truncate(c3, 22), 9.0, Mm(COL3), Mm(y), font);
+        doc.get_page(cur_page).get_layer(cur_layer)
+            .use_text(truncate(c1, 38), 9.0, Mm(COL1), Mm(y), font);
+        doc.get_page(cur_page).get_layer(cur_layer)
+            .use_text(truncate(c2, 20), 9.0, Mm(COL2), Mm(y), font);
+        doc.get_page(cur_page).get_layer(cur_layer)
+            .use_text(truncate(c3, 22), 9.0, Mm(COL3), Mm(y), font);
         y -= ROW_H;
     }
 
-    // Footer
-    layer.use_text("Generated by DataForSEO App", 8.0, Mm(20.0), Mm(10.0), &regular);
+    // Footer on last page.
+    doc.get_page(cur_page).get_layer(cur_layer)
+        .use_text("Generated by DataForSEO App", 8.0, Mm(20.0), Mm(10.0), &regular);
 
     doc.save_to_bytes()
         .map_err(|e| AppError::Internal(format!("PDF save: {e}")))
@@ -215,7 +229,6 @@ fn truncate(s: &str, max_chars: usize) -> &str {
     if s.len() <= max_chars {
         s
     } else {
-        // Safe truncation at char boundary
         match s.char_indices().nth(max_chars) {
             Some((idx, _)) => &s[..idx],
             None => s,
