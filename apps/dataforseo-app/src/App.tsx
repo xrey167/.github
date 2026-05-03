@@ -1,5 +1,6 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 
+import ErrorBoundary from "./components/ErrorBoundary";
 import ProjectSwitcher from "./components/ProjectSwitcher";
 import { ProjectProvider } from "./lib/project-store";
 import AdsPage from "./routes/AdsPage";
@@ -46,9 +47,11 @@ const navItems = [
 
 export default function App() {
   return (
-    <ProjectProvider>
-      <AppShell />
-    </ProjectProvider>
+    <ErrorBoundary>
+      <ProjectProvider>
+        <AppShell />
+      </ProjectProvider>
+    </ErrorBoundary>
   );
 }
 
