@@ -3,3 +3,9 @@ dist/
 *.local
 .env
 .vscode/
+
+# tsc -b emits .d.ts / .js next to root TypeScript files like
+# vite.config.ts. They're build artifacts; ignore.
+/vite.config.d.ts
+/vite.config.js
+*.tsbuildinfo
