@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../lib/errors";
+
 import CostPreview from "../components/CostPreview";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../lib/constants";
 import { tauriApi, type TrackedKeywordWithRank } from "../lib/tauri";
@@ -22,7 +24,7 @@ export default function TrackingPage() {
       const list = await tauriApi.trackingList();
       setRows(list);
     } catch (e) {
-      toast.error(`Failed to load: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ export default function TrackingPage() {
       toast.success(`Tracking ${keyword.trim()}`);
       await reload();
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setAdding(false);
     }
@@ -60,7 +62,7 @@ export default function TrackingPage() {
       toast.success("Removed");
       await reload();
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 
@@ -70,7 +72,7 @@ export default function TrackingPage() {
       toast.success("Refreshed");
       await reload();
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 

@@ -2,6 +2,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import ChatWithResultsButton from "../../components/ChatWithResultsButton";
 import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
@@ -52,7 +54,7 @@ export default function KeywordsForSiteTab({ target }: Props) {
       setBatch(result);
       toast.success(`${result.items.length} keywords (${formatUsd(result.cost_usd)})`);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

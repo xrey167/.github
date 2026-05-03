@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../lib/errors";
+
 import { tauriApi, type BatchSummary, type TaskBatchStatus } from "../lib/tauri";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -21,7 +23,7 @@ export default function TasksPage() {
       const list = await tauriApi.serpTaskRecentBatches({ limit: 50 });
       setBatches(list);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -33,7 +35,7 @@ export default function TasksPage() {
       const status = await tauriApi.serpTaskStatus({ batchId });
       setSelected(status);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

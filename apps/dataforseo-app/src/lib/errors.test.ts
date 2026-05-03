@@ -64,4 +64,21 @@ describe("formatError", () => {
     });
     expect(out).toMatch(/credentials/i);
   });
+
+  it("prepends a contextual label when one is passed", () => {
+    expect(formatError({ Validation: "url empty" }, "Save")).toBe(
+      "Save: url empty",
+    );
+  });
+
+  it("renders the context verbatim so callers can pass a translated string", () => {
+    // Caller: `formatError(e, t("common.failed"))` produces the German
+    // "Fehler: ..." or English "Failed: ..." depending on locale.
+    expect(formatError("disk full", "Fehler")).toBe("Fehler: disk full");
+  });
+
+  it("falls back to no prefix when context is empty/undefined", () => {
+    expect(formatError({ Validation: "x" }, "")).toBe("x");
+    expect(formatError({ Validation: "x" })).toBe("x");
+  });
 });

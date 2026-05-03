@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import CacheBadge from "../../components/CacheBadge";
 import CostPreview from "../../components/CostPreview";
 import QuickActions from "../../components/QuickActions";
@@ -78,7 +80,7 @@ export default function KeywordOverviewTab() {
         : `Loaded (${formatUsd(result.cost_usd)})`;
       toast.success(note);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

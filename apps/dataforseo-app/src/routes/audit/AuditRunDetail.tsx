@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import { tauriApi, type AuditPage, type AuditRun } from "../../lib/tauri";
 
 interface Props {
@@ -56,7 +58,7 @@ export default function AuditRunDetail({ run }: Props) {
         if (!cancelled) setPages(p);
       })
       .catch((e) => {
-        if (!cancelled) toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+        if (!cancelled) toast.error(formatError(e));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../lib/errors";
+
 import CacheBadge from "../components/CacheBadge";
 import CostPreview from "../components/CostPreview";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../lib/constants";
@@ -81,7 +83,7 @@ export default function AppsPage() {
         : `${result.items_count} rows (${formatUsd(result.cost_usd)})`;
       toast.success(note);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

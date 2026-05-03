@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../lib/errors";
 import {
   CartesianGrid,
   Line,
@@ -138,7 +140,7 @@ function SummaryTab() {
         : `${formatUsd(result.cost_usd)} fresh`;
       toast.success(`Loaded ${trimmed} (${note})`);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -331,7 +333,7 @@ function DetailTab() {
         `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} links (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -594,7 +596,7 @@ function ReferringDomainsTab() {
         `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} domains (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -672,7 +674,7 @@ function AnchorsTab() {
         `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} anchors (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -749,7 +751,7 @@ function HistoryTab() {
         `Loaded ${formatCount(result.items_count)} snapshots (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -1089,7 +1091,7 @@ function LinkGapTab() {
         `Loaded ${formatCount(result.items_count)} ${label} (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -1269,7 +1271,7 @@ function DomainPagesTab() {
         `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} pages (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -1369,7 +1371,7 @@ function PageIntersectionTab() {
         `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} domains (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

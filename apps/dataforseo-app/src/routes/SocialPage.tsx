@@ -1,5 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../lib/errors";
 import { useNavigate } from "react-router-dom";
 
 import MarkdownView from "../components/MarkdownView";
@@ -33,7 +35,7 @@ export default function SocialPage() {
       setDraft(reply);
       toast.success("Drafts ready");
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

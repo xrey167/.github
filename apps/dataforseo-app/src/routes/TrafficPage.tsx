@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../lib/errors";
 import {
   Bar,
   BarChart,
@@ -62,7 +64,7 @@ export default function TrafficPage() {
         `${batch.items.length} keywords (${formatUsd(batch.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
