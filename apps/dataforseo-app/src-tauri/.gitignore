@@ -1,2 +1,4 @@
 target/
 Cargo.lock
+# tauri auto-generates schemas/ here on build/check; not source.
+gen/
