@@ -1,3 +1,4 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -12,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
+import ExportMenu from "../../components/ExportMenu";
 import { formatUsd } from "../../lib/format";
 import {
   tauriApi,
@@ -20,6 +22,16 @@ import {
 } from "../../lib/tauri";
 import BudgetCard from "./BudgetCard";
 import Stat from "./Stat";
+
+const CALL_COLUMNS: ColumnDef<CallLogRow, unknown>[] = [
+  { id: "ts", header: "Time", accessorKey: "ts" },
+  { id: "endpoint", header: "Endpoint", accessorKey: "endpoint" },
+  { id: "mode", header: "Mode", accessorKey: "mode" },
+  { id: "cost_usd", header: "Cost USD", accessorKey: "cost_usd" },
+  { id: "estimated_usd", header: "Estimated USD", accessorKey: "estimated_usd" },
+  { id: "request_size", header: "Items", accessorKey: "request_size" },
+  { id: "duration_ms", header: "Duration ms", accessorKey: "duration_ms" },
+];
 
 const RANGE_OPTIONS = [
   { value: 7, label: "7 days" },
@@ -153,9 +165,16 @@ export default function DataforseoTab() {
       </div>
 
       <div className="rounded border bg-white">
-        <h3 className="border-b px-3 py-2 text-sm font-medium text-slate-700">
-          Recent calls (last 50)
-        </h3>
+        <div className="flex items-center justify-between border-b px-3 py-2">
+          <h3 className="text-sm font-medium text-slate-700">Recent calls (last 50)</h3>
+          {recent != null && recent.length > 0 && (
+            <ExportMenu
+              filenameStem="usage-dataforseo-calls"
+              rows={recent}
+              columns={CALL_COLUMNS}
+            />
+          )}
+        </div>
         {recent == null || recent.length === 0 ? (
           <div className="p-8 text-center text-sm text-slate-500">No calls yet.</div>
         ) : (

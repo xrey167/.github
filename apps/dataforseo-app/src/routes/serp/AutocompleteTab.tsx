@@ -1,12 +1,14 @@
-import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { formatError } from "../../lib/errors";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
-import { tauriApi, type AutocompleteView } from "../../lib/tauri";
+import { tauriApi, type AutocompleteSuggestion, type AutocompleteView } from "../../lib/tauri";
 
 export default function AutocompleteTab() {
   const [keyword, setKeyword] = useState("");
@@ -14,6 +16,15 @@ export default function AutocompleteTab() {
   const [view, setView] = useState<AutocompleteView | null>(null);
 
   const trimmed = keyword.trim();
+
+  const exportColumns = useMemo<ColumnDef<AutocompleteSuggestion, unknown>[]>(
+    () => [
+      { id: "rank_absolute", header: "Rank", accessorKey: "rank_absolute" },
+      { id: "suggestion", header: "Suggestion", accessorKey: "suggestion" },
+      { id: "relevance", header: "Relevance", accessorKey: "relevance" },
+    ],
+    [],
+  );
 
   async function onRun() {
     if (!trimmed) return;
@@ -74,10 +85,17 @@ export default function AutocompleteTab() {
       {view ? (
         view.items.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-slate-500">
-              {view.items.length} suggestions for &ldquo;{view.keyword}&rdquo; ·{" "}
-              {formatUsd(view.cost_usd)}
-            </p>
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>
+                {view.items.length} suggestions for &ldquo;{view.keyword}&rdquo; ·{" "}
+                {formatUsd(view.cost_usd)}
+              </span>
+              <ExportMenu
+                filenameStem={`autocomplete-${view.keyword}`}
+                rows={view.items}
+                columns={exportColumns}
+              />
+            </div>
             <ol className="grid grid-cols-1 gap-1 sm:grid-cols-2">
               {view.items.map((s, i) => (
                 <li

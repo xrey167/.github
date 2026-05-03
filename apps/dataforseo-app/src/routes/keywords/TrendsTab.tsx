@@ -1,3 +1,4 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -15,6 +16,7 @@ import {
 
 import CacheBadge from "../../components/CacheBadge";
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
 import { tauriApi, type TrendsView } from "../../lib/tauri";
@@ -109,6 +111,24 @@ export default function TrendsTab() {
     [view],
   );
 
+  // ExportMenu columns are derived from the actual keywords queried, plus
+  // the leading date column. CSV export is the most useful artifact since
+  // it's a time series — pastes straight into a spreadsheet.
+  //
+  // accessorFn (not accessorKey) so a keyword like "example.com" doesn't
+  // get treated as a nested path by TanStack Table.
+  const exportColumns = useMemo<ColumnDef<ChartPoint, unknown>[]>(
+    () => [
+      { id: "date", header: "Date", accessorKey: "date" },
+      ...(view?.keywords.map((kw) => ({
+        id: kw,
+        header: kw,
+        accessorFn: (row: ChartPoint) => row[kw],
+      })) ?? []),
+    ],
+    [view?.keywords],
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-slate-600">
@@ -164,6 +184,15 @@ export default function TrendsTab() {
           <span>
             actual {formatUsd(view.cost_usd)} · estimated {formatUsd(view.estimated_usd)}
           </span>
+          {chartData && chartData.length > 0 && (
+            <span className="ml-auto">
+              <ExportMenu
+                filenameStem={`trends-${view.keywords.join("-")}`}
+                rows={chartData}
+                columns={exportColumns}
+              />
+            </span>
+          )}
         </div>
       )}
 
