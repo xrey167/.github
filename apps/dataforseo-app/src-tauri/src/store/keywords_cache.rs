@@ -57,7 +57,7 @@ pub fn get_fresh(
         duckdb::types::Value::Text(language_code.to_owned()),
         duckdb::types::Value::Timestamp(
             duckdb::types::TimeUnit::Microsecond,
-            cutoff.naive_utc().and_utc().timestamp_micros(),
+            cutoff.timestamp_micros(),
         ),
     ];
     for k in keywords {
