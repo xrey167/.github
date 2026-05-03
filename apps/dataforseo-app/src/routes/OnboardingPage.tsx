@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../lib/errors";
 import { tauriApi } from "../lib/tauri";
 
 type StepId = "welcome" | "credentials" | "budget" | "project" | "done";
@@ -54,7 +55,7 @@ export default function OnboardingPage({ onComplete }: Props) {
       toast.success(`Connected as ${info.login} · balance ${info.balance.toFixed(2)} USD`);
       setActive("budget");
     } catch (e) {
-      toast.error(`Verification failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setVerifying(false);
     }
@@ -79,7 +80,7 @@ export default function OnboardingPage({ onComplete }: Props) {
       toast.success(`Daily budget set to ${limit.toFixed(2)} USD`);
       setActive("project");
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setSavingBudget(false);
     }
@@ -98,7 +99,7 @@ export default function OnboardingPage({ onComplete }: Props) {
       toast.success(`Project "${name}" created`);
       setActive("done");
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setCreatingProject(false);
     }

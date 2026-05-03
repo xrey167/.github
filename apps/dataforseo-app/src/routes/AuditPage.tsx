@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../components/CostPreview";
+import { formatError } from "../lib/errors";
 import { formatUsd } from "../lib/format";
 import { tauriApi, type AuditRun } from "../lib/tauri";
 import AuditRunDetail from "./audit/AuditRunDetail";
@@ -22,7 +23,7 @@ export default function AuditPage() {
       const list = await tauriApi.auditList({ limit: 50 });
       setRuns(list);
     } catch (e) {
-      toast.error(`Failed to load: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setLoading(false);
     }
@@ -49,7 +50,7 @@ export default function AuditPage() {
       await reload();
       setSelected(id);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setStarting(false);
     }
@@ -63,7 +64,7 @@ export default function AuditPage() {
       if (selected === id) setSelected(null);
       await reload();
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 

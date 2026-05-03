@@ -2,6 +2,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../lib/constants";
+import { formatError } from "../lib/errors";
 import { useProject } from "../lib/project-store";
 import { tauriApi } from "../lib/tauri";
 
@@ -136,7 +137,7 @@ function TrackModal({
       toast.success(`Tracking "${keyword.trim()}" for ${target.trim()}`);
       onClose();
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -206,7 +207,7 @@ function AuditModal({
       toast.success(`Audit #${id} queued for ${url.trim()}`);
       onClose();
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -278,7 +279,7 @@ function BrandModal({
       );
       onClose();
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
