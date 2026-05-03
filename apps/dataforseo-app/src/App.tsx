@@ -4,6 +4,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ProjectSwitcher from "./components/ProjectSwitcher";
 import { ProjectProvider } from "./lib/project-store";
 import AdsPage from "./routes/AdsPage";
+import AiVisibilityPage from "./routes/AiVisibilityPage";
 import AppsPage from "./routes/AppsPage";
 import AuditPage from "./routes/AuditPage";
 import BacklinksPage from "./routes/BacklinksPage";
@@ -39,6 +40,7 @@ const navItems = [
   { to: "/ads", label: "Ads" },
   { to: "/social", label: "Social" },
   { to: "/brand", label: "Brand Monitor" },
+  { to: "/ai-visibility", label: "AI Visibility" },
   { to: "/apps", label: "Apps" },
   { to: "/compare", label: "Compare" },
   { to: "/tasks", label: "Tasks" },
@@ -128,6 +130,7 @@ function AppShell() {
           <Route path="/ads" element={<AdsPage />} />
           <Route path="/social" element={<SocialPage />} />
           <Route path="/brand" element={<BrandPage />} />
+          <Route path="/ai-visibility" element={<AiVisibilityPage />} />
           <Route path="/apps" element={<AppsPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/tasks" element={<TasksPage />} />
