@@ -32,8 +32,11 @@ jobs:
           #   type(scope): description     (conventional commits with scope)
           # The leading word is at least 2 letters so single-letter typos
           # are still flagged. Title is read from env (not interpolated)
-          # to avoid script injection via crafted titles.
-          if [[ "$PR_TITLE" =~ ^(\[[A-Za-z]+\][[:space:]]+|[A-Za-z]{2,}(\([^)]+\))?:[[:space:]]+).+ ]]; then
+          # to avoid script injection via crafted titles. Regex is held
+          # in a variable so bash doesn't try to parse the nested parens
+          # as a subshell at parse-time (which used to fail every PR).
+          RE='^(\[[A-Za-z]+\][[:space:]]+|[A-Za-z]{2,}(\([^)]+\))?:[[:space:]]+).+'
+          if [[ "$PR_TITLE" =~ $RE ]]; then
             echo "valid=true" >> "$GITHUB_OUTPUT"
             echo "PR title follows convention: $PR_TITLE"
           else
