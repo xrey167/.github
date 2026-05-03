@@ -1,9 +1,20 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { formatError } from "../../lib/errors";
 
+import ExportMenu from "../../components/ExportMenu";
 import { tauriApi, type AuditPage, type AuditRun } from "../../lib/tauri";
+
+const PAGE_COLUMNS: ColumnDef<AuditPage, unknown>[] = [
+  { id: "url", header: "URL", accessorKey: "url" },
+  { id: "status_code", header: "HTTP", accessorKey: "status_code" },
+  { id: "onpage_score", header: "Score", accessorKey: "onpage_score" },
+  { id: "title", header: "Title", accessorKey: "title" },
+  { id: "h1", header: "H1", accessorKey: "h1" },
+  { id: "word_count", header: "Words", accessorKey: "word_count" },
+];
 
 interface Props {
   run: AuditRun;
@@ -115,9 +126,18 @@ export default function AuditRunDetail({ run }: Props) {
         </div>
       )}
 
-      <h4 className="mt-2 text-sm font-semibold">
-        Pages {pages.length > 0 && `(showing ${pages.length} weakest)`}
-      </h4>
+      <div className="mt-2 flex items-center justify-between">
+        <h4 className="text-sm font-semibold">
+          Pages {pages.length > 0 && `(showing ${pages.length} weakest)`}
+        </h4>
+        {pages.length > 0 && (
+          <ExportMenu
+            filenameStem={`audit-${run.id}-pages`}
+            rows={pages}
+            columns={PAGE_COLUMNS}
+          />
+        )}
+      </div>
       {loading ? (
         <p className="text-xs text-slate-500">Loading…</p>
       ) : pages.length === 0 ? (

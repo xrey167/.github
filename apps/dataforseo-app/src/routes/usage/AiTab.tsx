@@ -1,3 +1,4 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -12,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
+import ExportMenu from "../../components/ExportMenu";
 import { formatCount, formatUsd } from "../../lib/format";
 import {
   tauriApi,
@@ -19,6 +21,17 @@ import {
   type AiUsageSummary,
 } from "../../lib/tauri";
 import Stat from "./Stat";
+
+const AI_CALL_COLUMNS: ColumnDef<AiCallRow, unknown>[] = [
+  { id: "ts", header: "Time", accessorKey: "ts" },
+  { id: "provider", header: "Provider", accessorKey: "provider" },
+  { id: "model", header: "Model", accessorKey: "model" },
+  { id: "purpose", header: "Purpose", accessorKey: "purpose" },
+  { id: "input_tokens", header: "Input tokens", accessorKey: "input_tokens" },
+  { id: "output_tokens", header: "Output tokens", accessorKey: "output_tokens" },
+  { id: "cost_usd", header: "Cost USD", accessorKey: "cost_usd" },
+  { id: "duration_ms", header: "Duration ms", accessorKey: "duration_ms" },
+];
 
 const RANGE_OPTIONS = [
   { value: 7, label: "7 days" },
@@ -144,9 +157,16 @@ export default function AiTab() {
       </div>
 
       <div className="rounded border bg-white">
-        <h3 className="border-b px-3 py-2 text-sm font-medium text-slate-700">
-          Recent AI calls (last 50)
-        </h3>
+        <div className="flex items-center justify-between border-b px-3 py-2">
+          <h3 className="text-sm font-medium text-slate-700">Recent AI calls (last 50)</h3>
+          {recent != null && recent.length > 0 && (
+            <ExportMenu
+              filenameStem="usage-ai-calls"
+              rows={recent}
+              columns={AI_CALL_COLUMNS}
+            />
+          )}
+        </div>
         {recent == null || recent.length === 0 ? (
           <div className="p-8 text-center text-sm text-slate-500">No AI calls yet.</div>
         ) : (
