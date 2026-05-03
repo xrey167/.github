@@ -6,8 +6,9 @@
 -- audit_pages.raw_json keeps the verbose On-Page row so the per-page
 -- drill-down can show every check without needing a fresh API call.
 
+CREATE SEQUENCE IF NOT EXISTS audit_runs_id_seq;
 CREATE TABLE IF NOT EXISTS audit_runs (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('audit_runs_id_seq'),
     target VARCHAR NOT NULL,
     task_id VARCHAR,
     max_crawl_pages INTEGER NOT NULL,
@@ -24,8 +25,9 @@ CREATE TABLE IF NOT EXISTS audit_runs (
 CREATE INDEX IF NOT EXISTS audit_runs_status_idx ON audit_runs(status);
 CREATE INDEX IF NOT EXISTS audit_runs_task_idx ON audit_runs(task_id);
 
+CREATE SEQUENCE IF NOT EXISTS audit_pages_id_seq;
 CREATE TABLE IF NOT EXISTS audit_pages (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('audit_pages_id_seq'),
     audit_run_id BIGINT NOT NULL,
     url VARCHAR NOT NULL,
     status_code INTEGER,

@@ -171,7 +171,7 @@ fn build_table_pdf(
         let layer = doc.get_page(page1).get_layer(layer1);
         layer.use_text(heading, 16.0, Mm(20.0), Mm(272.0), &bold);
         layer.use_text(&now, 9.0, Mm(20.0), Mm(265.0), &regular);
-        layer.use_text(&"-".repeat(100), 8.0, Mm(20.0), Mm(261.0), &regular);
+        layer.use_text("-".repeat(100), 8.0, Mm(20.0), Mm(261.0), &regular);
     }
 
     // Table layout constants.

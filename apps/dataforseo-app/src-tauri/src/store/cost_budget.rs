@@ -37,7 +37,7 @@ pub fn upsert(conn: &mut Connection, budget: &Budget) -> Result<()> {
          ON CONFLICT (period) DO UPDATE SET
             limit_usd = excluded.limit_usd,
             alert_at_pct = excluded.alert_at_pct,
-            updated_at = CURRENT_TIMESTAMP",
+            updated_at = excluded.updated_at",
         params![&budget.period, budget.limit_usd, budget.alert_at_pct],
     )?;
     Ok(())

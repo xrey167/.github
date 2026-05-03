@@ -55,7 +55,7 @@ pub fn put(
          ON CONFLICT (endpoint, params_hash) DO UPDATE SET
             response_json = excluded.response_json,
             cost_usd = excluded.cost_usd,
-            fetched_at = CURRENT_TIMESTAMP",
+            fetched_at = excluded.fetched_at",
         params![endpoint, params_hash, json_str, cost_usd],
     )?;
     Ok(())

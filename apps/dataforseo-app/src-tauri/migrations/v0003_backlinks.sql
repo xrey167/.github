@@ -13,8 +13,9 @@ CREATE TABLE IF NOT EXISTS backlinks_summary_cache (
     cost_usd DOUBLE
 );
 
+CREATE SEQUENCE IF NOT EXISTS saved_filters_id_seq;
 CREATE TABLE IF NOT EXISTS saved_filters (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('saved_filters_id_seq'),
     name VARCHAR NOT NULL,
     endpoint VARCHAR NOT NULL,
     filter_json JSON NOT NULL,

@@ -3,8 +3,9 @@
 -- (chat_messages) and per-call (ai_calls), the former for the chat UI and
 -- the latter for the Usage page.
 
+CREATE SEQUENCE IF NOT EXISTS chat_sessions_id_seq;
 CREATE TABLE IF NOT EXISTS chat_sessions (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('chat_sessions_id_seq'),
     title VARCHAR,                                 -- AI-generated after first turn
     provider VARCHAR NOT NULL,                     -- 'anthropic' | 'openai' | 'ollama'
     model VARCHAR NOT NULL,
@@ -14,8 +15,9 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE SEQUENCE IF NOT EXISTS chat_messages_id_seq;
 CREATE TABLE IF NOT EXISTS chat_messages (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('chat_messages_id_seq'),
     session_id BIGINT NOT NULL,
     role VARCHAR NOT NULL,                         -- 'system' | 'user' | 'assistant'
     content VARCHAR NOT NULL,
@@ -27,8 +29,9 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 CREATE INDEX IF NOT EXISTS chat_messages_session_idx ON chat_messages(session_id);
 
+CREATE SEQUENCE IF NOT EXISTS ai_calls_id_seq;
 CREATE TABLE IF NOT EXISTS ai_calls (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('ai_calls_id_seq'),
     ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     provider VARCHAR NOT NULL,
     model VARCHAR NOT NULL,

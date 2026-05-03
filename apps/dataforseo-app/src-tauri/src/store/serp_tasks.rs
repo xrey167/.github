@@ -159,7 +159,7 @@ fn fetch(conn: &mut Connection, where_clause: &str) -> Result<Vec<SerpTask>> {
                 status, posted_at, fetched_at, poll_attempts, cost_usd, error
            FROM serp_tasks {where_clause}"
     );
-    let mut stmt = conn.prepare(sql)?;
+    let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map([], row_to_task)?;
     let mut out = Vec::new();
     for r in rows {

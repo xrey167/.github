@@ -6,11 +6,12 @@
 -- Supported kinds:    'daily-tracking' | 'weekly-audit' | 'weekly-brand'
 -- Supported cadences: 'daily' | 'weekly'
 
+CREATE SEQUENCE IF NOT EXISTS report_schedules_id_seq;
 CREATE TABLE IF NOT EXISTS report_schedules (
-    id         BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id         BIGINT PRIMARY KEY DEFAULT nextval('report_schedules_id_seq'),
     -- NULL means "all projects / global". SET NULL on project delete keeps
     -- the schedule around as an unscoped report.
-    project_id BIGINT REFERENCES projects(id) ON DELETE SET NULL,
+    project_id BIGINT,
     kind       VARCHAR NOT NULL,
     cadence    VARCHAR NOT NULL,
     active     BOOLEAN DEFAULT TRUE,
@@ -18,10 +19,11 @@ CREATE TABLE IF NOT EXISTS report_schedules (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE SEQUENCE IF NOT EXISTS report_runs_id_seq;
 CREATE TABLE IF NOT EXISTS report_runs (
-    id          BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id          BIGINT PRIMARY KEY DEFAULT nextval('report_runs_id_seq'),
     -- Cascade: deleting a schedule removes all its historical runs.
-    schedule_id BIGINT  NOT NULL REFERENCES report_schedules(id) ON DELETE CASCADE,
+    schedule_id BIGINT  NOT NULL,
     pdf_path    VARCHAR NOT NULL,
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -9,8 +9,9 @@
 -- DuckDB doesn't support ON DELETE CASCADE reliably; the delete command
 -- removes child rows in the same transaction.
 
+CREATE SEQUENCE IF NOT EXISTS tracked_keywords_id_seq;
 CREATE TABLE IF NOT EXISTS tracked_keywords (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('tracked_keywords_id_seq'),
     target VARCHAR NOT NULL,
     keyword VARCHAR NOT NULL,
     location_code INTEGER NOT NULL,
@@ -26,8 +27,9 @@ CREATE TABLE IF NOT EXISTS tracked_keywords (
 CREATE INDEX IF NOT EXISTS tracked_keywords_due_idx
     ON tracked_keywords(active, last_run_at);
 
+CREATE SEQUENCE IF NOT EXISTS tracking_results_id_seq;
 CREATE TABLE IF NOT EXISTS tracking_results (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('tracking_results_id_seq'),
     tracked_keyword_id BIGINT NOT NULL,
     fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     -- NULL = target not found in top 100 SERP results.
