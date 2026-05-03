@@ -1,8 +1,10 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CacheBadge from "../components/CacheBadge";
 import CostPreview from "../components/CostPreview";
+import ExportMenu from "../components/ExportMenu";
 import { formatError } from "../lib/errors";
 import { formatUsd } from "../lib/format";
 import {
@@ -16,6 +18,15 @@ const SENTIMENT_COLORS: Record<string, string> = {
   neutral: "bg-slate-100 text-slate-700",
   negative: "bg-red-100 text-red-800",
 };
+
+const MENTION_COLUMNS: ColumnDef<BrandMention, unknown>[] = [
+  { header: "Sentiment", accessorKey: "sentiment" },
+  { header: "Domain", accessorKey: "domain" },
+  { header: "Date", accessorKey: "date" },
+  { header: "Title", accessorKey: "title" },
+  { header: "URL", accessorKey: "url" },
+  { header: "Description", accessorKey: "description" },
+];
 
 interface BrandMention {
   url: string | null;
@@ -304,9 +315,16 @@ export default function BrandPage() {
 
       {mentions.length > 0 && (
         <div className="rounded border bg-white p-3">
-          <h3 className="mb-2 text-sm font-semibold">
-            Mentions ({mentions.length} of {search?.total_count.toLocaleString()})
-          </h3>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">
+              Mentions ({mentions.length} of {search?.total_count.toLocaleString()})
+            </h3>
+            <ExportMenu
+              filenameStem={`brand-mentions-${keyword}`}
+              rows={mentions}
+              columns={MENTION_COLUMNS}
+            />
+          </div>
           <ol className="space-y-2">
             {mentions.map((m, i) => (
               <li key={i} className="rounded border bg-slate-50 p-2">

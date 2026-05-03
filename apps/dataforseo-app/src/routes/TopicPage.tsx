@@ -1,13 +1,21 @@
-import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { formatError } from "../lib/errors";
 
 import CacheBadge from "../components/CacheBadge";
 import CostPreview from "../components/CostPreview";
+import ExportMenu from "../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../lib/constants";
 import { formatUsd } from "../lib/format";
-import { tauriApi, type TopicBriefView } from "../lib/tauri";
+import { tauriApi, type BriefRelatedKeyword, type TopicBriefView } from "../lib/tauri";
+
+const RELATED_KW_COLUMNS: ColumnDef<BriefRelatedKeyword, unknown>[] = [
+  { header: "Keyword", accessorKey: "keyword" },
+  { header: "Volume", accessorKey: "search_volume" },
+  { header: "KD", accessorKey: "keyword_difficulty" },
+];
 
 /// Topic Research / Content Brief — orchestrates suggestions + SERP +
 /// instant_pages into a single brief view. SEMrush calls this "SEO
@@ -16,6 +24,8 @@ export default function TopicPage() {
   const [seed, setSeed] = useState("");
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<TopicBriefView | null>(null);
+
+  const relatedKwRows = useMemo(() => view?.related_keywords ?? [], [view]);
 
   const trimmed = seed.trim();
 
@@ -157,9 +167,16 @@ export default function TopicPage() {
             </div>
 
             <div className="rounded border bg-white p-3">
-              <h3 className="mb-2 text-sm font-semibold">
-                Related keywords ({view.related_keywords.length})
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">
+                  Related keywords ({view.related_keywords.length})
+                </h3>
+                <ExportMenu
+                  filenameStem={`topic-related-${view.seed}`}
+                  rows={relatedKwRows}
+                  columns={RELATED_KW_COLUMNS}
+                />
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-xs">
                   <thead className="text-slate-500">

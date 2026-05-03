@@ -1,3 +1,4 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -5,12 +6,30 @@ import { formatError } from "../lib/errors";
 
 import CacheBadge from "../components/CacheBadge";
 import CostPreview from "../components/CostPreview";
+import ExportMenu from "../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../lib/constants";
 import { formatUsd } from "../lib/format";
 import { tauriApi, type AppDataView } from "../lib/tauri";
 
 type Store = "google_play" | "apple";
 type Mode = "searches" | "reviews";
+
+const APP_SEARCH_COLUMNS: ColumnDef<AppItem, unknown>[] = [
+  { header: "Title", accessorKey: "title" },
+  { header: "Developer", accessorKey: "developer" },
+  { header: "Category", accessorKey: "category" },
+  { header: "Rating", accessorKey: "rating" },
+  { header: "Reviews", accessorKey: "rating_count" },
+  { header: "App ID", accessorKey: "app_id" },
+  { header: "URL", accessorKey: "url" },
+];
+
+const APP_REVIEW_COLUMNS: ColumnDef<AppItem, unknown>[] = [
+  { header: "Author", accessorKey: "review_author" },
+  { header: "Rating", accessorKey: "rating" },
+  { header: "Review", accessorKey: "review_text" },
+  { header: "Title", accessorKey: "title" },
+];
 
 interface AppItem {
   title: string | null;
@@ -181,6 +200,14 @@ export default function AppsPage() {
 
       {items.length > 0 ? (
         <div className="overflow-x-auto rounded border bg-white">
+          <div className="flex items-center justify-between border-b px-3 py-2">
+            <span className="text-xs font-medium text-slate-600">{items.length} results</span>
+            <ExportMenu
+              filenameStem={`apps-${mode}-${query}`}
+              rows={items}
+              columns={mode === "searches" ? APP_SEARCH_COLUMNS : APP_REVIEW_COLUMNS}
+            />
+          </div>
           {mode === "searches" ? (
             <table className="min-w-full text-xs">
               <thead className="bg-slate-50 text-slate-600">
