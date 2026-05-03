@@ -13,6 +13,7 @@ import ComparePage from "./routes/ComparePage";
 import DomainAnalyticsPage from "./routes/DomainAnalyticsPage";
 import KeywordsPage from "./routes/KeywordsPage";
 import OnPagePage from "./routes/OnPagePage";
+import OnboardingPage, { useOnboardingGate } from "./routes/OnboardingPage";
 import SerpPage from "./routes/SerpPage";
 import DomainPage from "./routes/DomainPage";
 import TopicPage from "./routes/TopicPage";
@@ -56,6 +57,19 @@ export default function App() {
 }
 
 function AppShell() {
+  const [status, markReady] = useOnboardingGate();
+
+  if (status === "loading") {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-slate-500">
+        Connecting…
+      </div>
+    );
+  }
+  if (status === "needs-onboarding") {
+    return <OnboardingPage onComplete={markReady} />;
+  }
+
   return (
     <div className="flex h-screen">
       <aside className="w-56 border-r bg-slate-50 p-4">
