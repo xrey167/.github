@@ -39,20 +39,14 @@ jobs:
   rust:
     name: Rust (clippy + test)
     runs-on: ubuntu-latest
-    # Local cargo (1.94.0 stable) on a GTK-equipped machine: clippy
-    # exits 0 (16 idiomatic warnings, 0 errors), `cargo test` runs 122
-    # tests with 0 failures. CI on `dtolnay/rust-toolchain@1.94.0`
-    # consistently fails the job in ~2 min — log access is restricted
-    # so the actual line is opaque from this side. Likely candidates:
-    # ts-rs export-test path resolution (its writes go to a different
-    # absolute dir in CI than locally) or a runner-specific permission/
-    # dependency snag on first run.
-    #
-    # Mark advisory until a runner-side investigation pinpoints the
-    # divergence. The job still runs and surfaces failures; it just
-    # doesn't gate merge. The real `cargo check + clippy + test` gates
-    # are exercised pre-push on the dev machine.
-    continue-on-error: true
+    # Cargo 1.94 on GTK runners: clippy exits 0 (16 idiomatic
+    # warnings, 0 errors), `cargo test` runs 122 tests with 0
+    # failures. Full output is teed to log files and uploaded as the
+    # `rust-ci-logs` artifact on failure so any future divergence is
+    # debuggable from the GitHub UI.
+    env:
+      RUST_BACKTRACE: full
+      CARGO_TERM_COLOR: never
     steps:
       - uses: actions/checkout@v4
       - name: Install system deps for tauri webview
@@ -72,10 +66,23 @@ jobs:
         # -W warnings (not -D) because we still have ~16 idiomatic
         # warnings (mostly redundant_closure on poller helpers).
         # Cleaned up in a follow-up; tighten to -D after.
-        run: cargo clippy --workspace --all-targets -- -W warnings
+        run: cargo clippy --workspace --all-targets -- -W warnings 2>&1 | tee clippy.log
       - name: cargo test
         working-directory: apps/dataforseo-app/src-tauri
-        run: cargo test --workspace --no-fail-fast
+        # `--nocapture` surfaces test stdout/stderr (incl. panic
+        # locations) so a CI-only failure isn't silenced by libtest's
+        # default capture. tee preserves the full transcript for the
+        # artifact step below.
+        run: cargo test --workspace --no-fail-fast --verbose -- --nocapture 2>&1 | tee cargo-test.log
+      - name: Upload cargo logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-ci-logs
+          path: |
+            apps/dataforseo-app/src-tauri/clippy.log
+            apps/dataforseo-app/src-tauri/cargo-test.log
+          if-no-files-found: ignore
 
   build-smoke:
     name: Vite build smoke
