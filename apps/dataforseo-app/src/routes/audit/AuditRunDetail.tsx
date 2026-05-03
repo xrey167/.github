@@ -64,6 +64,13 @@ export default function AuditRunDetail({ run }: Props) {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("pages");
 
+  // Lift the lazy-loaded sub-endpoint state up here so flipping tabs
+  // doesn't re-fetch every time the child unmounts.
+  const [schemaItems, setSchemaItems] = useState<Array<Record<string, unknown>> | null>(null);
+  const [schemaLoading, setSchemaLoading] = useState(false);
+  const [linksItems, setLinksItems] = useState<Array<Record<string, unknown>> | null>(null);
+  const [linksLoading, setLinksLoading] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -82,6 +89,54 @@ export default function AuditRunDetail({ run }: Props) {
       cancelled = true;
     };
   }, [run.id]);
+
+  // Reset cached lazy data when the run changes — different audit, different items.
+  useEffect(() => {
+    setSchemaItems(null);
+    setLinksItems(null);
+  }, [run.id]);
+
+  // Lazy-fetch schema on first activation.
+  useEffect(() => {
+    if (tab !== "schema" || !run.task_id || schemaItems != null || schemaLoading) return;
+    let cancelled = false;
+    setSchemaLoading(true);
+    tauriApi
+      .onPageMicrodata({ taskId: run.task_id, limit: SUB_LIMIT, offset: 0, useCache: true })
+      .then((view) => {
+        if (!cancelled) setSchemaItems(view.items);
+      })
+      .catch((e) => {
+        if (!cancelled) toast.error(formatError(e, "Schema"));
+      })
+      .finally(() => {
+        if (!cancelled) setSchemaLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, run.task_id, schemaItems, schemaLoading]);
+
+  // Lazy-fetch internal links on first activation.
+  useEffect(() => {
+    if (tab !== "links" || !run.task_id || linksItems != null || linksLoading) return;
+    let cancelled = false;
+    setLinksLoading(true);
+    tauriApi
+      .onPageLinks({ taskId: run.task_id, limit: SUB_LIMIT, offset: 0, useCache: true })
+      .then((view) => {
+        if (!cancelled) setLinksItems(view.items);
+      })
+      .catch((e) => {
+        if (!cancelled) toast.error(formatError(e, "Links"));
+      })
+      .finally(() => {
+        if (!cancelled) setLinksLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, run.task_id, linksItems, linksLoading]);
 
   const stats = useMemo(() => pickStats(run.summary), [run.summary]);
 
@@ -151,10 +206,10 @@ export default function AuditRunDetail({ run }: Props) {
         <BrokenLinksTab pages={brokenPages} loading={loading} runId={run.id} />
       )}
       {tab === "schema" && run.task_id && (
-        <SchemaTab taskId={run.task_id} runId={run.id} />
+        <SchemaTab items={schemaItems} loading={schemaLoading} runId={run.id} />
       )}
       {tab === "links" && run.task_id && (
-        <InternalLinksTab taskId={run.task_id} runId={run.id} />
+        <InternalLinksTab items={linksItems} loading={linksLoading} runId={run.id} />
       )}
       {(tab === "schema" || tab === "links") && !run.task_id && (
         <p className="text-xs text-slate-500">
@@ -276,7 +331,9 @@ function PagesTable({ pages }: { pages: AuditPage[] }) {
               </td>
               <td
                 className={`px-2 py-1 text-right tabular-nums ${
-                  (p.status_code ?? 200) >= 400 ? "text-red-700" : "text-slate-500"
+                  (p.status_code ?? 200) >= 400 || p.status_code === 0
+                    ? "text-red-700"
+                    : "text-slate-500"
                 }`}
               >
                 {p.status_code ?? "—"}
@@ -308,32 +365,18 @@ function PagesTable({ pages }: { pages: AuditPage[] }) {
   );
 }
 
-// Lazy sub-endpoint tabs — call onPageMicrodata / onPageLinks on mount.
-// Cached 7 days server-side, so tab-flipping after a fetch is free.
+// Lazy sub-endpoint tabs — items are fetched once in AuditRunDetail and
+// passed in here, so flipping tabs doesn't trigger redundant calls.
 
-function SchemaTab({ taskId, runId }: { taskId: string; runId: number }) {
-  const [items, setItems] = useState<Array<Record<string, unknown>> | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    tauriApi
-      .onPageMicrodata({ taskId, limit: SUB_LIMIT, offset: 0, useCache: true })
-      .then((view) => {
-        if (!cancelled) setItems(view.items);
-      })
-      .catch((e) => {
-        if (!cancelled) toast.error(formatError(e, "Schema"));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [taskId]);
-
+function SchemaTab({
+  items,
+  loading,
+  runId,
+}: {
+  items: Array<Record<string, unknown>> | null;
+  loading: boolean;
+  runId: number;
+}) {
   // Each item has { url, microdata, json_ld, og, twitter_cards } — flatten
   // into one row per detected schema type per page.
   const rows = useMemo(() => {
@@ -350,18 +393,31 @@ function SchemaTab({ taskId, runId }: { taskId: string; runId: number }) {
       for (const [format, blob] of lists) {
         if (!blob) continue;
         if (Array.isArray(blob)) {
-          for (const entry of blob) {
-            const type =
-              ((entry as Record<string, unknown>)?.type as string) ??
-              ((entry as Record<string, unknown>)?.["@type"] as string) ??
-              "(unknown)";
+          if (blob.length === 0) continue;
+          if (format === "open-graph" || format === "twitter-card") {
+            // OG / Twitter use property/content pairs, not @type. Find the
+            // canonical type-marker property and emit one row per page.
+            const propName = format === "open-graph" ? "og:type" : "twitter:card";
+            const typeEntry = blob.find(
+              (e) => (e as Record<string, unknown>)?.property === propName,
+            ) as Record<string, unknown> | undefined;
+            const type = (typeEntry?.content as string) ?? "(present)";
             out.push({ url, format, type, status: "present" });
+          } else {
+            for (const entry of blob) {
+              const type =
+                ((entry as Record<string, unknown>)?.type as string) ??
+                ((entry as Record<string, unknown>)?.["@type"] as string) ??
+                "(unknown)";
+              out.push({ url, format, type, status: "present" });
+            }
           }
         } else if (typeof blob === "object") {
           out.push({ url, format, type: "(object)", status: "present" });
         }
       }
-      if (lists.every(([, b]) => !b)) {
+      // Missing means no format was present — count empty arrays as missing too.
+      if (lists.every(([, b]) => !b || (Array.isArray(b) && b.length === 0))) {
         out.push({ url, format: "—", type: "(none)", status: "missing" });
       }
     }
@@ -431,29 +487,15 @@ function SchemaTab({ taskId, runId }: { taskId: string; runId: number }) {
   );
 }
 
-function InternalLinksTab({ taskId, runId }: { taskId: string; runId: number }) {
-  const [items, setItems] = useState<Array<Record<string, unknown>> | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    tauriApi
-      .onPageLinks({ taskId, limit: SUB_LIMIT, offset: 0, useCache: true })
-      .then((view) => {
-        if (!cancelled) setItems(view.items);
-      })
-      .catch((e) => {
-        if (!cancelled) toast.error(formatError(e, "Links"));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [taskId]);
-
+function InternalLinksTab({
+  items,
+  loading,
+  runId,
+}: {
+  items: Array<Record<string, unknown>> | null;
+  loading: boolean;
+  runId: number;
+}) {
   // Filter to internal links only — that's the SEO use case.
   const internal = useMemo(() => {
     if (!items) return [];
