@@ -106,6 +106,13 @@ DuckDB at `<app local data>/dataforseo-app.duckdb`. Append-only migrations under
 
 See `docs/ARCHITECTURE.md` for the Rust ↔ TS boundary, response cache, rate limiter, and background pollers.
 
+## User guide
+
+See `docs/USER_GUIDE.md` for what the app is for, the eight core
+workflows (keyword research, topic brief, position tracking, site
+audit, backlinks, brand monitor, competitive research, scheduled
+reporting), cost management, and FAQs.
+
 ## License
 
 Internal / not yet published.
