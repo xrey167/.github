@@ -236,6 +236,28 @@ export default function SettingsPage() {
           })}
         </div>
       </div>
+
+      <div>
+        <h3 className="text-sm font-semibold">Setup</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Re-run the first-run wizard to change credentials, budget, or pick a different
+          starter project. Existing data is left untouched.
+        </p>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await tauriApi.clearCredentials();
+              window.location.reload();
+            } catch (e) {
+              toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+            }
+          }}
+          className="mt-2 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Re-run onboarding
+        </button>
+      </div>
     </section>
   );
 }
