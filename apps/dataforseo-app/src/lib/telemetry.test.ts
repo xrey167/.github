@@ -55,4 +55,21 @@ describe("scrubCredentials", () => {
     expect(scrubCredentials(true)).toBe(true);
     expect(scrubCredentials("plain string")).toBe("plain string");
   });
+
+  it("preserves Date / Error / RegExp instances instead of stripping to {}", () => {
+    // Object.entries(new Date()) returns [], so the naive walker would
+    // silently drop these. The scrubber must hand them back unchanged so
+    // timestamps + stack traces survive into Sentry.
+    const date = new Date("2026-05-03T12:00:00Z");
+    const err = new Error("boom");
+    const re = /pattern/i;
+    expect(scrubCredentials(date)).toBe(date);
+    expect(scrubCredentials(err)).toBe(err);
+    expect(scrubCredentials(re)).toBe(re);
+    // Preserved inside a containing object, too.
+    const event = { message: "failed", error: err, ts: date };
+    const out = scrubCredentials(event) as typeof event;
+    expect(out.error).toBe(err);
+    expect(out.ts).toBe(date);
+  });
 });
