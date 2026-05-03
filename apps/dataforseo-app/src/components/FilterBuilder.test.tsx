@@ -161,4 +161,32 @@ describe("normalize", () => {
       connectors: ["and"],
     });
   });
+
+  it("re-trims connectors when nested groups collapse to null", () => {
+    // 3 nodes, 2 connectors. The middle one is an empty group that
+    // normalize() drops; the result should have 2 nodes + 1 connector
+    // (not 2 connectors as the old impl would have produced).
+    const a: FilterTree = {
+      kind: "condition",
+      field: "dofollow",
+      operator: "eq",
+      value: true,
+    };
+    const c: FilterTree = {
+      kind: "condition",
+      field: "domain_from_rank",
+      operator: "gt",
+      value: 30,
+    };
+    const result = normalize({
+      kind: "group",
+      nodes: [a, { kind: "group", nodes: [], connectors: [] }, c],
+      connectors: ["and", "or"],
+    });
+    expect(result).toMatchObject({
+      kind: "group",
+      nodes: [a, c],
+      connectors: ["and"],
+    });
+  });
 });

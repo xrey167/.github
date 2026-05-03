@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { FilterLogical, FilterOperator, FilterTree } from "../lib/tauri";
 
@@ -112,7 +112,6 @@ export default function FilterBuilder({
       </div>
       <GroupNode
         node={root}
-        path={[]}
         fields={fields}
         disabled={disabled}
         onChange={commit}
@@ -126,7 +125,6 @@ export default function FilterBuilder({
 
 interface GroupNodeProps {
   node: Extract<FilterTree, { kind: "group" }>;
-  path: number[];
   fields: FieldMeta[];
   disabled: boolean;
   onChange: (next: FilterTree) => void;
@@ -141,7 +139,7 @@ function GroupNode({ node, fields, disabled, onChange, depth }: GroupNodeProps) 
   function addCondition(connector: FilterLogical = "and") {
     const newCond: FilterTree = {
       kind: "condition",
-      field: fields[0]?.name ?? "anchor",
+      field: fields[0]?.name ?? "",
       operator: "eq",
       value: defaultValueFor(fields[0]?.type ?? "string"),
     };
@@ -157,7 +155,7 @@ function GroupNode({ node, fields, disabled, onChange, depth }: GroupNodeProps) 
       nodes: [
         {
           kind: "condition",
-          field: fields[0]?.name ?? "anchor",
+          field: fields[0]?.name ?? "",
           operator: "eq",
           value: defaultValueFor(fields[0]?.type ?? "string"),
         },
@@ -222,7 +220,6 @@ function GroupNode({ node, fields, disabled, onChange, depth }: GroupNodeProps) 
                 ) : (
                   <GroupNode
                     node={child}
-                    path={[]}
                     fields={fields}
                     disabled={disabled}
                     onChange={(next) => setChild(idx, next)}
@@ -385,30 +382,17 @@ function ValueInput({
           value={typeof value === "number" ? value : ""}
           onChange={(e) => {
             const n = e.target.valueAsNumber;
-            onChange(Number.isFinite(n) ? n : 0);
+            // Pass undefined while the input is empty so the field can
+            // stay blank during edit. The condition is invalid until the
+            // user types a digit, but we don't fight their cursor.
+            onChange(Number.isFinite(n) ? n : undefined);
           }}
           disabled={disabled}
           className="rounded border px-2 py-1 text-xs disabled:bg-slate-100"
         />
       );
     case "csv":
-      return (
-        <input
-          type="text"
-          value={Array.isArray(value) ? value.join(", ") : String(value ?? "")}
-          onChange={(e) =>
-            onChange(
-              e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            )
-          }
-          disabled={disabled}
-          placeholder="a, b, c"
-          className="rounded border px-2 py-1 text-xs disabled:bg-slate-100"
-        />
-      );
+      return <CsvInput value={value} disabled={disabled} onChange={onChange} />;
     case "string":
     default:
       return (
@@ -421,6 +405,51 @@ function ValueInput({
         />
       );
   }
+}
+
+/// CSV input with local string state — parses on blur (and only then
+/// commits the trimmed array). Editing the visible string while
+/// preserving cursor position would break if we round-tripped through
+/// `value.join(", ")` on every keystroke (a trailing comma would be
+/// stripped immediately by `.filter(Boolean)`, kicking the cursor).
+function CsvInput({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: unknown;
+  disabled: boolean;
+  onChange: (v: unknown) => void;
+}) {
+  const initial = Array.isArray(value)
+    ? value.join(", ")
+    : String(value ?? "");
+  const [text, setText] = useState(initial);
+  // Resync if the parent swaps the underlying value out from under us
+  // (e.g., loading a saved filter / preset). Compare against the most
+  // recent serialised form so unrelated re-renders don't clobber edits.
+  useEffect(() => {
+    setText(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
+
+  return (
+    <input
+      type="text"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        const parsed = text
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        onChange(parsed);
+      }}
+      disabled={disabled}
+      placeholder="a, b, c"
+      className="rounded border px-2 py-1 text-xs disabled:bg-slate-100"
+    />
+  );
 }
 
 // ---------- Helpers ----------
@@ -474,12 +503,17 @@ function resolveControl(
 export function normalize(tree: FilterTree | null): FilterTree | null {
   if (tree == null) return null;
   if (tree.kind === "condition") return tree;
-  const cleaned: FilterTree = {
+  // Recurse first; some children may collapse to null and shrink the
+  // group. Slice connectors against the *post-filter* node count so a
+  // group with N nodes always has exactly N-1 connectors.
+  const nodes = tree.nodes
+    .map((n) => normalize(n))
+    .filter((n): n is FilterTree => n != null);
+  if (nodes.length === 0) return null;
+  if (nodes.length === 1) return nodes[0];
+  return {
     kind: "group",
-    nodes: tree.nodes.map((n) => normalize(n)).filter((n): n is FilterTree => n != null),
-    connectors: tree.connectors.slice(0, Math.max(0, tree.nodes.length - 1)),
+    nodes,
+    connectors: tree.connectors.slice(0, nodes.length - 1),
   };
-  if (cleaned.kind === "group" && cleaned.nodes.length === 0) return null;
-  if (cleaned.kind === "group" && cleaned.nodes.length === 1) return cleaned.nodes[0];
-  return cleaned;
 }
