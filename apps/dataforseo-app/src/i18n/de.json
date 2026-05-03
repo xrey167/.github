@@ -1,0 +1,54 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "remove": "Entfernen",
+    "loading": "Lädt …",
+    "retry": "Erneut versuchen",
+    "saved": "Gespeichert",
+    "failed": "Fehler"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "dataforseo": {
+      "section": "DataForSEO",
+      "login": "Login",
+      "password": "Passwort",
+      "save": "Speichern",
+      "test": "Verbindung testen",
+      "credentialsSaved": "Credentials gespeichert",
+      "connectedAs": "Verbunden als {{login}}",
+      "balance": "Guthaben"
+    },
+    "ai": {
+      "section": "AI Chat",
+      "description": "Treibt /chat. Anthropic und OpenAI funktionieren beide; wähle einen als aktiven Provider. Schlüssel liegen im OS-Schlüsselbund.",
+      "apiKey": "API-Schlüssel",
+      "saveKey": "Schlüssel speichern",
+      "remove": "Entfernen",
+      "activate": "Aktivieren",
+      "active": "aktiv",
+      "stored": "gespeichert, inaktiv",
+      "noKey": "kein Schlüssel hinterlegt",
+      "modelUnknown": "Modell unbekannt",
+      "keySaved": "{{provider}}-Schlüssel gespeichert",
+      "keyRemoved": "{{provider}}-Schlüssel entfernt",
+      "activated": "{{provider}} aktiv"
+    },
+    "telemetry": {
+      "section": "Crash-Reports",
+      "description": "Aktiviere Crash-Reports, um die App zu verbessern. Standardmäßig aus — Credentials und Request-Payloads werden vor dem Senden bereinigt. Erfordert eine VITE_SENTRY_DSN beim Build, sonst nur Debug-Log.",
+      "checkbox": "Crash-Reports senden"
+    },
+    "setup": {
+      "section": "Setup",
+      "description": "Starte den First-Run-Wizard erneut, um Credentials, Budget oder Start-Projekt zu ändern. Bestehende Daten bleiben unverändert.",
+      "button": "Onboarding erneut starten"
+    },
+    "language": {
+      "section": "Sprache",
+      "description": "Sprache der Oberfläche. Wirkt sofort.",
+      "label": "Sprache"
+    }
+  }
+}

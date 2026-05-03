@@ -1,0 +1,54 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "saved": "Saved",
+    "failed": "Failed"
+  },
+  "settings": {
+    "title": "Settings",
+    "dataforseo": {
+      "section": "DataForSEO",
+      "login": "Login",
+      "password": "Password",
+      "save": "Save",
+      "test": "Test connection",
+      "credentialsSaved": "Credentials saved",
+      "connectedAs": "Connected as {{login}}",
+      "balance": "Balance"
+    },
+    "ai": {
+      "section": "AI Chat",
+      "description": "Powers /chat. Anthropic and OpenAI both work; pick one as the active provider. Keys live in the OS keychain.",
+      "apiKey": "API key",
+      "saveKey": "Save key",
+      "remove": "Remove",
+      "activate": "Activate",
+      "active": "active",
+      "stored": "stored, inactive",
+      "noKey": "no key stored",
+      "modelUnknown": "model unknown",
+      "keySaved": "{{provider}} key saved",
+      "keyRemoved": "{{provider}} key removed",
+      "activated": "{{provider}} activated"
+    },
+    "telemetry": {
+      "section": "Crash reports",
+      "description": "Opt in to send crash reports to help improve the app. Disabled by default — credentials and request payloads are scrubbed before send. Requires a build-time VITE_SENTRY_DSN to actually transmit anything; you'll just see a debug log otherwise.",
+      "checkbox": "Send crash reports"
+    },
+    "setup": {
+      "section": "Setup",
+      "description": "Re-run the first-run wizard to change credentials, budget, or pick a different starter project. Existing data is left untouched.",
+      "button": "Re-run onboarding"
+    },
+    "language": {
+      "section": "Language",
+      "description": "UI language. Takes effect immediately.",
+      "label": "Language"
+    }
+  }
+}
