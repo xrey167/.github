@@ -77,30 +77,18 @@ jobs:
         continue-on-error: true
 
   build-smoke:
-    name: Tauri build smoke
+    name: Vite build smoke
     runs-on: ubuntu-latest
-    # Depends on the frontend job (which we expect to be green) but not
-    # rust (advisory). Keeps the gate on the truly required check only.
+    # Frontend-only smoke test. The Rust side is covered (advisory) by
+    # the rust job above; we don't double up here. No GTK, no cargo —
+    # just `vite build` to confirm the production bundle still emits.
     needs: [frontend]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install system deps for tauri webview
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: apps/dataforseo-app/src-tauri
       - name: Install npm
         run: npm ci || npm install --legacy-peer-deps
       - name: Vite build
         run: npm run build
-      - name: Cargo check (lib only — full build requires icon assets)
-        working-directory: apps/dataforseo-app/src-tauri
-        run: cargo check --lib
