@@ -294,6 +294,16 @@ export const tauriApi = {
   domainAnalyticsAggregationTechnologies: (args: { targets: string[]; useCache: boolean }) =>
     invoke<unknown>("domain_analytics_aggregation_technologies", args),
 
+  brandRatingDistribution: (args: { keyword: string; useCache: boolean }) =>
+    invoke<unknown>("brand_rating_distribution", args),
+  brandPhraseTrends: (args: { keyword: string; dateFrom: string | null; dateTo: string | null; useCache: boolean }) =>
+    invoke<unknown>("brand_phrase_trends", args),
+  brandCategoryTrends: (args: { categoryCode: number; useCache: boolean }) =>
+    invoke<unknown>("brand_category_trends", args),
+
+  appendixStatus: () => invoke<unknown>("appendix_status"),
+  appendixErrors: () => invoke<unknown>("appendix_errors"),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
