@@ -13,7 +13,7 @@ const PAGE_COLUMNS: ColumnDef<AuditPage, unknown>[] = [
   { id: "onpage_score", header: "Score", accessorKey: "onpage_score" },
   { id: "title", header: "Title", accessorKey: "title" },
   { id: "h1", header: "H1", accessorKey: "h1" },
-  { id: "word_count", header: "Words", accessorKey: "word_count" },
+  { id: "word_count", header: "Words", accessorKey: "plain_text_word_count" },
 ];
 
 interface Props {

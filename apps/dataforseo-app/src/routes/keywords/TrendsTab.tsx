@@ -114,13 +114,16 @@ export default function TrendsTab() {
   // ExportMenu columns are derived from the actual keywords queried, plus
   // the leading date column. CSV export is the most useful artifact since
   // it's a time series — pastes straight into a spreadsheet.
+  //
+  // accessorFn (not accessorKey) so a keyword like "example.com" doesn't
+  // get treated as a nested path by TanStack Table.
   const exportColumns = useMemo<ColumnDef<ChartPoint, unknown>[]>(
     () => [
       { id: "date", header: "Date", accessorKey: "date" },
       ...(view?.keywords.map((kw) => ({
         id: kw,
         header: kw,
-        accessorKey: kw,
+        accessorFn: (row: ChartPoint) => row[kw],
       })) ?? []),
     ],
     [view?.keywords],
