@@ -84,7 +84,18 @@ export default function QuickActions({ keyword = "", url = "", compact = false }
       )}
       {active === "audit" && (
         <AuditModal
-          initialUrl={url || (activeProject?.target ? `https://${activeProject.target}` : "")}
+          // Don't blindly prepend https:// — the project target field
+          // accepts either a bare domain or a full URL, so re-prefixing
+          // a stored "https://example.com" would produce
+          // "https://https://example.com".
+          initialUrl={
+            url ||
+            (activeProject?.target
+              ? activeProject.target.startsWith("http")
+                ? activeProject.target
+                : `https://${activeProject.target}`
+              : "")
+          }
           onClose={() => setActive(null)}
         />
       )}
@@ -132,7 +143,7 @@ function TrackModal({
   }
 
   return (
-    <ModalShell title="📊 Track keyword" onClose={onClose}>
+    <ModalShell title="📊 Track keyword" onClose={onClose} busy={busy}>
       <Field
         label="Target domain"
         value={target}
@@ -202,7 +213,7 @@ function AuditModal({
   }
 
   return (
-    <ModalShell title="🔍 Site audit" onClose={onClose}>
+    <ModalShell title="🔍 Site audit" onClose={onClose} busy={busy}>
       <Field
         label="Target"
         value={url}
@@ -274,7 +285,7 @@ function BrandModal({
   }
 
   return (
-    <ModalShell title="🏢 Brand monitor" onClose={onClose}>
+    <ModalShell title="🏢 Brand monitor" onClose={onClose} busy={busy}>
       <Field
         label="Brand or keyword"
         value={keyword}
@@ -316,15 +327,23 @@ function ModalShell({
   title,
   onClose,
   children,
+  busy,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  /// When true, swallow backdrop clicks and disable the × button.
+  /// Prevents the user from dismissing the modal mid-request, which
+  /// would hide the eventual success/failure toast and tempt them
+  /// into firing the same action again.
+  busy?: boolean;
 }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
+      onClick={() => {
+        if (!busy) onClose();
+      }}
     >
       <div
         className="flex w-full max-w-md flex-col gap-3 rounded border bg-white p-5 shadow-lg"
@@ -335,7 +354,8 @@ function ModalShell({
           <button
             type="button"
             onClick={onClose}
-            className="text-xl leading-none text-slate-400 hover:text-slate-700"
+            disabled={busy}
+            className="text-xl leading-none text-slate-400 hover:text-slate-700 disabled:opacity-50"
             aria-label="Close"
           >
             ×
