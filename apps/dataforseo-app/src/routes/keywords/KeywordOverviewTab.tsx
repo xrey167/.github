@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 
 import CacheBadge from "../../components/CacheBadge";
 import CostPreview from "../../components/CostPreview";
+import QuickActions from "../../components/QuickActions";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
 import { tauriApi, type KeywordOverviewView } from "../../lib/tauri";
@@ -139,6 +140,9 @@ export default function KeywordOverviewTab() {
             <CacheBadge fromCache={view.from_cache} fetchedAt={view.fetched_at} />
             <span>
               actual {formatUsd(view.cost_usd)} · estimated {formatUsd(view.estimated_usd)}
+            </span>
+            <span className="ml-auto">
+              <QuickActions keyword={view.keyword} />
             </span>
           </div>
 

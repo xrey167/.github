@@ -23,12 +23,38 @@ System deps (Linux): `libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev libjava
 
 ## First run
 
-1. Open Settings → enter your DataForSEO API login + password.
-2. Set a daily and/or monthly budget (Usage page) so the cost meter starts tracking.
-3. Create a project (sidebar → +). Pick a target domain — pages will default to it.
-4. Open Tracking → add 3–5 keywords. The background tracker checks them once/day.
-5. Open Site Audit → start a 100-page crawl on your target. The poller fetches results in the background.
-6. Open Brand Monitor → enter your brand keyword.
+A 4-step onboarding wizard runs on first launch (or any time
+`tauriApi.testConnection` fails with an auth-shaped error):
+
+1. **Welcome** — DataForSEO sign-up link + 50 USD deposit / 100 USD/mo
+   Backlinks-family minimums called out up front.
+2. **Credentials** — API login + password. Verified live before the wizard
+   advances; balance is shown on success.
+3. **Budget** — daily USD limit + alert threshold (advisory, doesn't block
+   calls). Defaults to 5 USD/day at 80% alert.
+4. **First project** — target domain + optional friendly name. Every page
+   that takes a target defaults to the active project's domain.
+
+Once you're in the app:
+
+- **Keyword Overview** (Keywords → Overview) — comprehensive single-call
+  lookup. The 📊 / 🔍 / 🏢 buttons send the keyword straight to Tracking,
+  Site Audit, or Brand Monitor without retyping.
+- **Tracking** → add keywords. Background tracker polls SERP organic
+  daily / weekly per row.
+- **Site Audit** → start a 100-page crawl. Poller fetches /summary +
+  /pages once DataForSEO finishes the queue task.
+- **Brand Monitor** → search a brand keyword. Summary + Search run in
+  parallel; cache hit on the pair = $0.
+
+Re-run the wizard later via **Settings → Setup → Re-run onboarding**.
+
+## Telemetry
+
+Off by default. To opt into crash reports, set `VITE_SENTRY_DSN` at
+build time and flip the toggle in **Settings → Crash reports**. Both
+gates have to be on or nothing transmits. Credentials and request
+payloads are scrubbed before send.
 
 ## Cost expectations vs SEMrush
 

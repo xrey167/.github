@@ -6,6 +6,7 @@ import CacheBadge from "../../components/CacheBadge";
 import ChatWithResultsButton from "../../components/ChatWithResultsButton";
 import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
+import QuickActions from "../../components/QuickActions";
 import ResultsTable from "../../components/ResultsTable";
 import type { CostAction } from "../../lib/cost";
 import { formatCount, formatUsd } from "../../lib/format";
@@ -61,6 +62,13 @@ export default function SeedTab({
         header: "Difficulty",
         accessorKey: "keyword_difficulty",
         cell: (ctx) => ctx.getValue<number | null>() ?? "—",
+      },
+      {
+        id: "actions",
+        header: "",
+        // Per-row Track / Audit / Brand quick-actions. Compact mode
+        // renders icon-only buttons so the column stays narrow.
+        cell: (ctx) => <QuickActions keyword={ctx.row.original.keyword} compact />,
       },
     ],
     [],

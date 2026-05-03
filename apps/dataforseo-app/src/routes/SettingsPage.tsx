@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 import { formatUsd } from "../lib/format";
+import { getCrashReportsOptIn, setCrashReportsOptIn } from "../lib/telemetry";
 import { tauriApi, type AiProviderStatus, type UserInfo } from "../lib/tauri";
 
 const PROVIDERS: { id: string; label: string; placeholder: string }[] = [
@@ -17,6 +18,7 @@ export default function SettingsPage() {
 
   const [aiStatus, setAiStatus] = useState<AiProviderStatus[]>([]);
   const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({});
+  const [crashReportsOn, setCrashReportsOn] = useState(getCrashReportsOptIn());
 
   async function refreshAi() {
     try {
@@ -235,6 +237,27 @@ export default function SettingsPage() {
             );
           })}
         </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold">Crash reports</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Opt in to send crash reports to help improve the app. Disabled by default —
+          credentials and request payloads are scrubbed before send. Requires a build-time
+          VITE_SENTRY_DSN to actually transmit anything; you'll just see a debug log
+          otherwise.
+        </p>
+        <label className="mt-2 inline-flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={crashReportsOn}
+            onChange={(e) => {
+              setCrashReportsOptIn(e.target.checked);
+              setCrashReportsOn(e.target.checked);
+            }}
+          />
+          Send crash reports
+        </label>
       </div>
 
       <div>
