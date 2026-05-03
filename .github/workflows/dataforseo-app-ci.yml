@@ -63,10 +63,7 @@ jobs:
           workspaces: apps/dataforseo-app/src-tauri
       - name: clippy
         working-directory: apps/dataforseo-app/src-tauri
-        # -W warnings (not -D) because we still have ~16 idiomatic
-        # warnings (mostly redundant_closure on poller helpers).
-        # Cleaned up in a follow-up; tighten to -D after.
-        run: cargo clippy --workspace --all-targets -- -W warnings 2>&1 | tee clippy.log
+        run: cargo clippy --workspace --all-targets -- -D warnings 2>&1 | tee clippy.log
       - name: cargo test
         working-directory: apps/dataforseo-app/src-tauri
         # `--nocapture` surfaces test stdout/stderr (incl. panic

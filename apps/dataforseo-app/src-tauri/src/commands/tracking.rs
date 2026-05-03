@@ -39,7 +39,7 @@ pub async fn tracking_add(
 pub async fn tracking_list(state: State<'_, AppState>) -> Result<Vec<TrackedKeywordWithRank>> {
     let store = state.store.clone();
     task::spawn_blocking(move || -> Result<_> {
-        store.with_conn(|c| tracking::list_with_ranks(c))
+        store.with_conn(tracking::list_with_ranks)
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?

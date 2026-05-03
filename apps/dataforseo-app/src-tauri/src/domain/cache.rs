@@ -28,7 +28,7 @@ fn canonicalize(v: &serde_json::Value) -> serde_json::Value {
                 .iter()
                 .map(|(k, vv)| (k.clone(), canonicalize(vv)))
                 .collect();
-            serde_json::to_value(bmap).unwrap_or_else(|_| serde_json::Value::Null)
+            serde_json::to_value(bmap).unwrap_or(serde_json::Value::Null)
         }
         serde_json::Value::Array(a) => {
             serde_json::Value::Array(a.iter().map(canonicalize).collect())

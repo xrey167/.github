@@ -48,7 +48,7 @@ pub fn get_fresh(
             AND keyword IN ({placeholders})"
     );
 
-    let mut stmt = conn.prepare(&sql)?;
+    let mut stmt = conn.prepare(sql)?;
     // duckdb::types::Value's From impls don't cover &str / NaiveDateTime
     // directly; spell out the variants. Strings → Text, naive datetimes
     // → Timestamp (microsecond precision, like CURRENT_TIMESTAMP).

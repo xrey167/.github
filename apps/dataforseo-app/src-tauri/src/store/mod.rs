@@ -30,7 +30,7 @@ impl Store {
         }
         let conn = Connection::open(&path)?;
         let store = Self { conn: Mutex::new(conn) };
-        store.with_conn(|c| schema::ensure_current(c))?;
+        store.with_conn(schema::ensure_current)?;
         Ok(store)
     }
 
