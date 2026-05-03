@@ -26,10 +26,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: apps/dataforseo-app/package-lock.json
       - name: Install
-        run: npm ci || npm install
+        # `npm ci` first; fall back to `npm install --legacy-peer-deps`
+        # if the lockfile drifts (some root-level peer-dep conflicts
+        # in the parent monorepo can otherwise block the install).
+        run: npm ci || npm install --legacy-peer-deps
       - name: Type-check
         run: npx tsc --noEmit
       - name: Unit tests
@@ -86,8 +87,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: apps/dataforseo-app/package-lock.json
       - name: Install system deps for tauri webview
         run: |
           sudo apt-get update
@@ -99,7 +98,7 @@ jobs:
         with:
           workspaces: apps/dataforseo-app/src-tauri
       - name: Install npm
-        run: npm ci || npm install
+        run: npm ci || npm install --legacy-peer-deps
       - name: Vite build
         run: npm run build
       - name: Cargo check (lib only — full build requires icon assets)
