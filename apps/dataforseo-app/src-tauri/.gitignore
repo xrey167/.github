@@ -2,3 +2,8 @@ target/
 Cargo.lock
 # tauri auto-generates schemas/ here on build/check; not source.
 gen/
+# ts-rs writes generated TS types here when cargo test runs; the
+# resolved path ends up as src-tauri/src/lib/types/ rather than the
+# intended apps/dataforseo-app/src/lib/types/. Either way they're
+# auto-generated; not source.
+src/lib/
