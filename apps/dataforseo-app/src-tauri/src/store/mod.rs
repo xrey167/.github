@@ -34,6 +34,16 @@ impl Store {
         Ok(store)
     }
 
+    /// In-memory store for integration tests. Runs all migrations so the
+    /// full schema is available without touching the filesystem.
+    #[doc(hidden)]
+    pub fn open_in_memory() -> Result<Self> {
+        let conn = Connection::open_in_memory()?;
+        let store = Self { conn: Mutex::new(conn) };
+        store.with_conn(schema::ensure_current)?;
+        Ok(store)
+    }
+
     /// Run a closure with the underlying connection. Holds a blocking mutex
     /// — async callers must wrap calls in tokio::task::spawn_blocking.
     /// `&mut Connection` is required by duckdb to start transactions.
