@@ -1,4 +1,5 @@
 pub mod ai;
+pub mod app_data;
 pub mod audit;
 pub mod auth;
 pub mod backlinks;

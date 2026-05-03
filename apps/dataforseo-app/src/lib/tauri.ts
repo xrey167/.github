@@ -304,6 +304,15 @@ export const tauriApi = {
   appendixStatus: () => invoke<unknown>("appendix_status"),
   appendixErrors: () => invoke<unknown>("appendix_errors"),
 
+  appDataGooglePlayAppSearches: (args: { keyword: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<AppDataView>("app_data_google_play_app_searches", args),
+  appDataAppleAppSearches: (args: { keyword: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<AppDataView>("app_data_apple_app_searches", args),
+  appDataGooglePlayAppReviews: (args: { appId: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<AppDataView>("app_data_google_play_app_reviews", args),
+  appDataAppleAppReviews: (args: { appId: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<AppDataView>("app_data_apple_app_reviews", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -753,6 +762,18 @@ export interface LabsRawView {
 
 export interface OnPageItemsView {
   // On-Page sub-endpoint items (pages, resources, links, etc.).
+  items: Array<Record<string, unknown>>;
+  items_count: number;
+  total_count: number;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface AppDataView {
+  // Google Play / App Store search or review items. Per-store fields
+  // surface differently — UI extracts known ones (title, rating, etc.).
   items: Array<Record<string, unknown>>;
   items_count: number;
   total_count: number;

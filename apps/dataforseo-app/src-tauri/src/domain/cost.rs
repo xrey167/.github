@@ -126,6 +126,9 @@ pub enum CostAction {
     DomainAnalyticsAggregationTechnologies,
     /// Free Appendix endpoints — status, errors.
     AppendixFree,
+    /// App Data — Google Play / App Store searches and reviews. 0.002 USD
+    /// per request regardless of result count.
+    AppData,
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -210,6 +213,7 @@ pub fn estimate(action: &CostAction) -> f64 {
         DomainAnalyticsDomainsByTechnology => 0.001,
         DomainAnalyticsAggregationTechnologies => 0.001,
         AppendixFree => 0.0,
+        AppData => 0.002,
     }
 }
 

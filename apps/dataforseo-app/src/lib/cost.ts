@@ -52,7 +52,8 @@ export type CostAction =
   | { kind: "ContentAnalysisCategoryTrends"; rows: number }
   | { kind: "DomainAnalyticsDomainsByTechnology" }
   | { kind: "DomainAnalyticsAggregationTechnologies" }
-  | { kind: "AppendixFree" };
+  | { kind: "AppendixFree" }
+  | { kind: "AppData" };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -157,5 +158,7 @@ export function estimate(action: CostAction): number {
     case "DomainAnalyticsDomainsByTechnology":
     case "DomainAnalyticsAggregationTechnologies":
       return 0.001;
+    case "AppData":
+      return 0.002;
   }
 }

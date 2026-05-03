@@ -87,3 +87,9 @@ pub const DOMAIN_ANALYTICS_AGGREGATION_TECH: &str = "domain_analytics.aggregatio
 
 pub const APPENDIX_STATUS: &str = "appendix.status";
 pub const APPENDIX_ERRORS: &str = "appendix.errors";
+
+// ---------- Phase B: App Data ----------
+pub const APP_DATA_GOOGLE_PLAY_SEARCHES: &str = "app_data.google.app_searches";
+pub const APP_DATA_GOOGLE_PLAY_REVIEWS: &str = "app_data.google.app_reviews";
+pub const APP_DATA_APPLE_SEARCHES: &str = "app_data.apple.app_searches";
+pub const APP_DATA_APPLE_REVIEWS: &str = "app_data.apple.app_reviews";
