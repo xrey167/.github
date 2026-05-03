@@ -84,6 +84,8 @@ payloads are scrubbed before send.
 - **Compare** — domain-vs-domain rank comparison
 - **Tasks** — Standard Queue dashboard
 - **Chat** — bring-your-own-LLM chat with results attached
+- **Reports** — scheduled PDF reports (daily-tracking / weekly-audit /
+  weekly-brand) generated to your Documents folder
 - **Usage** — cost ledger + budget tracker
 - **Settings** — credentials + theme + telemetry opt-in
 
@@ -98,6 +100,7 @@ DuckDB at `<app local data>/dataforseo-app.duckdb`. Append-only migrations under
 - `v0005_position_tracking`: tracked_keywords + tracking_results (history)
 - `v0006_site_audit`: audit_runs + audit_pages
 - `v0007_projects`: projects + project_id columns
+- `v0008_reports`: report_schedules + report_runs (FK-cascaded)
 
 ## Architecture
 

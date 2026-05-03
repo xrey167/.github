@@ -1,12 +1,10 @@
-/// Frontend telemetry / crash-reporting init. Off by default — only
+/// Frontend telemetry / crash-reporting. Off by default — only
 /// activates when both:
 ///  - VITE_SENTRY_DSN is set at build time
 ///  - the user has opted in via localStorage.crashReportsOptIn === "true"
 ///
-/// This file deliberately avoids importing the Sentry SDK at the top
-/// level so the dependency stays optional. When Sentry is added to
-/// package.json (in a follow-up that wires the actual DSN), uncomment
-/// the dynamic import below.
+/// Sentry is loaded via dynamic import so the SDK only ships in the
+/// runtime bundle when the DSN is actually configured.
 
 const OPT_IN_KEY = "crashReportsOptIn";
 
@@ -20,24 +18,30 @@ export function initTelemetry(): void {
   const optedIn = localStorage.getItem(OPT_IN_KEY) === "true";
   if (!optedIn) return; // User hasn't enabled it.
 
-  // The Sentry SDK isn't shipped yet to keep the install lean. When
-  // `@sentry/react` is added to package.json, replace the log below
-  // with the dynamic-import block. The scrubber is already defined
-  // (see scrubCredentials) so the "credentials never leave the box"
-  // promise holds the moment the SDK lights up.
-  //
-  //   import("@sentry/react").then((Sentry) => {
-  //     Sentry.init({
-  //       dsn,
-  //       integrations: [Sentry.browserTracingIntegration()],
-  //       tracesSampleRate: 0.1,
-  //       beforeSend: scrubCredentials,
-  //     });
-  //   });
-  //
-  // For now log so it's clear the two gates fired correctly.
-  // eslint-disable-next-line no-console
-  console.info(`[telemetry] would initialize with DSN ${dsn.slice(0, 16)}...`);
+  // Dynamic import keeps the SDK out of the bundle when not configured.
+  // The scrubber is wired through `beforeSend` so credentials never
+  // leave the box even when reporting is on.
+  import("@sentry/react")
+    .then((Sentry) => {
+      Sentry.init({
+        dsn,
+        // 10% transaction sampling keeps the budget reasonable while
+        // still catching slow-call regressions.
+        tracesSampleRate: 0.1,
+        beforeSend(event) {
+          return scrubCredentials(event);
+        },
+        beforeBreadcrumb(breadcrumb) {
+          return scrubCredentials(breadcrumb);
+        },
+      });
+    })
+    .catch((e) => {
+      // Loading Sentry must never crash the app — it's purely opt-in
+      // observability. Log and move on.
+      // eslint-disable-next-line no-console
+      console.warn("[telemetry] Sentry init failed:", e);
+    });
 }
 
 /// Sentry `beforeSend` hook. Walks the event tree recursively and
