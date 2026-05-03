@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../components/CostPreview";
@@ -127,11 +127,24 @@ export default function KeywordClusteringPage() {
     [keywordsText],
   );
 
+  // Pass keywords.length to CostPreview so the headline figure shows the
+  // total batch cost up front, not the per-call cost.
   const costAction = useMemo(
     () =>
-      ({ kind: "Serp", count: 1, mode: "live", depth, extra_params: 0 }) as const,
-    [depth],
+      ({ kind: "Serp", count: keywords.length, mode: "live", depth, extra_params: 0 }) as const,
+    [depth, keywords.length],
   );
+
+  // Cancellation ref — set on unmount so an in-flight sequential loop
+  // stops calling DataForSEO if the user navigates away. Saves budget
+  // on long lists.
+  const cancelledRef = useRef(false);
+  useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   const totalCost = COST_PER_KEYWORD * keywords.length;
 
@@ -149,7 +162,9 @@ export default function KeywordClusteringPage() {
     // Sequential — keeps within the SerpLive 60 rpm bucket and gives the
     // user clear progress signal. For 50+ keyword sets this could fan
     // out 5-wide; we prefer predictable UX over maximum throughput.
+    let processed = 0;
     for (let i = 0; i < keywords.length; i++) {
+      if (cancelledRef.current) break; // user left page → stop spending
       const kw = keywords[i];
       setSerps((prev) =>
         prev.map((r, idx) => (idx === i ? { ...r, status: "fetching" } : r)),
@@ -161,6 +176,7 @@ export default function KeywordClusteringPage() {
           languageCode: DEFAULT_LANGUAGE,
           depth,
         });
+        if (cancelledRef.current) break;
         const urls = batch.items
           .filter((it) => it.kind === "organic" && it.url)
           .map((it) => it.url as string);
@@ -170,6 +186,7 @@ export default function KeywordClusteringPage() {
           ),
         );
       } catch (e) {
+        if (cancelledRef.current) break;
         setSerps((prev) =>
           prev.map((r, idx) =>
             idx === i
@@ -178,9 +195,12 @@ export default function KeywordClusteringPage() {
           ),
         );
       }
+      processed++;
     }
     setRunning(false);
-    toast.success(`Fetched SERPs for ${keywords.length} keywords.`);
+    if (!cancelledRef.current) {
+      toast.success(`Fetched SERPs for ${processed} keywords.`);
+    }
   }
 
   // Live-recompute clusters when serps or threshold change.
