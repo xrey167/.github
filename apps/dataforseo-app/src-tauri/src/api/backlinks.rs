@@ -334,6 +334,74 @@ impl ApiClient {
         })
     }
 
+    /// Domain Pages — list of pages on a target that have inbound
+    /// backlinks. One row per page with backlink/referring-domain
+    /// counters and rank metrics. Filterable like the other list
+    /// endpoints. Use this to find the most-linked pages on a domain.
+    pub async fn backlinks_domain_pages_live(
+        &self,
+        args: BacklinksListArgs<'_>,
+    ) -> Result<BacklinksListResponse> {
+        self.backlinks_list_call("/v3/backlinks/domain_pages/live", "domain pages", args)
+            .await
+    }
+
+    /// Page Intersection — domains that link to ALL of the listed pages
+    /// (or a configurable subset via `intersections`). The page-level
+    /// counterpart to domain_intersection. Useful for finding sources
+    /// that cover a topic across multiple competitor URLs.
+    pub async fn backlinks_page_intersection_live(
+        &self,
+        args: BacklinksPageIntersectionArgs<'_>,
+    ) -> Result<BacklinksListResponse> {
+        let mut payload = serde_json::json!({
+            "pages": args.pages,
+            "intersections": args.intersections,
+            "limit": args.limit,
+            "offset": args.offset,
+            "include_subdomains": args.include_subdomains,
+        });
+        if let Some(filter) = args.filter {
+            attach_filter(&mut payload, filter);
+        }
+        if let Some(order) = args.order_by {
+            payload["order_by"] = serde_json::json!(order);
+        }
+        let body = serde_json::json!([payload]);
+        let raw = self
+            .post_json(
+                Family::Backlinks,
+                "/v3/backlinks/page_intersection/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let result = raw.pointer("/tasks/0/result/0").ok_or_else(|| {
+            AppError::Parse("backlinks page_intersection missing tasks[0].result[0]".into())
+        })?;
+        let total_count = result
+            .pointer("/total_count")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let items_count = result
+            .pointer("/items_count")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let items = result
+            .pointer("/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new()));
+        Ok(BacklinksListResponse {
+            target: args.pages.join(" + "),
+            total_count,
+            items_count,
+            items,
+            cost,
+        })
+    }
+
     /// Domain Intersection — the SEMrush "Link Gap" feature. Pass two
     /// targets and `intersection_mode = "intersect"` to get domains that
     /// link to both, or `"exclude"` to get domains that link only to the
@@ -394,6 +462,24 @@ impl ApiClient {
             cost,
         })
     }
+}
+
+/// Inputs for `backlinks_page_intersection_live`. Up to 20 pages per
+/// request. `intersections` controls the minimum number of supplied
+/// pages a referring domain must link to (1 = "any" — equivalent to a
+/// referring_domains union, useful when scoring candidate domains).
+#[derive(Debug, Clone)]
+pub struct BacklinksPageIntersectionArgs<'a> {
+    pub pages: &'a [String],
+    /// Min number of pages a referring domain must link to. Defaults
+    /// to pages.len() (true intersection) on the wire if you want all,
+    /// but the caller should pass a concrete value.
+    pub intersections: u32,
+    pub limit: u32,
+    pub offset: u32,
+    pub include_subdomains: bool,
+    pub filter: Option<&'a Filter>,
+    pub order_by: Option<Vec<String>>,
 }
 
 /// Inputs for `backlinks_domain_intersection_live`. Two targets and a mode

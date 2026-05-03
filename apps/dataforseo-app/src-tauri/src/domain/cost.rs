@@ -59,6 +59,18 @@ pub enum CostAction {
     /// once /pages is fetched. UI pre-charges max_pages so the cost
     /// preview matches what we'd be billed at the cap.
     OnPageAudit { max_pages: u32 },
+    /// Labs Keyword Overview · 0.0125 USD flat for one keyword.
+    /// Comprehensive single-call lookup (volume, KD, CPC, intent,
+    /// SERP features). Replaces 4-5 separate Labs calls.
+    LabsKeywordOverview,
+    /// Labs Search Intent · 0.0125 USD per call regardless of how
+    /// many keywords are in the payload (DataForSEO charges flat).
+    LabsSearchIntent,
+    /// Topic Research orchestration. Sums underlying calls:
+    /// 1× labs_keyword_suggestions + 1× serp organic depth 10 +
+    /// 3× on_page instant. Roughly 0.022 USD on a fresh run, $0
+    /// on cache hits.
+    TopicResearch,
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -115,6 +127,12 @@ pub fn estimate(action: &CostAction) -> f64 {
         OnPageLighthouse => 0.0025,
         LabsBulkSearchVolume { count } => (*count as f64).max(1.0) * 0.0001,
         OnPageAudit { max_pages } => (*max_pages as f64).max(1.0) * 0.000125,
+        LabsKeywordOverview => 0.0125,
+        LabsSearchIntent => 0.0125,
+        // Sum of underlying calls (suggestions 0.0125 + serp organic depth 10
+        // 0.002 + 3× instant pages 0.0025). ~0.022 USD upper bound; cache hits
+        // bring this to 0.
+        TopicResearch => 0.0125 + 0.002 + 3.0 * 0.0025,
     }
 }
 

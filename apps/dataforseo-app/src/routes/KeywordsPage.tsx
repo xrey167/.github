@@ -2,12 +2,14 @@ import { useState } from "react";
 
 import BulkVolumeTab from "./keywords/BulkVolumeTab";
 import DifficultyTab from "./keywords/DifficultyTab";
+import KeywordOverviewTab from "./keywords/KeywordOverviewTab";
 import RelatedTab from "./keywords/RelatedTab";
 import SerpCompetitorsTab from "./keywords/SerpCompetitorsTab";
 import SuggestionsTab from "./keywords/SuggestionsTab";
 import VolumeTab from "./keywords/VolumeTab";
 
 const TABS = [
+  { id: "overview", label: "Overview" },
   { id: "volume", label: "Volume" },
   { id: "bulk_volume", label: "Bulk Volume (cheap)" },
   { id: "suggestions", label: "Suggestions" },
@@ -47,6 +49,7 @@ export default function KeywordsPage() {
         ))}
       </nav>
 
+      {active === "overview" && <KeywordOverviewTab />}
       {active === "volume" && <VolumeTab />}
       {active === "bulk_volume" && <BulkVolumeTab />}
       {active === "suggestions" && <SuggestionsTab />}

@@ -1227,3 +1227,156 @@ async fn inner_keywords_ranked(
     cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
     Ok(view)
 }
+
+// ---------- Labs Keyword Overview + Search Intent ----------
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct KeywordOverviewView {
+    pub keyword: String,
+    /// Raw item — UI extracts the well-known fields. Shape is large
+    /// enough that mirroring 30 typed fields would be high churn for
+    /// little benefit; the page picks the slices it knows.
+    pub item: serde_json::Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_keyword_overview(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+    use_cache: bool,
+) -> Result<KeywordOverviewView> {
+    let keyword = keyword.trim().to_owned();
+    if keyword.is_empty() {
+        return Err(AppError::Validation("keyword required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsKeywordOverview);
+    let endpoint = endpoints::LABS_KEYWORD_OVERVIEW;
+    let cache_params = serde_json::json!({
+        "keyword": &keyword,
+        "location_code": location_code,
+        "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<KeywordOverviewView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let kw_for_call = keyword.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_keyword_overview(&kw_for_call, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = KeywordOverviewView {
+        keyword: keyword.clone(),
+        item: resp.item,
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct SearchIntentView {
+    /// Raw items array — each item has `keyword` + `keyword_intent.label`
+    /// (informational/commercial/navigational/transactional) +
+    /// `secondary_keyword_intents` array.
+    pub items: serde_json::Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_search_intent(
+    state: State<'_, AppState>,
+    keywords: Vec<String>,
+    language_code: String,
+    use_cache: bool,
+) -> Result<SearchIntentView> {
+    let mut seen = HashSet::new();
+    let cleaned: Vec<String> = keywords
+        .into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty() && seen.insert(k.clone()))
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one keyword required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsSearchIntent);
+    let endpoint = endpoints::LABS_SEARCH_INTENT;
+    let mut sorted = cleaned.clone();
+    sorted.sort();
+    let cache_params = serde_json::json!({
+        "keywords": sorted,
+        "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<SearchIntentView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let cleaned_for_call = cleaned.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        cleaned.len() as i64,
+        move || async move {
+            let r = api
+                .labs_search_intent(&cleaned_for_call, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = SearchIntentView {
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}

@@ -64,8 +64,8 @@ DataForSEO's own crawl).
 | Google · Historical Rank Overview | `/v3/dataforseo_labs/google/historical_rank_overview/live` | 0.0125 | 🟦 plan |
 | Google · Bulk Keyword Difficulty | `/v3/dataforseo_labs/google/bulk_keyword_difficulty/live` | 0.0001 / kw | ✅ done |
 | Google · Bulk Search Volume | `/v3/dataforseo_labs/google/bulk_search_volume/live` | 0.0001 / kw | ✅ done |
-| Google · Search Intent | `/v3/dataforseo_labs/google/search_intent/live` | 0.0125 | 🟡 next |
-| Google · Keyword Overview | `/v3/dataforseo_labs/google/keyword_overview/live` | 0.0125 | 🟡 next |
+| Google · Search Intent | `/v3/dataforseo_labs/google/search_intent/live` | 0.0125 | ✅ done |
+| Google · Keyword Overview | `/v3/dataforseo_labs/google/keyword_overview/live` | 0.0125 | ✅ done |
 | Google · Keyword Ideas | `/v3/dataforseo_labs/google/keyword_ideas/live` | 0.0125 | 🟦 plan |
 | Google · Categories For Domain | `/v3/dataforseo_labs/google/categories_for_domain/live` | 0.0001 | 🟦 plan |
 | Google · Categories For Keywords | `/v3/dataforseo_labs/google/categories_for_keywords/live` | 0.0001 | 🟦 plan |
@@ -130,8 +130,8 @@ across this family (DataForSEO restriction).
 | Anchors | `/v3/backlinks/anchors/live` | 0.02 + 0.00003/row | ✅ done |
 | History | `/v3/backlinks/history/live` | 0.02 + 0.00003/row | ✅ done |
 | Domain Intersection (Link Gap) | `/v3/backlinks/domain_intersection/live` | 0.02 + 0.00003/row | ✅ done |
-| Page Intersection | `/v3/backlinks/page_intersection/live` | 0.02 + 0.00003/row | 🟡 next |
-| Domain Pages | `/v3/backlinks/domain_pages/live` | 0.02 + 0.00003/row | 🟡 next |
+| Page Intersection | `/v3/backlinks/page_intersection/live` | 0.02 + 0.00003/row | ✅ done |
+| Domain Pages | `/v3/backlinks/domain_pages/live` | 0.02 + 0.00003/row | ✅ done |
 | Domain Pages Summary | `/v3/backlinks/domain_pages_summary/live` | 0.02 + 0.00003/row | 🟦 plan |
 | Referring Networks | `/v3/backlinks/referring_networks/live` | 0.02 + 0.00003/row | 🟦 plan |
 | Bulk Backlinks | `/v3/backlinks/bulk_backlinks/live` | 0.02 / target | 🟦 plan |

@@ -10,6 +10,7 @@ import KeywordsPage from "./routes/KeywordsPage";
 import OnPagePage from "./routes/OnPagePage";
 import SerpPage from "./routes/SerpPage";
 import DomainPage from "./routes/DomainPage";
+import TopicPage from "./routes/TopicPage";
 import TrackingPage from "./routes/TrackingPage";
 import SocialPage from "./routes/SocialPage";
 import TasksPage from "./routes/TasksPage";
@@ -19,6 +20,7 @@ import SettingsPage from "./routes/SettingsPage";
 
 const navItems = [
   { to: "/keywords", label: "Keywords" },
+  { to: "/topic", label: "Topic Research" },
   { to: "/serp", label: "SERP" },
   { to: "/tracking", label: "Tracking" },
   { to: "/domain", label: "Domain" },
@@ -57,6 +59,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/keywords" replace />} />
           <Route path="/keywords/*" element={<KeywordsPage />} />
+          <Route path="/topic" element={<TopicPage />} />
           <Route path="/serp/*" element={<SerpPage />} />
           <Route path="/tracking" element={<TrackingPage />} />
           <Route path="/domain/*" element={<DomainPage />} />

@@ -27,7 +27,10 @@ export type CostAction =
   | { kind: "OnPageInstantPages" }
   | { kind: "OnPageLighthouse" }
   | { kind: "LabsBulkSearchVolume"; count: number }
-  | { kind: "OnPageAudit"; max_pages: number };
+  | { kind: "OnPageAudit"; max_pages: number }
+  | { kind: "LabsKeywordOverview" }
+  | { kind: "LabsSearchIntent" }
+  | { kind: "TopicResearch" };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -86,5 +89,10 @@ export function estimate(action: CostAction): number {
       return Math.max(1, action.count) * 0.0001;
     case "OnPageAudit":
       return Math.max(1, action.max_pages) * 0.000125;
+    case "LabsKeywordOverview":
+    case "LabsSearchIntent":
+      return 0.0125;
+    case "TopicResearch":
+      return 0.0125 + 0.002 + 3 * 0.0025;
   }
 }

@@ -29,7 +29,9 @@ type Tab =
   | "domains"
   | "anchors"
   | "history"
-  | "linkgap";
+  | "linkgap"
+  | "domainpages"
+  | "pageintersect";
 
 export default function BacklinksPage() {
   const [tab, setTab] = useState<Tab>("summary");
@@ -70,6 +72,12 @@ export default function BacklinksPage() {
         <TabButton active={tab === "linkgap"} onClick={() => setTab("linkgap")}>
           Link Gap
         </TabButton>
+        <TabButton active={tab === "domainpages"} onClick={() => setTab("domainpages")}>
+          Domain Pages
+        </TabButton>
+        <TabButton active={tab === "pageintersect"} onClick={() => setTab("pageintersect")}>
+          Page Intersection
+        </TabButton>
       </nav>
 
       {tab === "summary" && <SummaryTab />}
@@ -78,6 +86,8 @@ export default function BacklinksPage() {
       {tab === "anchors" && <AnchorsTab />}
       {tab === "history" && <HistoryTab />}
       {tab === "linkgap" && <LinkGapTab />}
+      {tab === "domainpages" && <DomainPagesTab />}
+      {tab === "pageintersect" && <PageIntersectionTab />}
     </section>
   );
 }
@@ -1212,6 +1222,245 @@ function LinkGapTab() {
       ) : (
         !busy && (
           <EmptyHint label="Enter your domain and a competitor, then find the gap." />
+        )
+      )}
+    </div>
+  );
+}
+
+// ---------- Domain Pages tab ----------
+
+function DomainPagesTab() {
+  const [target, setTarget] = useState("");
+  const [limit, setLimit] = useState(100);
+  const [includeSubdomains, setIncludeSubdomains] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<BacklinksListView | null>(null);
+
+  async function onRun() {
+    const trimmed = target.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      const result = await tauriApi.backlinksDomainPages({
+        target: trimmed,
+        limit,
+        offset: 0,
+        includeSubdomains,
+        filter: null,
+        // Order by inbound rank so the most-linked pages on the domain
+        // float to the top — useful for finding link magnets to copy
+        // or fix.
+        orderBy: ["rank,desc"],
+      });
+      setView(result);
+      toast.success(
+        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} pages (${formatUsd(result.cost_usd)})`,
+      );
+    } catch (e) {
+      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <ListInputs
+        target={target}
+        setTarget={setTarget}
+        limit={limit}
+        setLimit={setLimit}
+        includeSubdomains={includeSubdomains}
+        setIncludeSubdomains={setIncludeSubdomains}
+        busy={busy}
+        onRun={onRun}
+        runLabel="Load domain pages"
+        details={[
+          `Up to ${formatCount(limit)} pages`,
+          "Sorted by page rank (desc)",
+        ]}
+      />
+      {view ? (
+        <ListTable
+          view={view}
+          columns={[
+            { key: "url", label: "URL", kind: "string" },
+            { key: "rank", label: "Rank", kind: "number", align: "right" },
+            { key: "backlinks", label: "Links", kind: "number", align: "right" },
+            {
+              key: "referring_domains",
+              label: "Ref. domains",
+              kind: "number",
+              align: "right",
+            },
+            {
+              key: "first_seen",
+              label: "First seen",
+              kind: "string",
+              transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
+            },
+          ]}
+        />
+      ) : (
+        !busy && <EmptyHint label="Enter a domain to list its most-linked pages." />
+      )}
+    </div>
+  );
+}
+
+// ---------- Page Intersection tab ----------
+
+function PageIntersectionTab() {
+  const [pagesText, setPagesText] = useState("");
+  const [intersections, setIntersections] = useState(2);
+  const [limit, setLimit] = useState(100);
+  const [includeSubdomains, setIncludeSubdomains] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<BacklinksListView | null>(null);
+
+  const pages = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const line of pagesText.split(/\r?\n/)) {
+      const p = line.trim();
+      if (p && !seen.has(p)) {
+        seen.add(p);
+        out.push(p);
+      }
+    }
+    return out.slice(0, 20);
+  }, [pagesText]);
+
+  // Auto-clamp `intersections` so the user can't request more than they
+  // entered (the API would reject it). Same pattern as the limit clamp
+  // in DetailTab.
+  const effectiveIntersections = Math.min(
+    Math.max(1, intersections),
+    Math.max(1, pages.length),
+  );
+
+  async function onRun() {
+    if (pages.length < 2) return;
+    setBusy(true);
+    try {
+      const result = await tauriApi.backlinksPageIntersection({
+        pages,
+        intersections: effectiveIntersections,
+        limit,
+        offset: 0,
+        includeSubdomains,
+        filter: null,
+        orderBy: ["rank,desc"],
+      });
+      setView(result);
+      toast.success(
+        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} domains (${formatUsd(result.cost_usd)})`,
+      );
+    } catch (e) {
+      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-sm text-slate-600">
+        Find domains that link to a set of pages. Useful for outreach (sites that already cover the
+        topic across competitors) or content-cluster analysis. 2–20 URLs per request.
+      </p>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-slate-700">
+            Pages (one per line, {pages.length}/20)
+          </span>
+          <textarea
+            value={pagesText}
+            onChange={(e) => setPagesText(e.target.value)}
+            disabled={busy}
+            className="h-40 rounded border px-2 py-1 font-mono text-sm disabled:bg-slate-50"
+            placeholder={"https://competitor-a.com/article\nhttps://competitor-b.com/article"}
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </label>
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="text-slate-600">
+              Min pages a domain must link to ({effectiveIntersections})
+            </span>
+            <input
+              type="range"
+              min={1}
+              max={Math.max(1, pages.length)}
+              step={1}
+              value={effectiveIntersections}
+              onChange={(e) => setIntersections(parseInt(e.target.value, 10))}
+              disabled={busy || pages.length < 2}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="text-slate-600">Limit ({limit})</span>
+            <input
+              type="number"
+              min={10}
+              max={1000}
+              step={10}
+              value={limit}
+              onChange={(e) => setLimit(parseInt(e.target.value, 10) || 100)}
+              disabled={busy}
+              className="rounded border px-2 py-1"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={includeSubdomains}
+              onChange={(e) => setIncludeSubdomains(e.target.checked)}
+              disabled={busy}
+            />
+            Include subdomains
+          </label>
+          <CostPreview
+            action={{ kind: "Backlinks", target_count: 1, rows_per_target: limit }}
+            details={[
+              `${pages.length} pages, intersect ≥ ${effectiveIntersections}`,
+              `Up to ${formatCount(limit)} domains`,
+            ]}
+            disabled={busy || pages.length < 2}
+          />
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={busy || pages.length < 2}
+            className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {busy ? "Loading…" : "Find common backlinks"}
+          </button>
+        </div>
+      </div>
+
+      {view ? (
+        <ListTable
+          view={view}
+          columns={[
+            { key: "domain", label: "Domain", kind: "string" },
+            { key: "rank", label: "Rank", kind: "number", align: "right" },
+            { key: "backlinks", label: "Links", kind: "number", align: "right" },
+            {
+              key: "referring_pages",
+              label: "Ref. pages",
+              kind: "number",
+              align: "right",
+            },
+          ]}
+        />
+      ) : (
+        !busy &&
+        pages.length < 2 && (
+          <EmptyHint label="Paste at least 2 page URLs to find common backlinks." />
         )
       )}
     </div>

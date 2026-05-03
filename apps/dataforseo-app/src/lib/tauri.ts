@@ -178,6 +178,21 @@ export const tauriApi = {
   backlinksDomainIntersection: (params: BacklinksIntersectionParams) =>
     invoke<BacklinksListView>("backlinks_domain_intersection", { params }),
 
+  backlinksDomainPages: (params: BacklinksListParams) =>
+    invoke<BacklinksListView>("backlinks_domain_pages", { params }),
+
+  backlinksPageIntersection: (params: BacklinksPageIntersectionParams) =>
+    invoke<BacklinksListView>("backlinks_page_intersection", { params }),
+
+  labsKeywordOverview: (args: { keyword: string; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<KeywordOverviewView>("labs_keyword_overview", args),
+
+  labsSearchIntent: (args: { keywords: string[]; languageCode: string; useCache: boolean }) =>
+    invoke<SearchIntentView>("labs_search_intent", args),
+
+  topicResearch: (args: { seed: string; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<TopicBriefView>("topic_research", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -444,6 +459,69 @@ export interface BacklinksIntersectionParams {
   includeSubdomains: boolean;
   filter: FilterTree | null;
   orderBy: string[] | null;
+}
+
+export interface BacklinksPageIntersectionParams {
+  pages: string[];
+  intersections: number;
+  limit: number;
+  offset: number;
+  includeSubdomains: boolean;
+  filter: FilterTree | null;
+  orderBy: string[] | null;
+}
+
+export interface KeywordOverviewView {
+  keyword: string;
+  // Raw item from /keyword_overview — UI extracts known fields
+  // (keyword_info.search_volume, keyword_properties.keyword_difficulty,
+  // serp_info, search_intent_info).
+  item: Record<string, unknown> | null;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface SearchIntentView {
+  // Items array — each item carries keyword + keyword_intent.label
+  // (informational/commercial/navigational/transactional).
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface BriefRelatedKeyword {
+  keyword: string;
+  search_volume: number | null;
+  keyword_difficulty: number | null;
+}
+
+export interface BriefTopResult {
+  rank: number;
+  url: string;
+  domain: string | null;
+  title: string | null;
+  word_count: number | null;
+  headings: string[];
+}
+
+export interface TopicBriefView {
+  seed: string;
+  recommended_word_count: number | null;
+  min_word_count: number | null;
+  max_word_count: number | null;
+  common_headings: string[];
+  related_keywords: BriefRelatedKeyword[];
+  top_results: BriefTopResult[];
+  total_volume_potential: number;
+  avg_difficulty: number;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
 }
 
 export interface WhoisView {

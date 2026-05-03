@@ -615,3 +615,85 @@ impl ApiClient {
         Ok(BulkSearchVolumeResponse { items, cost })
     }
 }
+
+// ---------- Keyword Overview + Search Intent ----------
+
+/// Comprehensive single-keyword lookup. One call returns volume, KD,
+/// CPC, search intent, SERP features, and keyword properties — what
+/// you'd otherwise need 4-5 calls to assemble.
+#[derive(Debug)]
+pub struct KeywordOverviewResponse {
+    pub keyword: String,
+    /// Raw item — UI extracts the well-known fields. Shape is large
+    /// (keyword_info, keyword_properties, serp_info, search_intent_info)
+    /// so we pass through verbatim rather than mirroring 30 fields.
+    pub item: serde_json::Value,
+    pub cost: f64,
+}
+
+/// Search-intent classification for one or many keywords. Intents are
+/// "informational" / "commercial" / "navigational" / "transactional"
+/// each with a probability score.
+#[derive(Debug)]
+pub struct SearchIntentResponse {
+    pub items: serde_json::Value,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    pub async fn labs_keyword_overview(
+        &self,
+        keyword: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<KeywordOverviewResponse> {
+        let body = serde_json::json!([{
+            "keywords": [keyword],
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/keyword_overview/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let item = raw
+            .pointer("/tasks/0/result/0/items/0")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
+        Ok(KeywordOverviewResponse {
+            keyword: keyword.to_owned(),
+            item,
+            cost,
+        })
+    }
+
+    pub async fn labs_search_intent(
+        &self,
+        keywords: &[String],
+        language_code: &str,
+    ) -> Result<SearchIntentResponse> {
+        let body = serde_json::json!([{
+            "keywords": keywords,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/search_intent/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+        Ok(SearchIntentResponse { items, cost })
+    }
+}

@@ -7,6 +7,7 @@ use ts_rs::TS;
 
 use crate::api::backlinks::{
     BacklinksDetailArgs, BacklinksIntersectionArgs, BacklinksListArgs,
+    BacklinksPageIntersectionArgs,
 };
 use crate::commands::ledger::run_with_ledger;
 use crate::domain::cost::{self, CostAction};
@@ -491,6 +492,127 @@ pub async fn backlinks_domain_intersection(
     )
     .await?;
 
+    Ok(BacklinksListView {
+        target: resp.target,
+        total_count: resp.total_count,
+        items_count: resp.items_count,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+// ---------- Domain Pages + Page Intersection ----------
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_domain_pages(
+    state: State<'_, AppState>,
+    params: BacklinksListParams,
+) -> Result<BacklinksListView> {
+    let target = params.target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::Backlinks {
+        target_count: 1,
+        rows_per_target: params.limit,
+    });
+    let api = state.api.clone();
+    let order_by = params.order_by.clone();
+    let filter = params.filter.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::BACKLINKS_DOMAIN_PAGES,
+        Mode::Live,
+        estimated_usd,
+        params.limit as i64,
+        move || async move {
+            let args = BacklinksListArgs {
+                target: &target,
+                limit: params.limit,
+                offset: params.offset,
+                include_subdomains: params.include_subdomains,
+                filter: filter.as_ref(),
+                order_by,
+            };
+            let r = api.backlinks_domain_pages_live(args).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(BacklinksListView {
+        target: resp.target,
+        total_count: resp.total_count,
+        items_count: resp.items_count,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+#[serde(rename_all = "camelCase")]
+pub struct BacklinksPageIntersectionParams {
+    pub pages: Vec<String>,
+    pub intersections: u32,
+    pub limit: u32,
+    pub offset: u32,
+    pub include_subdomains: bool,
+    pub filter: Option<Filter>,
+    pub order_by: Option<Vec<String>>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_page_intersection(
+    state: State<'_, AppState>,
+    params: BacklinksPageIntersectionParams,
+) -> Result<BacklinksListView> {
+    let pages: Vec<String> = params
+        .pages
+        .into_iter()
+        .map(|p| p.trim().to_owned())
+        .filter(|p| !p.is_empty())
+        .collect();
+    if pages.len() < 2 {
+        return Err(AppError::Validation("at least 2 pages required".into()));
+    }
+    if pages.len() > 20 {
+        return Err(AppError::Validation("up to 20 pages per request".into()));
+    }
+    let intersections = params.intersections.clamp(1, pages.len() as u32);
+    let estimated_usd = cost::estimate(&CostAction::Backlinks {
+        target_count: 1,
+        rows_per_target: params.limit,
+    });
+    let api = state.api.clone();
+    let order_by = params.order_by.clone();
+    let filter = params.filter.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::BACKLINKS_PAGE_INTERSECTION,
+        Mode::Live,
+        estimated_usd,
+        params.limit as i64,
+        move || async move {
+            let args = BacklinksPageIntersectionArgs {
+                pages: &pages,
+                intersections,
+                limit: params.limit,
+                offset: params.offset,
+                include_subdomains: params.include_subdomains,
+                filter: filter.as_ref(),
+                order_by,
+            };
+            let r = api.backlinks_page_intersection_live(args).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
     Ok(BacklinksListView {
         target: resp.target,
         total_count: resp.total_count,
