@@ -1,10 +1,12 @@
-import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
-import { tauriApi, type DomainIntersectionView } from "../../lib/tauri";
+import { tauriApi, type DomainIntersectionView, type IntersectionKeyword } from "../../lib/tauri";
 
 export default function DomainIntersectionTab() {
   const [target1, setTarget1] = useState("");
@@ -15,6 +17,19 @@ export default function DomainIntersectionTab() {
   const t1 = target1.trim();
   const t2 = target2.trim();
   const canRun = t1.length > 0 && t2.length > 0;
+
+  const exportColumns = useMemo<ColumnDef<IntersectionKeyword, unknown>[]>(
+    () => [
+      { id: "keyword", header: "Keyword", accessorKey: "keyword" },
+      { id: "search_volume", header: "Volume", accessorKey: "search_volume" },
+      { id: "keyword_difficulty", header: "KD", accessorKey: "keyword_difficulty" },
+      { id: "rank_first", header: "Domain 1 Pos", accessorKey: "rank_first" },
+      { id: "rank_second", header: "Domain 2 Pos", accessorKey: "rank_second" },
+      { id: "url_first", header: "Domain 1 URL", accessorKey: "url_first" },
+      { id: "url_second", header: "Domain 2 URL", accessorKey: "url_second" },
+    ],
+    [],
+  );
 
   async function onRun() {
     if (!canRun) return;
@@ -91,10 +106,17 @@ export default function DomainIntersectionTab() {
 
       {view && view.items.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-500">
-            {view.items.length} shared keywords for {view.target1} vs {view.target2} ·{" "}
-            {formatUsd(view.cost_usd)}
-          </p>
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>
+              {view.items.length} shared keywords for {view.target1} vs {view.target2} ·{" "}
+              {formatUsd(view.cost_usd)}
+            </span>
+            <ExportMenu
+              filenameStem={`intersection-${view.target1}-vs-${view.target2}`}
+              rows={view.items}
+              columns={exportColumns}
+            />
+          </div>
           <div className="overflow-x-auto rounded border bg-white">
             <table className="min-w-full text-xs">
               <thead className="bg-slate-50 text-slate-600">

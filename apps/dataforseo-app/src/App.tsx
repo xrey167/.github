@@ -13,6 +13,7 @@ import ComparePage from "./routes/ComparePage";
 import DomainAnalyticsPage from "./routes/DomainAnalyticsPage";
 import KeywordsPage from "./routes/KeywordsPage";
 import OnPagePage from "./routes/OnPagePage";
+import OnboardingPage, { useOnboardingGate } from "./routes/OnboardingPage";
 import SerpPage from "./routes/SerpPage";
 import DomainPage from "./routes/DomainPage";
 import TopicPage from "./routes/TopicPage";
@@ -56,6 +57,42 @@ export default function App() {
 }
 
 function AppShell() {
+  const [status, markReady, gate] = useOnboardingGate();
+
+  if (status === "loading") {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-slate-500">
+        Connecting…
+      </div>
+    );
+  }
+  if (status === "needs-onboarding") {
+    return <OnboardingPage onComplete={markReady} />;
+  }
+  if (status === "error") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="w-full max-w-md rounded border bg-white p-6 text-center text-sm">
+          <h2 className="mb-2 text-lg font-semibold text-slate-800">Couldn't reach DataForSEO</h2>
+          <p className="mb-4 text-slate-600">
+            {gate.errorMessage ?? "Network or service error."}
+          </p>
+          <p className="mb-4 text-xs text-slate-500">
+            Likely transient. Check your connection and retry — your credentials are still
+            saved.
+          </p>
+          <button
+            type="button"
+            onClick={gate.retry}
+            className="rounded bg-slate-800 px-4 py-2 text-sm text-white"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen">
       <aside className="w-56 border-r bg-slate-50 p-4">

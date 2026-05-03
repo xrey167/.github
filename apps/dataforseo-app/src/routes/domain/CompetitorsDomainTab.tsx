@@ -1,10 +1,12 @@
-import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
-import { tauriApi, type CompetitorsDomainView } from "../../lib/tauri";
+import { tauriApi, type CompetitorDomain, type CompetitorsDomainView } from "../../lib/tauri";
 
 interface Props {
   target: string;
@@ -15,6 +17,16 @@ export default function CompetitorsDomainTab({ target }: Props) {
   const [view, setView] = useState<CompetitorsDomainView | null>(null);
 
   const trimmed = target.trim();
+
+  const exportColumns = useMemo<ColumnDef<CompetitorDomain, unknown>[]>(
+    () => [
+      { id: "domain", header: "Competitor", accessorKey: "domain" },
+      { id: "intersections", header: "Shared Keywords", accessorKey: "intersections" },
+      { id: "avg_position", header: "Avg Position", accessorKey: "avg_position" },
+      { id: "sum_position", header: "Sum Position", accessorKey: "sum_position" },
+    ],
+    [],
+  );
 
   async function onRun() {
     if (!trimmed) return;
@@ -67,9 +79,16 @@ export default function CompetitorsDomainTab({ target }: Props) {
 
       {view && view.items.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-500">
-            {view.items.length} competitors for {view.target} · {formatUsd(view.cost_usd)}
-          </p>
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>
+              {view.items.length} competitors for {view.target} · {formatUsd(view.cost_usd)}
+            </span>
+            <ExportMenu
+              filenameStem={`competitors-${view.target}`}
+              rows={view.items}
+              columns={exportColumns}
+            />
+          </div>
           <div className="overflow-x-auto rounded border bg-white">
             <table className="min-w-full text-xs">
               <thead className="bg-slate-50 text-slate-600">
