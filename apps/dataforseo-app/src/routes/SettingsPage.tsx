@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../lib/errors";
 import { useTranslation } from "react-i18next";
 
 import { getLocale, setLocale, SUPPORTED_LOCALES, type Locale } from "../i18n";
@@ -48,7 +50,7 @@ export default function SettingsPage() {
       toast.success(t("settings.dataforseo.credentialsSaved"));
       setPassword("");
     } catch (e) {
-      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -61,7 +63,7 @@ export default function SettingsPage() {
       setInfo(result);
       toast.success(t("settings.dataforseo.connectedAs", { login: result.login }));
     } catch (e) {
-      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -77,7 +79,7 @@ export default function SettingsPage() {
       await refreshAi();
       toast.success(t("settings.ai.keySaved", { provider }));
     } catch (e) {
-      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -90,7 +92,7 @@ export default function SettingsPage() {
       await refreshAi();
       toast.success(t("settings.ai.keyRemoved", { provider }));
     } catch (e) {
-      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -103,7 +105,7 @@ export default function SettingsPage() {
       await refreshAi();
       toast.success(t("settings.ai.activated", { provider }));
     } catch (e) {
-      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -294,7 +296,7 @@ export default function SettingsPage() {
               await tauriApi.clearCredentials();
               window.location.reload();
             } catch (e) {
-              toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
+              toast.error(formatError(e));
             }
           }}
           className="mt-2 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"

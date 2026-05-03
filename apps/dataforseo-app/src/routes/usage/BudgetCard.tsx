@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import { formatUsd } from "../../lib/format";
 import { tauriApi, type BudgetStatus } from "../../lib/tauri";
 
@@ -61,7 +63,7 @@ export default function BudgetCard() {
       const s = await tauriApi.getBudgetStatus({ period });
       setStatus(s);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 
@@ -72,7 +74,7 @@ export default function BudgetCard() {
       const s = await tauriApi.getBudgetStatus({ period });
       setStatus(s);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 

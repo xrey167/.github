@@ -1,4 +1,6 @@
 import toast from "react-hot-toast";
+
+import { formatError } from "../lib/errors";
 import { useNavigate } from "react-router-dom";
 
 import { tauriApi } from "../lib/tauri";
@@ -21,7 +23,7 @@ export default function ChatWithResultsButton<T>({ rows, summary, disabled }: Pr
       });
       navigate(`/chat/${id}`);
     } catch (e) {
-      toast.error(`Chat: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 

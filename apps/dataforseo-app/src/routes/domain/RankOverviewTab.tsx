@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import CostPreview from "../../components/CostPreview";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatCount, formatUsd } from "../../lib/format";
@@ -32,7 +34,7 @@ export default function RankOverviewTab({ target }: Props) {
       setView(result);
       toast.success(`Loaded overview for ${trimmed} (${formatUsd(result.cost_usd)})`);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

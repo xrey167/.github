@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../../lib/errors";
 import { Link } from "react-router-dom";
 
 import BulkKeywordInput, { parseKeywords } from "../../components/BulkKeywordInput";
@@ -46,7 +48,7 @@ export default function BulkTab() {
       );
       setRaw("");
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

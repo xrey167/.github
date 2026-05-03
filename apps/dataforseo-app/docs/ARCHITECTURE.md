@@ -89,8 +89,24 @@ Every API call lands in `api_calls` (cost_usd, estimated_usd, duration_ms, respo
 - `src/lib/project-store.tsx` — React context for projects
 - `src/lib/errors.ts` — `formatError()` that turns AppError shapes into user-friendly toasts
 
+## Visual filter builder
+
+`src/components/FilterBuilder.tsx` renders the `FilterTree` AST recursively: each node is either a leaf condition (field, operator, value) or a group with child nodes and explicit AND/OR connectors between them. The op-to-control mapping picks the right value input automatically (number / string / csv / boolean) so the user can't type "abc" into a `domain_from_rank > X` slot. `normalize()` collapses trivial group shapes (empty → null, single-child → unwrap) and re-trims connectors when a nested group disappears, so the wire form is always exactly `N` nodes / `N-1` connectors.
+
+The Backlinks Detail tab keeps the legacy three presets ("Dofollow only" / "Domain rank > 30" / "Lost links") as quick-load buttons that seed the builder; the builder is then the canonical source.
+
+## i18n
+
+`src/i18n/index.ts` initialises `i18next` with browser-language-detector before React mounts. Two bundles (`de.json` default, `en.json` secondary) are inlined at build time — translations are tiny so no async loading. `setLocale()` persists to localStorage; SettingsPage exposes the picker. Default locale stays German to match the app's historical UI surface.
+
+## Error formatter
+
+`src/lib/errors.ts::formatError(e)` is the single funnel for any caught async error. It reads the structured Rust `AppError` shapes (`Auth`, `Api { status_code, message }`, `Validation`, `Parse`, `Database`, `Internal`) and produces a friendly user-facing string with hints for known DataForSEO status codes (40400 → "no data for this query", 40100 → "verify credentials", etc.). Every `toast.error(...)` call site uses `formatError(e)` — no raw `${e.message}` interpolation anywhere in `src/`.
+
+`src/components/ErrorBoundary.tsx` wraps the route tree in `App.tsx` and catches render-time exceptions; `Reload app` hard-reloads, `Open Settings` is the standard recovery path.
+
 ## Testing
 
-- Rust: `cargo test --workspace` (unit tests in `domain/`, `cache/`, `ratelimit/` modules)
-- Frontend: `npx vitest run` (cost calc + export utility tests)
-- CI: `.github/workflows/dataforseo-app-ci.yml` runs frontend + rust + tauri build smoke on every PR touching `apps/dataforseo-app/**`.
+- **Rust**: `cargo test --workspace` (unit tests in `domain/`, `cache/`, `ratelimit/`, plus ts-rs export round-trips for every `#[derive(TS)]` type — 122 tests as of `b19d4be`).
+- **Frontend**: `npx vitest run` covers `cost.ts`, `export.ts`, `format.ts`, `errors.ts`, `i18n/index.ts`, `lib/telemetry.ts` plus components `CacheBadge`, `CostPreview`, `ExportMenu`, `FilterBuilder` (60 tests as of this commit). `src/test-setup.ts` polyfills `Blob.prototype.text` for jsdom and stubs `HTMLAnchorElement.click` so download flows don't error.
+- **CI**: `.github/workflows/dataforseo-app-ci.yml` runs frontend + rust + tauri build smoke on every PR touching `apps/dataforseo-app/**`. Workflow now uses `RUST_BACKTRACE=full`, tees clippy + cargo-test output, and uploads a `rust-ci-logs` artifact on failure for triage.

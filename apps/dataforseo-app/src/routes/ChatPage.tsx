@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../lib/errors";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import MarkdownView from "../components/MarkdownView";
@@ -32,7 +34,7 @@ export default function ChatPage() {
     try {
       setSessions(await tauriApi.chatListSessions({ limit: 50 }));
     } catch (e) {
-      toast.error(`Sessions: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }, []);
 
@@ -41,7 +43,7 @@ export default function ChatPage() {
     tauriApi
       .aiPromptTemplates()
       .then(setTemplates)
-      .catch((e) => toast.error(`Templates: ${(e as { message?: string })?.message ?? e}`));
+      .catch((e) => toast.error(formatError(e)));
     tauriApi
       .aiProviderStatus()
       .then((statuses) => setProviderConfigured(statuses.some((s) => s.configured)))
@@ -65,7 +67,7 @@ export default function ChatPage() {
         setMessages(history);
         setActiveSession(session);
       })
-      .catch((e) => toast.error(`Load session: ${(e as { message?: string })?.message ?? e}`))
+      .catch((e) => toast.error(formatError(e)))
       .finally(() => setBusy(false));
   }, [sessionId]);
 
@@ -86,7 +88,7 @@ export default function ChatPage() {
       navigate(`/chat/${id}`);
       await refreshSessions();
     } catch (e) {
-      toast.error(`New session: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 
@@ -120,7 +122,7 @@ export default function ChatPage() {
       }
       await refreshSessions();
     } catch (e) {
-      toast.error(`Send: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
       // Rollback the optimistic message — chat_send persists the user
       // turn before the API call, so a fresh history pull is the source
       // of truth even on failure.

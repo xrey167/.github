@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../lib/errors";
+
 import CostPreview from "../components/CostPreview";
 import { type CostAction } from "../lib/cost";
 import { formatUsd } from "../lib/format";
@@ -83,7 +85,7 @@ function WhoisTab() {
       setView(result);
       toast.success(`Loaded WHOIS for ${trimmed} (${formatUsd(result.cost_usd)})`);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -225,7 +227,7 @@ function TechnologiesTab() {
         `Loaded tech stack for ${trimmed} (${formatUsd(result.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

@@ -2,6 +2,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import CostPreview from "../../components/CostPreview";
 import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
@@ -80,7 +82,7 @@ export default function SerpKeywordTab({ hint, apiCall }: Props) {
       setBatch(result);
       toast.success(`${result.items.length} results (${formatUsd(result.cost_usd)})`);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

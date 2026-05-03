@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../../lib/errors";
 import {
   Bar,
   BarChart,
@@ -36,7 +38,7 @@ export default function DataforseoTab() {
     try {
       setSummary(await tauriApi.getUsageSummary({ days }));
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
@@ -46,7 +48,7 @@ export default function DataforseoTab() {
     try {
       setRecent(await tauriApi.getRecentCalls({ limit: 50 }));
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }, []);
 

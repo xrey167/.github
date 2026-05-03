@@ -2,6 +2,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import BucketTab from "../../components/BucketTab";
 import ChatWithResultsButton from "../../components/ChatWithResultsButton";
 import CostPreview from "../../components/CostPreview";
@@ -93,7 +95,7 @@ export default function DomainsTab() {
         `${compareRows.length} keywords compared (${formatUsd(batchA.cost_usd + batchB.cost_usd)})`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

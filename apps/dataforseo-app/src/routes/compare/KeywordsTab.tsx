@@ -2,6 +2,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../../lib/errors";
+
 import BucketTab from "../../components/BucketTab";
 import BulkKeywordInput, { parseKeywords } from "../../components/BulkKeywordInput";
 import ChatWithResultsButton from "../../components/ChatWithResultsButton";
@@ -95,7 +97,7 @@ export default function KeywordsTab() {
         `${compareRows.length} keywords compared (${formatUsd(batch.cost_usd)} fresh, rest from cache)`,
       );
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }

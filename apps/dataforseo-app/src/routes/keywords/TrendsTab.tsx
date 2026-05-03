@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import { formatError } from "../../lib/errors";
 import {
   CartesianGrid,
   Legend,
@@ -91,7 +93,7 @@ export default function TrendsTab() {
         : `Loaded (${formatUsd(result.cost_usd)})`;
       toast.success(note);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
