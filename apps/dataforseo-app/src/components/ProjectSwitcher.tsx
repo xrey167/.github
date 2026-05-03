@@ -1,6 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 
+import { formatError } from "../lib/errors";
 import { useProject } from "../lib/project-store";
 
 export default function ProjectSwitcher() {
@@ -18,7 +19,7 @@ export default function ProjectSwitcher() {
       setAdding(false);
       toast.success(`Project "${newName.trim()}" created`);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 
@@ -29,7 +30,7 @@ export default function ProjectSwitcher() {
       await deleteProject(active.id);
       toast.success("Project deleted");
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     }
   }
 

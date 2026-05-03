@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 
 import CacheBadge from "../components/CacheBadge";
 import CostPreview from "../components/CostPreview";
+import { formatError } from "../lib/errors";
 import { formatUsd } from "../lib/format";
 import {
   tauriApi,
@@ -139,7 +140,7 @@ export default function BrandPage() {
           : `Loaded ${q.items_count} mentions (${formatUsd(totalCost)})`;
       toast.success(note);
     } catch (e) {
-      toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(formatError(e));
     } finally {
       setBusy(false);
     }
