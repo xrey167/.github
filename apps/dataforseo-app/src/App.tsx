@@ -12,6 +12,7 @@ import BrandPage from "./routes/BrandPage";
 import ChatPage from "./routes/ChatPage";
 import ComparePage from "./routes/ComparePage";
 import DomainAnalyticsPage from "./routes/DomainAnalyticsPage";
+import KeywordClusteringPage from "./routes/KeywordClusteringPage";
 import KeywordsPage from "./routes/KeywordsPage";
 import OnPagePage from "./routes/OnPagePage";
 import OnboardingPage, { useOnboardingGate } from "./routes/OnboardingPage";
@@ -28,6 +29,7 @@ import SettingsPage from "./routes/SettingsPage";
 
 const navItems = [
   { to: "/keywords", label: "Keywords" },
+  { to: "/clustering", label: "Keyword Clustering" },
   { to: "/topic", label: "Topic Research" },
   { to: "/serp", label: "SERP" },
   { to: "/tracking", label: "Tracking" },
@@ -118,6 +120,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<Navigate to="/keywords" replace />} />
           <Route path="/keywords/*" element={<KeywordsPage />} />
+          <Route path="/clustering" element={<KeywordClusteringPage />} />
           <Route path="/topic" element={<TopicPage />} />
           <Route path="/serp/*" element={<SerpPage />} />
           <Route path="/tracking" element={<TrackingPage />} />
