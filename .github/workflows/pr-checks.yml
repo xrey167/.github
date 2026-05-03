@@ -22,47 +22,52 @@ jobs:
 
       - name: Check PR title format
         id: pr-title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          
-          # Check if PR title follows convention
-          # Format: [TYPE] Description or TYPE: Description
-          if [[ "$PR_TITLE" =~ ^(\[.+\]|[A-Z]+:).+ ]]; then
-            echo "✅ PR title follows convention"
-            echo "valid=true" >> $GITHUB_OUTPUT
+          # Accepted formats:
+          #   [TYPE] description           (legacy)
+          #   TYPE: description            (legacy uppercase)
+          #   type: description            (conventional commits)
+          #   type(scope): description     (conventional commits with scope)
+          # The leading word is at least 2 letters so single-letter typos
+          # are still flagged. Title is read from env (not interpolated)
+          # to avoid script injection via crafted titles.
+          if [[ "$PR_TITLE" =~ ^(\[[A-Za-z]+\][[:space:]]+|[A-Za-z]{2,}(\([^)]+\))?:[[:space:]]+).+ ]]; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+            echo "PR title follows convention: $PR_TITLE"
           else
-            echo "❌ PR title does not follow convention"
-            echo "Expected format: [TYPE] Description or TYPE: Description"
-            echo "Examples: [FEATURE] Add authentication, BUG: Fix login error"
-            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "PR title does not follow convention."
+            echo "Expected: '[TYPE] desc', 'TYPE: desc', or 'type(scope): desc'"
+            echo "Got: $PR_TITLE"
             exit 1
           fi
 
       - name: Check for linked issues
         id: linked-issues
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
-          
-          # Check if PR body contains issue references
+          # Advisory only — many PRs (feature work, refactors) don't tie
+          # to a tracked issue. Surface the recommendation but never fail.
           if [[ "$PR_BODY" =~ (Closes|Fixes|Resolves|Related|Ref).*#[0-9]+ ]] || \
              [[ "$PR_BODY" =~ https://github.com/.*/issues/[0-9]+ ]]; then
-            echo "✅ PR is linked to issue(s)"
-            echo "linked=true" >> $GITHUB_OUTPUT
+            echo "linked=true" >> "$GITHUB_OUTPUT"
+            echo "PR is linked to issue(s)."
           else
-            echo "⚠️  No linked issues found"
-            echo "Consider linking related issues using: Closes #123, Related #456"
-            echo "linked=false" >> $GITHUB_OUTPUT
+            echo "linked=false" >> "$GITHUB_OUTPUT"
+            echo "No linked issues found (advisory)."
           fi
 
       - name: Check PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
-          
           if [ -z "$PR_BODY" ] || [ ${#PR_BODY} -lt 50 ]; then
-            echo "⚠️  PR description is too short or empty"
-            echo "Please provide a meaningful description of your changes"
+            echo "PR description is short or empty (advisory)."
           else
-            echo "✅ PR description looks good"
+            echo "PR description looks good."
           fi
 
       - name: Comment PR validation results
@@ -105,28 +110,29 @@ jobs:
           fetch-depth: 0
 
       - name: Check PR size
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          # Get number of changed lines
-          git fetch origin ${{ github.base_ref }}
-          CHANGED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -Eo '[0-9]+ insertion' | grep -Eo '[0-9]+' || echo 0)
-          DELETED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -Eo '[0-9]+ deletion' | grep -Eo '[0-9]+' || echo 0)
+          git fetch origin "$BASE_REF"
+          STATS=$(git diff --shortstat "origin/$BASE_REF...HEAD")
+          CHANGED_LINES=$(echo "$STATS" | grep -Eo '[0-9]+ insertion' | grep -Eo '[0-9]+' || echo 0)
+          DELETED_LINES=$(echo "$STATS" | grep -Eo '[0-9]+ deletion'  | grep -Eo '[0-9]+' || echo 0)
           TOTAL_CHANGES=$((CHANGED_LINES + DELETED_LINES))
-          
-          echo "📊 PR Statistics:"
+
+          echo "PR statistics:"
           echo "- Insertions: $CHANGED_LINES"
-          echo "- Deletions: $DELETED_LINES"
-          echo "- Total changes: $TOTAL_CHANGES"
-          
-          # Warn or fail if PR is too large
-          if [ $TOTAL_CHANGES -gt 1000 ]; then
-            echo "❌ Very large PR detected ($TOTAL_CHANGES lines changed)"
-            echo "Please split into smaller, focused PRs"
-            exit 1
-          elif [ $TOTAL_CHANGES -gt 500 ]; then
-            echo "⚠️  Large PR detected ($TOTAL_CHANGES lines changed)"
-            echo "Consider splitting into smaller PRs for easier review"
+          echo "- Deletions:  $DELETED_LINES"
+          echo "- Total:      $TOTAL_CHANGES"
+
+          # Advisory only. Stacked-PR feature work routinely lands at
+          # >1k LOC; auto-failing every such PR was just noise that the
+          # team learned to ignore. Surface size + a hint, never block.
+          if [ "$TOTAL_CHANGES" -gt 5000 ]; then
+            echo "::warning::Very large PR ($TOTAL_CHANGES lines). Consider splitting if reviewable in chunks."
+          elif [ "$TOTAL_CHANGES" -gt 1000 ]; then
+            echo "::notice::Large PR ($TOTAL_CHANGES lines)."
           else
-            echo "✅ PR size is reasonable"
+            echo "PR size is small."
           fi
 
   review-checklist:
