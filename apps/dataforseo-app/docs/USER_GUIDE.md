@@ -168,10 +168,10 @@ or "why did organic fall off a cliff" debugging.
    pulls /summary + /pages and stores them locally.
 3. The list view shows pending / in-progress / completed runs. Click
    in for the per-page table sorted by lowest on-page score.
-4. The eleven On-Page sub-endpoints (Pages, Resources, Duplicate
-   Tags, Duplicate Content, Links, Non-Indexable, Redirect Chains,
-   Microdata, Keyword Density, Content Parsing) are lazy-loaded via
-   the drill-down — each is $0.0001/row, cached 7 days.
+4. The eleven On-Page sub-endpoints (Pages, Pages by Resource,
+   Resources, Duplicate Tags, Duplicate Content, Links, Non-Indexable,
+   Redirect Chains, Microdata, Keyword Density, Content Parsing) are
+   lazy-loaded via the drill-down — each is $0.0001/row, cached 7 days.
 
 **Cost**: 100 pages = $0.0125. 1k pages = $0.125.
 
