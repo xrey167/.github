@@ -55,6 +55,8 @@ pub fn run() {
             let tracker_store = store.clone();
             let audit_api = api.clone();
             let audit_store = store.clone();
+            let reporter_store = store.clone();
+            let docs_dir = app.path().document_dir().ok();
             app.manage(state);
             tauri::async_runtime::spawn(async move {
                 tasks::poller::run(api, store).await;
@@ -64,6 +66,9 @@ pub fn run() {
             });
             tauri::async_runtime::spawn(async move {
                 tasks::audit_poller::run(audit_api, audit_store).await;
+            });
+            tauri::async_runtime::spawn(async move {
+                tasks::reporter::run(reporter_store, docs_dir).await;
             });
             Ok(())
         })
@@ -185,6 +190,11 @@ pub fn run() {
             commands::ai::chat_list_sessions,
             commands::ai::chat_history,
             commands::ai::chat_send,
+            commands::reports::reports_list_schedules,
+            commands::reports::reports_create_schedule,
+            commands::reports::reports_toggle_schedule,
+            commands::reports::reports_delete_schedule,
+            commands::reports::reports_list_runs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

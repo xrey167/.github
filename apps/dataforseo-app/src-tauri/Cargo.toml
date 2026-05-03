@@ -34,6 +34,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 keyring = "3"
 
 ts-rs = { version = "10", features = ["serde-json-impl"] }
+printpdf = { version = "0.7", default-features = false }
 
 [dev-dependencies]
 proptest = "1"

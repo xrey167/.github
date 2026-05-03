@@ -320,6 +320,16 @@ export const tauriApi = {
     invoke<void>("projects_rename", args),
   projectsDelete: (args: { id: number }) => invoke<void>("projects_delete", args),
 
+  reportsListSchedules: () => invoke<ReportSchedule[]>("reports_list_schedules"),
+  reportsCreateSchedule: (args: { projectId: number | null; kind: string; cadence: string }) =>
+    invoke<number>("reports_create_schedule", args),
+  reportsToggleSchedule: (args: { id: number; active: boolean }) =>
+    invoke<void>("reports_toggle_schedule", args),
+  reportsDeleteSchedule: (args: { id: number }) =>
+    invoke<void>("reports_delete_schedule", args),
+  reportsListRuns: (args: { scheduleId: number }) =>
+    invoke<ReportRun[]>("reports_list_runs", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -795,6 +805,23 @@ export interface Project {
   name: string;
   target: string;
   created_at: string | null;
+}
+
+export interface ReportSchedule {
+  id: number;
+  project_id: number | null;
+  kind: string;
+  cadence: string;
+  active: boolean;
+  last_run_at: string | null;
+  created_at: string | null;
+}
+
+export interface ReportRun {
+  id: number;
+  schedule_id: number;
+  pdf_path: string;
+  generated_at: string | null;
 }
 
 export interface WhoisView {
