@@ -96,6 +96,8 @@ export default function BrandPage() {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState<BrandSearchView | null>(null);
   const [summary, setSummary] = useState<BrandSummaryView | null>(null);
+  // Snapshot of keyword at the time of the last successful fetch.
+  const [fetchedKeyword, setFetchedKeyword] = useState("");
 
   const trimmed = keyword.trim();
   const positiveList = useMemo(
@@ -144,6 +146,7 @@ export default function BrandPage() {
       ]);
       setSummary(s);
       setSearch(q);
+      setFetchedKeyword(trimmed);
       const totalCost = s.cost_usd + q.cost_usd;
       const note =
         s.from_cache && q.from_cache
@@ -320,7 +323,7 @@ export default function BrandPage() {
               Mentions ({mentions.length} of {search?.total_count.toLocaleString()})
             </h3>
             <ExportMenu
-              filenameStem={`brand-mentions-${keyword}`}
+              filenameStem={`brand-mentions-${fetchedKeyword}`}
               rows={mentions}
               columns={MENTION_COLUMNS}
             />

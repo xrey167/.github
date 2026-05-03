@@ -76,6 +76,11 @@ export default function AppsPage() {
   const [limit] = useState(50);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<AppDataView | null>(null);
+  // Snapshot of mode + query at the time of the last successful fetch so
+  // the export filename always matches the displayed data even if the user
+  // edits the inputs without re-running.
+  const [fetchedMode, setFetchedMode] = useState<Mode>("searches");
+  const [fetchedQuery, setFetchedQuery] = useState("");
 
   const trimmed = query.trim();
 
@@ -97,6 +102,8 @@ export default function AppsPage() {
           ? tauriApi.appDataGooglePlayAppReviews({ appId: trimmed, ...args })
           : tauriApi.appDataAppleAppReviews({ appId: trimmed, ...args }));
       setView(result);
+      setFetchedMode(mode);
+      setFetchedQuery(trimmed);
       const note = result.from_cache
         ? `Cached (${result.items_count} rows, $0.00)`
         : `${result.items_count} rows (${formatUsd(result.cost_usd)})`;
@@ -203,9 +210,9 @@ export default function AppsPage() {
           <div className="flex items-center justify-between border-b px-3 py-2">
             <span className="text-xs font-medium text-slate-600">{items.length} results</span>
             <ExportMenu
-              filenameStem={`apps-${mode}-${query}`}
+              filenameStem={`apps-${fetchedMode}-${fetchedQuery}`}
               rows={items}
-              columns={mode === "searches" ? APP_SEARCH_COLUMNS : APP_REVIEW_COLUMNS}
+              columns={fetchedMode === "searches" ? APP_SEARCH_COLUMNS : APP_REVIEW_COLUMNS}
             />
           </div>
           {mode === "searches" ? (
