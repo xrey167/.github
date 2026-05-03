@@ -100,3 +100,54 @@ impl ApiClient {
         Ok(TechnologiesResponse { result, cost })
     }
 }
+
+// ---------- Phase A: Domains by Technology / Aggregation ----------
+
+impl ApiClient {
+    /// Domains by Technology — reverse lookup ("who else uses Stripe?").
+    pub async fn domain_analytics_domains_by_technology_live(
+        &self,
+        technologies: &[String],
+        limit: u32,
+    ) -> Result<Value> {
+        let body = serde_json::json!([{
+            "technologies": technologies,
+            "limit": limit.clamp(1, 1000),
+        }]);
+        let raw = self
+            .post_json(
+                Family::DomainAnalytics,
+                "/v3/domain_analytics/technologies/domains_by_technology/live",
+                &body,
+            )
+            .await?;
+        ensure_api_success(&raw)?;
+        Ok(raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new())))
+    }
+
+    /// Aggregation Technologies — distribution of techs across a list of
+    /// domains. Used to answer "what tech stack does this competitor set use?"
+    pub async fn domain_analytics_aggregation_technologies_live(
+        &self,
+        targets: &[String],
+    ) -> Result<Value> {
+        let body = serde_json::json!([{ "targets": targets }]);
+        let raw = self
+            .post_json(
+                Family::DomainAnalytics,
+                "/v3/domain_analytics/technologies/aggregation_technologies/live",
+                &body,
+            )
+            .await?;
+        ensure_api_success(&raw)?;
+        Ok(raw
+            .pointer("/tasks/0/result/0")
+            .cloned()
+            .unwrap_or(Value::Null))
+    }
+}

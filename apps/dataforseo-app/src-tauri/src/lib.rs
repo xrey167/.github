@@ -43,6 +43,11 @@ pub fn run() {
                     let _ = evict_store.with_conn(|c| {
                         store::audits::evict_completed_older_than(c, chrono::Duration::days(90))
                     });
+                    // Backfill projects for any pre-existing tracked
+                    // keywords / audit runs. Idempotent — re-runs are
+                    // a single SELECT + zero updates after the first
+                    // post-upgrade boot.
+                    let _ = evict_store.with_conn(|c| store::projects::backfill(c));
                 })
                 .await;
             });
@@ -101,6 +106,48 @@ pub fn run() {
             commands::backlinks::backlinks_domain_intersection,
             commands::backlinks::backlinks_domain_pages,
             commands::backlinks::backlinks_page_intersection,
+            commands::backlinks::backlinks_bulk_backlinks,
+            commands::backlinks::backlinks_bulk_referring_domains,
+            commands::backlinks::backlinks_bulk_ranks,
+            commands::backlinks::backlinks_bulk_spam_score,
+            commands::backlinks::backlinks_bulk_new_lost,
+            commands::backlinks::backlinks_referring_networks,
+            commands::backlinks::backlinks_domain_pages_summary,
+            commands::backlinks::backlinks_available_filters,
+            commands::keywords::labs_historical_rank_overview,
+            commands::keywords::labs_subdomains,
+            commands::keywords::labs_relevant_pages,
+            commands::keywords::labs_page_intersection,
+            commands::keywords::labs_keyword_ideas,
+            commands::keywords::labs_top_searches,
+            commands::keywords::labs_categories_for_keywords,
+            commands::on_page::on_page_pages_get,
+            commands::on_page::on_page_pages_by_resource_get,
+            commands::on_page::on_page_resources_get,
+            commands::on_page::on_page_duplicate_tags_get,
+            commands::on_page::on_page_duplicate_content_get,
+            commands::on_page::on_page_links_get,
+            commands::on_page::on_page_non_indexable_get,
+            commands::on_page::on_page_redirect_chains_get,
+            commands::on_page::on_page_microdata_get,
+            commands::on_page::on_page_keyword_density_get,
+            commands::on_page::on_page_content_parsing_command,
+            commands::on_page::on_page_lighthouse_audits_get,
+            commands::domain_analytics::domain_analytics_domains_by_technology,
+            commands::domain_analytics::domain_analytics_aggregation_technologies,
+            commands::brand::brand_rating_distribution,
+            commands::brand::brand_phrase_trends,
+            commands::brand::brand_category_trends,
+            commands::ledger::appendix_status,
+            commands::ledger::appendix_errors,
+            commands::app_data::app_data_google_play_app_searches,
+            commands::app_data::app_data_apple_app_searches,
+            commands::app_data::app_data_google_play_app_reviews,
+            commands::app_data::app_data_apple_app_reviews,
+            commands::projects::projects_list,
+            commands::projects::projects_create,
+            commands::projects::projects_rename,
+            commands::projects::projects_delete,
             commands::keywords::labs_keyword_overview,
             commands::keywords::labs_search_intent,
             commands::keywords::google_trends_explore,

@@ -497,3 +497,141 @@ pub struct BacklinksIntersectionArgs<'a> {
     pub filter: Option<&'a Filter>,
     pub order_by: Option<Vec<String>>,
 }
+
+// ---------- Bulk Backlinks family + Referring Networks + Domain Pages Summary + Available Filters ----------
+//
+// All bulk endpoints take an array of targets and return one row per target
+// with aggregate counters. Cheap (0.02 USD per request) and great for
+// auditing a list of competitor domains in one shot. Available Filters is
+// free and powers the visual filter-builder UI.
+
+#[derive(Debug, Clone)]
+pub struct BulkBacklinksArgs<'a> {
+    pub targets: &'a [String],
+    pub include_subdomains: bool,
+}
+
+#[derive(Debug)]
+pub struct BulkRowsResponse {
+    /// Raw items array — UI extracts the well-known counters (backlinks,
+    /// referring_domains, rank, spam_score, etc.) per target.
+    pub items: Value,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    /// Bulk Backlinks — one row per target with backlink + ref-domain counters.
+    pub async fn backlinks_bulk_backlinks_live(
+        &self,
+        args: BulkBacklinksArgs<'_>,
+    ) -> Result<BulkRowsResponse> {
+        self.bulk_backlinks_call("/v3/backlinks/bulk_backlinks/live", args).await
+    }
+
+    pub async fn backlinks_bulk_referring_domains_live(
+        &self,
+        args: BulkBacklinksArgs<'_>,
+    ) -> Result<BulkRowsResponse> {
+        self.bulk_backlinks_call("/v3/backlinks/bulk_referring_domains/live", args).await
+    }
+
+    pub async fn backlinks_bulk_ranks_live(
+        &self,
+        args: BulkBacklinksArgs<'_>,
+    ) -> Result<BulkRowsResponse> {
+        self.bulk_backlinks_call("/v3/backlinks/bulk_ranks/live", args).await
+    }
+
+    pub async fn backlinks_bulk_spam_score_live(
+        &self,
+        args: BulkBacklinksArgs<'_>,
+    ) -> Result<BulkRowsResponse> {
+        self.bulk_backlinks_call("/v3/backlinks/bulk_spam_score/live", args).await
+    }
+
+    pub async fn backlinks_bulk_new_lost_backlinks_live(
+        &self,
+        args: BulkBacklinksArgs<'_>,
+    ) -> Result<BulkRowsResponse> {
+        self.bulk_backlinks_call("/v3/backlinks/bulk_new_lost_backlinks/live", args).await
+    }
+
+    /// Referring Networks — same shape as referring_domains (one row per
+    /// linking subnet/AS) but at the network level rather than domain.
+    pub async fn backlinks_referring_networks_live(
+        &self,
+        args: BacklinksListArgs<'_>,
+    ) -> Result<BacklinksListResponse> {
+        self.backlinks_list_call(
+            "/v3/backlinks/referring_networks/live",
+            "referring_networks",
+            args,
+        )
+        .await
+    }
+
+    /// Domain Pages Summary — flat per-domain rollup of page-level metrics
+    /// (broken pages, redirects, 4xx counts) in one call.
+    pub async fn backlinks_domain_pages_summary_live(
+        &self,
+        target: &str,
+        include_subdomains: bool,
+    ) -> Result<Value> {
+        let body = serde_json::json!([{
+            "target": target,
+            "include_subdomains": include_subdomains,
+        }]);
+        let raw = self
+            .post_json(
+                Family::Backlinks,
+                "/v3/backlinks/domain_pages_summary/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let result = raw
+            .pointer("/tasks/0/result/0")
+            .cloned()
+            .unwrap_or(Value::Null);
+        // Embed the cost so the caller can record it via run_with_ledger.
+        let mut wrapped = serde_json::Map::new();
+        wrapped.insert("result".to_string(), result);
+        wrapped.insert("cost".to_string(), serde_json::json!(cost));
+        Ok(Value::Object(wrapped))
+    }
+
+    /// Available Filters — free endpoint that returns the field/op metadata
+    /// powering the visual filter-builder. Cached aggressively (30d) since
+    /// the schema rarely changes.
+    pub async fn backlinks_available_filters(&self) -> Result<Value> {
+        let raw = self
+            .get_json(Family::Backlinks, "/v3/backlinks/available_filters")
+            .await?;
+        ensure_api_success(&raw)?;
+        let result = raw
+            .pointer("/tasks/0/result")
+            .cloned()
+            .unwrap_or(Value::Null);
+        Ok(result)
+    }
+
+    async fn bulk_backlinks_call(
+        &self,
+        path: &str,
+        args: BulkBacklinksArgs<'_>,
+    ) -> Result<BulkRowsResponse> {
+        let body = serde_json::json!([{
+            "targets": args.targets,
+            "include_subdomains": args.include_subdomains,
+        }]);
+        let raw = self.post_json(Family::Backlinks, path, &body).await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new()));
+        Ok(BulkRowsResponse { items, cost })
+    }
+}

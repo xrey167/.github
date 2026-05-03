@@ -38,7 +38,22 @@ export type CostAction =
   | { kind: "GoogleAdsKeywordsExpansion" }
   | { kind: "ContentAnalysisSearch"; rows: number }
   | { kind: "ContentAnalysisSummary" }
-  | { kind: "ContentAnalysisSentiment"; rows: number };
+  | { kind: "ContentAnalysisSentiment"; rows: number }
+  | { kind: "BacklinksBulk"; target_count: number }
+  | { kind: "BacklinksDomainPagesSummary" }
+  | { kind: "BacklinksAvailableFilters" }
+  | { kind: "OnPageSubItems"; rows: number }
+  | { kind: "OnPageLighthouseAudits" }
+  | { kind: "OnPageContentParsing" }
+  | { kind: "LabsFlat" }
+  | { kind: "LabsCategoriesForKeywords" }
+  | { kind: "ContentAnalysisRatingDistribution" }
+  | { kind: "ContentAnalysisPhraseTrends"; rows: number }
+  | { kind: "ContentAnalysisCategoryTrends"; rows: number }
+  | { kind: "DomainAnalyticsDomainsByTechnology" }
+  | { kind: "DomainAnalyticsAggregationTechnologies" }
+  | { kind: "AppendixFree" }
+  | { kind: "AppData" };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -118,5 +133,32 @@ export function estimate(action: CostAction): number {
       return 0.001;
     case "ContentAnalysisSentiment":
       return Math.max(1, action.rows) * 0.0005;
+    case "BacklinksBulk":
+      return Math.max(1, action.target_count) * 0.02;
+    case "BacklinksDomainPagesSummary":
+      return 0.02;
+    case "BacklinksAvailableFilters":
+    case "OnPageLighthouseAudits":
+    case "AppendixFree":
+      return 0.0;
+    case "OnPageSubItems":
+      return Math.max(1, action.rows) * 0.0001;
+    case "OnPageContentParsing":
+      return 0.0025;
+    case "LabsFlat":
+      return 0.0125;
+    case "LabsCategoriesForKeywords":
+      return 0.0001;
+    case "ContentAnalysisRatingDistribution":
+      return 0.0005;
+    case "ContentAnalysisPhraseTrends":
+      return Math.max(1, action.rows) * 0.0005;
+    case "ContentAnalysisCategoryTrends":
+      return Math.max(1, action.rows) * 0.0005;
+    case "DomainAnalyticsDomainsByTechnology":
+    case "DomainAnalyticsAggregationTechnologies":
+      return 0.001;
+    case "AppData":
+      return 0.002;
   }
 }

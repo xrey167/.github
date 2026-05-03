@@ -746,3 +746,188 @@ impl ApiClient {
         })
     }
 }
+
+// ---------- Phase A: Historical/Subdomains/Relevant/PageIntersection/Ideas/TopSearches/CategoriesForKeywords ----------
+
+#[derive(Debug)]
+pub struct LabsRawValueResponse {
+    pub items: serde_json::Value,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    /// Historical Rank Overview — month-by-month organic+paid keyword
+    /// counts, ETV, etc. for a domain over the last 12 months. Powers the
+    /// DomainPage › Historical line chart.
+    pub async fn labs_historical_rank_overview(
+        &self,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<LabsRawValueResponse> {
+        self.labs_target_call(
+            "/v3/dataforseo_labs/google/historical_rank_overview/live",
+            target,
+            location_code,
+            language_code,
+        )
+        .await
+    }
+
+    /// Subdomains — list of subdomains with traffic/keyword counts.
+    pub async fn labs_subdomains(
+        &self,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<LabsRawValueResponse> {
+        self.labs_target_call(
+            "/v3/dataforseo_labs/google/subdomains/live",
+            target,
+            location_code,
+            language_code,
+        )
+        .await
+    }
+
+    /// Relevant Pages — top-traffic pages on a domain.
+    pub async fn labs_relevant_pages(
+        &self,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<LabsRawValueResponse> {
+        self.labs_target_call(
+            "/v3/dataforseo_labs/google/relevant_pages/live",
+            target,
+            location_code,
+            language_code,
+        )
+        .await
+    }
+
+    /// Page Intersection — keywords that a SET of URLs (up to 20) all rank
+    /// for. Like domain_intersection but at the page level. The
+    /// `intersections` parameter sets the minimum number of supplied
+    /// pages a keyword must appear under for the row to be included; we
+    /// default to "every page must rank" by using the supplied count
+    /// (clamped to ≤ 20 by the API).
+    pub async fn labs_page_intersection(
+        &self,
+        pages: &[String],
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<LabsRawValueResponse> {
+        // The API takes pages keyed by index ("1": url, "2": url, ...) up
+        // to 20 entries. We send all supplied pages (clamped to 20) and
+        // explicitly set `intersections` so the caller controls the
+        // overlap requirement instead of relying on an implicit default.
+        let mut payload = serde_json::Map::new();
+        let kept: Vec<&String> = pages.iter().take(20).collect();
+        for (i, p) in kept.iter().enumerate() {
+            payload.insert(format!("{}", i + 1), serde_json::Value::String((*p).clone()));
+        }
+        let intersections = kept.len().max(1) as u32;
+        let body = serde_json::json!([{
+            "pages": payload,
+            "intersections": intersections,
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.min(1000),
+        }]);
+        self.labs_raw_call(
+            "/v3/dataforseo_labs/google/page_intersection/live",
+            &body,
+        )
+        .await
+    }
+
+    /// Keyword Ideas — DataForSEO's own keyword expansion.
+    pub async fn labs_keyword_ideas(
+        &self,
+        keywords: &[String],
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<LabsRawValueResponse> {
+        let body = serde_json::json!([{
+            "keywords": keywords,
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.min(1000),
+        }]);
+        self.labs_raw_call(
+            "/v3/dataforseo_labs/google/keyword_ideas/live",
+            &body,
+        )
+        .await
+    }
+
+    /// Top Searches — fastest-growing or top-traffic queries in a country.
+    pub async fn labs_top_searches(
+        &self,
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<LabsRawValueResponse> {
+        let body = serde_json::json!([{
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.min(1000),
+        }]);
+        self.labs_raw_call(
+            "/v3/dataforseo_labs/google/top_searches/live",
+            &body,
+        )
+        .await
+    }
+
+    /// Categories For Keywords — IAB taxonomy classification per keyword.
+    pub async fn labs_categories_for_keywords(
+        &self,
+        keywords: &[String],
+        language_code: &str,
+    ) -> Result<LabsRawValueResponse> {
+        let body = serde_json::json!([{
+            "keywords": keywords,
+            "language_code": language_code,
+        }]);
+        self.labs_raw_call(
+            "/v3/dataforseo_labs/google/categories_for_keywords/live",
+            &body,
+        )
+        .await
+    }
+
+    async fn labs_target_call(
+        &self,
+        path: &str,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<LabsRawValueResponse> {
+        let body = serde_json::json!([{
+            "target": target,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        self.labs_raw_call(path, &body).await
+    }
+
+    async fn labs_raw_call(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<LabsRawValueResponse> {
+        let raw = self.post_json(Family::Labs, path, body).await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+        Ok(LabsRawValueResponse { items, cost })
+    }
+}

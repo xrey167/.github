@@ -186,3 +186,205 @@ impl ApiClient {
         })
     }
 }
+
+// ---------- On-Page sub-endpoints (drill into a completed crawl) ----------
+//
+// Each takes a task_id from a finished audit and returns one specific
+// slice of the audit data: pages, resources, links, duplicate-content
+// clusters, etc. All cheap (0.0001/row). UI surfaces them under the
+// AuditPage drill-down.
+
+#[derive(Debug)]
+pub struct OnPageItemsResponse {
+    pub items: serde_json::Value,
+    pub items_count: i64,
+    pub total_count: i64,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    pub async fn on_page_pages_endpoint(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        // Same as on_page_pages but exposed as a typed wrapper for the
+        // drill-down — the original on_page_pages returns Value directly
+        // so we don't break the audit_poller wiring.
+        self.on_page_items_call("/v3/on_page/pages", task_id, limit, offset).await
+    }
+
+    pub async fn on_page_pages_by_resource(
+        &self,
+        task_id: &str,
+        url: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        let body = serde_json::json!([{
+            "id": task_id,
+            "url": url,
+            "limit": limit.clamp(1, 1000),
+            "offset": offset,
+        }]);
+        self.on_page_items_post("/v3/on_page/pages_by_resource", &body).await
+    }
+
+    pub async fn on_page_resources(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        self.on_page_items_call("/v3/on_page/resources", task_id, limit, offset).await
+    }
+
+    pub async fn on_page_duplicate_tags(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        self.on_page_items_call("/v3/on_page/duplicate_tags", task_id, limit, offset).await
+    }
+
+    pub async fn on_page_duplicate_content(
+        &self,
+        task_id: &str,
+        url: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        let body = serde_json::json!([{
+            "id": task_id,
+            "url": url,
+            "limit": limit.clamp(1, 1000),
+            "offset": offset,
+        }]);
+        self.on_page_items_post("/v3/on_page/duplicate_content", &body).await
+    }
+
+    pub async fn on_page_links(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        self.on_page_items_call("/v3/on_page/links", task_id, limit, offset).await
+    }
+
+    pub async fn on_page_non_indexable(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        self.on_page_items_call("/v3/on_page/non_indexable", task_id, limit, offset).await
+    }
+
+    pub async fn on_page_redirect_chains(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        self.on_page_items_call("/v3/on_page/redirect_chains", task_id, limit, offset).await
+    }
+
+    pub async fn on_page_microdata(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        self.on_page_items_call("/v3/on_page/microdata", task_id, limit, offset).await
+    }
+
+    pub async fn on_page_keyword_density(
+        &self,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        let body = serde_json::json!([{
+            "id": task_id,
+            "limit": limit.clamp(1, 1000),
+            "offset": offset,
+            "keyword_length": 1,
+        }]);
+        self.on_page_items_post("/v3/on_page/keyword_density", &body).await
+    }
+
+    pub async fn on_page_content_parsing_live(
+        &self,
+        url: &str,
+    ) -> Result<serde_json::Value> {
+        let body = serde_json::json!([{ "url": url }]);
+        let raw = self
+            .post_json(Family::OnPage, "/v3/on_page/content_parsing/live", &body)
+            .await?;
+        ensure_api_success(&raw)?;
+        Ok(raw
+            .pointer("/tasks/0/result/0/items")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null))
+    }
+
+    /// Lighthouse · Audits — free; lists every audit Lighthouse can run.
+    pub async fn on_page_lighthouse_audits(&self) -> Result<serde_json::Value> {
+        let raw = self
+            .get_json(Family::OnPage, "/v3/on_page/lighthouse/audits")
+            .await?;
+        ensure_api_success(&raw)?;
+        Ok(raw
+            .pointer("/tasks/0/result")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null))
+    }
+
+    async fn on_page_items_call(
+        &self,
+        path: &str,
+        task_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<OnPageItemsResponse> {
+        let body = serde_json::json!([{
+            "id": task_id,
+            "limit": limit.clamp(1, 1000),
+            "offset": offset,
+        }]);
+        self.on_page_items_post(path, &body).await
+    }
+
+    async fn on_page_items_post(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<OnPageItemsResponse> {
+        let raw = self.post_json(Family::OnPage, path, body).await?;
+        let cost = ensure_api_success(&raw)?;
+        let result = raw.pointer("/tasks/0/result/0");
+        let items_count = result
+            .and_then(|r| r.pointer("/items_count"))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let total_count = result
+            .and_then(|r| r.pointer("/total_count"))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let items = result
+            .and_then(|r| r.pointer("/items"))
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+        Ok(OnPageItemsResponse {
+            items,
+            items_count,
+            total_count,
+            cost,
+        })
+    }
+}

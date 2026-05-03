@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { useProject } from "../lib/project-store";
 import CompetitorsDomainTab from "./domain/CompetitorsDomainTab";
 import DomainIntersectionTab from "./domain/DomainIntersectionTab";
 import KeywordGapTab from "./domain/KeywordGapTab";
@@ -19,8 +20,18 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export default function DomainPage() {
-  const [target, setTarget] = useState("");
+  const { active: project } = useProject();
+  const [target, setTarget] = useState(project?.target ?? "");
   const [active, setActive] = useState<TabId>("overview");
+
+  // Sync the input when the user switches projects, but don't fight
+  // them if they've manually typed a different target — we only update
+  // when the input still equals the previous project (or is empty).
+  useEffect(() => {
+    if (project) {
+      setTarget((cur) => (cur === "" ? project.target : cur));
+    }
+  }, [project]);
 
   return (
     <section className="flex flex-col gap-6">

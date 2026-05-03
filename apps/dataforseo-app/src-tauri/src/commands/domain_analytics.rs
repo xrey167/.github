@@ -176,3 +176,96 @@ pub async fn domain_technologies(
     cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
     Ok(view)
 }
+
+// ---------- Phase A: Reverse-tech lookup + Aggregation ----------
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn domain_analytics_domains_by_technology(
+    state: State<'_, AppState>,
+    technologies: Vec<String>,
+    limit: u32,
+    use_cache: bool,
+) -> Result<Value> {
+    let cleaned: Vec<String> = technologies
+        .into_iter()
+        .map(|t| t.trim().to_owned())
+        .filter(|t| !t.is_empty())
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one technology required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::DomainAnalyticsDomainsByTechnology);
+    let endpoint = endpoints::DOMAIN_ANALYTICS_DOMAINS_BY_TECH;
+    let mut sorted = cleaned.clone();
+    sorted.sort();
+    let cache_params = serde_json::json!({ "technologies": sorted, "limit": limit });
+    if use_cache {
+        if let CachedOutcome::Hit { view, .. } = cached::lookup::<Value>(
+            state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+        ).await? {
+            return Ok(view);
+        }
+    }
+    let api = state.api.clone();
+    let tech_for_call = cleaned.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api.domain_analytics_domains_by_technology_live(&tech_for_call, limit).await?;
+            Ok((r, estimated_usd))
+        },
+    )
+    .await?;
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &resp, estimated_usd).await?;
+    Ok(resp)
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn domain_analytics_aggregation_technologies(
+    state: State<'_, AppState>,
+    targets: Vec<String>,
+    use_cache: bool,
+) -> Result<Value> {
+    let cleaned: Vec<String> = targets
+        .into_iter()
+        .map(|t| t.trim().to_owned())
+        .filter(|t| !t.is_empty())
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::DomainAnalyticsAggregationTechnologies);
+    let endpoint = endpoints::DOMAIN_ANALYTICS_AGGREGATION_TECH;
+    let mut sorted = cleaned.clone();
+    sorted.sort();
+    let cache_params = serde_json::json!({ "targets": sorted });
+    if use_cache {
+        if let CachedOutcome::Hit { view, .. } = cached::lookup::<Value>(
+            state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+        ).await? {
+            return Ok(view);
+        }
+    }
+    let api = state.api.clone();
+    let targets_for_call = cleaned.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api.domain_analytics_aggregation_technologies_live(&targets_for_call).await?;
+            Ok((r, estimated_usd))
+        },
+    )
+    .await?;
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &resp, estimated_usd).await?;
+    Ok(resp)
+}

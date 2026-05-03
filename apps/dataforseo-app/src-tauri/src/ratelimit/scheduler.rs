@@ -21,6 +21,7 @@ pub enum Family {
     DomainAnalytics,
     OnPage,
     ContentAnalysis,
+    AppData,
 }
 
 struct Bucket {
@@ -85,6 +86,9 @@ impl Scheduler {
         buckets.insert(Family::OnPage, Bucket::new(2000.0, 2000.0 / 60.0));
         // Content Analysis (search, summary, sentiment) — 2000 rpm.
         buckets.insert(Family::ContentAnalysis, Bucket::new(2000.0, 2000.0 / 60.0));
+        // App Data (Google Play + App Store) — same SerpLive bucket
+        // dynamics (60 rpm sustained), since it's a SERP-style scrape.
+        buckets.insert(Family::AppData, Bucket::new(60.0, 10.0));
         Self { buckets: Mutex::new(buckets) }
     }
 

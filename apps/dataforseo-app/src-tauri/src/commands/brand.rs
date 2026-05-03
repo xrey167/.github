@@ -245,3 +245,132 @@ pub async fn brand_sentiment(
     cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
     Ok(view)
 }
+
+// ---------- Phase A: Content Analysis Rating / Phrase Trends / Category Trends ----------
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn brand_rating_distribution(
+    state: State<'_, AppState>,
+    keyword: String,
+    use_cache: bool,
+) -> Result<Value> {
+    let kw = keyword.trim().to_owned();
+    if kw.is_empty() {
+        return Err(AppError::Validation("keyword required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::ContentAnalysisRatingDistribution);
+    let endpoint = endpoints::CONTENT_ANALYSIS_RATING_DISTRIBUTION;
+    let cache_params = serde_json::json!({ "keyword": &kw });
+    if use_cache {
+        if let CachedOutcome::Hit { view, .. } = cached::lookup::<Value>(
+            state.store.clone(), endpoint, &cache_params, cache::ttl_short(), use_cache,
+        ).await? {
+            return Ok(view);
+        }
+    }
+    let api = state.api.clone();
+    let kw_for_call = kw.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api.content_analysis_rating_distribution_live(&kw_for_call).await?;
+            Ok((r, estimated_usd))
+        },
+    )
+    .await?;
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &resp, estimated_usd).await?;
+    Ok(resp)
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn brand_phrase_trends(
+    state: State<'_, AppState>,
+    keyword: String,
+    date_from: Option<String>,
+    date_to: Option<String>,
+    use_cache: bool,
+) -> Result<Value> {
+    let kw = keyword.trim().to_owned();
+    if kw.is_empty() {
+        return Err(AppError::Validation("keyword required".into()));
+    }
+    // Phrase trends bills per row but we don't know the row count up-front;
+    // estimate at 30 rows (≈ a year of weekly buckets). Real bill comes
+    // back via the API and lands in the ledger.
+    let estimated_usd = cost::estimate(&CostAction::ContentAnalysisPhraseTrends { rows: 30 });
+    let endpoint = endpoints::CONTENT_ANALYSIS_PHRASE_TRENDS;
+    let cache_params = serde_json::json!({
+        "keyword": &kw, "date_from": &date_from, "date_to": &date_to,
+    });
+    if use_cache {
+        if let CachedOutcome::Hit { view, .. } = cached::lookup::<Value>(
+            state.store.clone(), endpoint, &cache_params, cache::ttl_short(), use_cache,
+        ).await? {
+            return Ok(view);
+        }
+    }
+    let api = state.api.clone();
+    let kw_for_call = kw.clone();
+    let from_for_call = date_from.clone();
+    let to_for_call = date_to.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .content_analysis_phrase_trends_live(
+                    &kw_for_call,
+                    from_for_call.as_deref(),
+                    to_for_call.as_deref(),
+                )
+                .await?;
+            Ok((r, estimated_usd))
+        },
+    )
+    .await?;
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &resp, estimated_usd).await?;
+    Ok(resp)
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn brand_category_trends(
+    state: State<'_, AppState>,
+    category_code: i64,
+    use_cache: bool,
+) -> Result<Value> {
+    let estimated_usd = cost::estimate(&CostAction::ContentAnalysisCategoryTrends { rows: 30 });
+    let endpoint = endpoints::CONTENT_ANALYSIS_CATEGORY_TRENDS;
+    let cache_params = serde_json::json!({ "category_code": category_code });
+    if use_cache {
+        if let CachedOutcome::Hit { view, .. } = cached::lookup::<Value>(
+            state.store.clone(), endpoint, &cache_params, cache::ttl_short(), use_cache,
+        ).await? {
+            return Ok(view);
+        }
+    }
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api.content_analysis_category_trends_live(category_code).await?;
+            Ok((r, estimated_usd))
+        },
+    )
+    .await?;
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &resp, estimated_usd).await?;
+    Ok(resp)
+}

@@ -1,4 +1,5 @@
 pub mod ai;
+pub mod app_data;
 pub mod audit;
 pub mod auth;
 pub mod backlinks;
@@ -8,6 +9,7 @@ pub mod domain_analytics;
 pub mod keywords;
 pub mod ledger;
 pub mod on_page;
+pub mod projects;
 pub mod serp;
 pub mod topic;
 pub mod tracking;

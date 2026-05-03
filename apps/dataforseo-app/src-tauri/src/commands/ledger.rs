@@ -192,3 +192,17 @@ pub async fn clear_budget(state: State<'_, AppState>, period: String) -> Result<
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?
 }
+
+// ---------- Phase A: Appendix endpoints (free diagnostic) ----------
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn appendix_status(state: State<'_, AppState>) -> Result<serde_json::Value> {
+    state.api.appendix_status().await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn appendix_errors(state: State<'_, AppState>) -> Result<serde_json::Value> {
+    state.api.appendix_errors().await
+}

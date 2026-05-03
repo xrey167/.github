@@ -1,6 +1,10 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 
+import ErrorBoundary from "./components/ErrorBoundary";
+import ProjectSwitcher from "./components/ProjectSwitcher";
+import { ProjectProvider } from "./lib/project-store";
 import AdsPage from "./routes/AdsPage";
+import AppsPage from "./routes/AppsPage";
 import AuditPage from "./routes/AuditPage";
 import BacklinksPage from "./routes/BacklinksPage";
 import BrandPage from "./routes/BrandPage";
@@ -33,6 +37,7 @@ const navItems = [
   { to: "/ads", label: "Ads" },
   { to: "/social", label: "Social" },
   { to: "/brand", label: "Brand Monitor" },
+  { to: "/apps", label: "Apps" },
   { to: "/compare", label: "Compare" },
   { to: "/tasks", label: "Tasks" },
   { to: "/chat", label: "Chat" },
@@ -42,9 +47,20 @@ const navItems = [
 
 export default function App() {
   return (
+    <ErrorBoundary>
+      <ProjectProvider>
+        <AppShell />
+      </ProjectProvider>
+    </ErrorBoundary>
+  );
+}
+
+function AppShell() {
+  return (
     <div className="flex h-screen">
       <aside className="w-56 border-r bg-slate-50 p-4">
-        <h1 className="mb-6 text-lg font-semibold">DataForSEO</h1>
+        <h1 className="mb-3 text-lg font-semibold">DataForSEO</h1>
+        <ProjectSwitcher />
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => (
             <Link
@@ -73,6 +89,7 @@ export default function App() {
           <Route path="/ads" element={<AdsPage />} />
           <Route path="/social" element={<SocialPage />} />
           <Route path="/brand" element={<BrandPage />} />
+          <Route path="/apps" element={<AppsPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/chat" element={<ChatPage />} />
