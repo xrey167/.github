@@ -69,7 +69,9 @@ describe("downloadCsv", () => {
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        expect(captured.split("\n")[0]).toBe("computed");
+        // CSV uses CRLF per RFC 4180, so split on \r?\n to drop the
+        // trailing \r that would otherwise leak into [0].
+        expect(captured.split(/\r?\n/)[0]).toBe("computed");
         resolve();
       }, 10);
     });
