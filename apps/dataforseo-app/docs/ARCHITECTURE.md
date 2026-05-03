@@ -107,6 +107,6 @@ The Backlinks Detail tab keeps the legacy three presets ("Dofollow only" / "Doma
 
 ## Testing
 
-- **Rust**: `cargo test --workspace` (unit tests in `domain/`, `cache/`, `ratelimit/`, plus ts-rs export round-trips for every `#[derive(TS)]` type — 122 tests as of `b19d4be`).
-- **Frontend**: `npx vitest run` covers `cost.ts`, `export.ts`, `format.ts`, `errors.ts`, `i18n/index.ts`, `lib/telemetry.ts` plus components `CacheBadge`, `CostPreview`, `ExportMenu`, `FilterBuilder` (60 tests as of this commit). `src/test-setup.ts` polyfills `Blob.prototype.text` for jsdom and stubs `HTMLAnchorElement.click` so download flows don't error.
-- **CI**: `.github/workflows/dataforseo-app-ci.yml` runs frontend + rust + tauri build smoke on every PR touching `apps/dataforseo-app/**`. Workflow now uses `RUST_BACKTRACE=full`, tees clippy + cargo-test output, and uploads a `rust-ci-logs` artifact on failure for triage.
+- **Rust**: `cargo test --workspace` exercises unit tests in `domain/`, `cache/`, `ratelimit/`, plus ts-rs export round-trips for every `#[derive(TS)]` type.
+- **Frontend**: `npx vitest run` covers `cost.ts`, `export.ts`, `format.ts`, `errors.ts`, `i18n/index.ts`, `lib/telemetry.ts` plus components `CacheBadge`, `CostPreview`, `ExportMenu`, `FilterBuilder`. `src/test-setup.ts` polyfills `Blob.prototype.text` for jsdom and stubs `HTMLAnchorElement.click` so download flows don't error.
+- **CI**: `.github/workflows/dataforseo-app-ci.yml` runs frontend + rust + tauri build smoke on every PR touching `apps/dataforseo-app/**`. The Rust job runs with `RUST_BACKTRACE=full`, tees clippy + cargo-test output, and uploads a `rust-ci-logs` artifact on failure for triage.

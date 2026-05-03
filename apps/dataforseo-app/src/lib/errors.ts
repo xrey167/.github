@@ -29,7 +29,18 @@ const API_HINTS: Record<number, string> = {
   50300: "DataForSEO is temporarily unavailable.",
 };
 
-export function formatError(e: unknown): string {
+/// Format an unknown caught error into a user-facing string.
+///
+/// Pass `context` to prepend a short label that tells the user *which*
+/// operation failed (e.g. "Sessions" → "Sessions: ..."). The label is
+/// rendered verbatim, so callers that want a localised label should
+/// pass a translated string (e.g. `t("common.failed")`).
+export function formatError(e: unknown, context?: string): string {
+  const base = formatBase(e);
+  return context ? `${context}: ${base}` : base;
+}
+
+function formatBase(e: unknown): string {
   if (e == null) return "Unknown error";
   if (typeof e === "string") return e;
   const raw = e as RawError;

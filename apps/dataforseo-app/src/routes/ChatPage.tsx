@@ -34,7 +34,7 @@ export default function ChatPage() {
     try {
       setSessions(await tauriApi.chatListSessions({ limit: 50 }));
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(formatError(e, "Sessions"));
     }
   }, []);
 
@@ -43,7 +43,7 @@ export default function ChatPage() {
     tauriApi
       .aiPromptTemplates()
       .then(setTemplates)
-      .catch((e) => toast.error(formatError(e)));
+      .catch((e) => toast.error(formatError(e, "Templates")));
     tauriApi
       .aiProviderStatus()
       .then((statuses) => setProviderConfigured(statuses.some((s) => s.configured)))
@@ -67,7 +67,7 @@ export default function ChatPage() {
         setMessages(history);
         setActiveSession(session);
       })
-      .catch((e) => toast.error(formatError(e)))
+      .catch((e) => toast.error(formatError(e, "Load session")))
       .finally(() => setBusy(false));
   }, [sessionId]);
 
@@ -88,7 +88,7 @@ export default function ChatPage() {
       navigate(`/chat/${id}`);
       await refreshSessions();
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(formatError(e, "New session"));
     }
   }
 
@@ -122,7 +122,7 @@ export default function ChatPage() {
       }
       await refreshSessions();
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(formatError(e, "Send"));
       // Rollback the optimistic message — chat_send persists the user
       // turn before the API call, so a fresh history pull is the source
       // of truth even on failure.
