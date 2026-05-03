@@ -67,9 +67,11 @@ describe("ResultsTable", () => {
     render(<ResultsTable data={ROWS} columns={COLS} />);
     const scoreHeader = screen.getByText("Score");
     fireEvent.click(scoreHeader);
-    // First click on numeric column → descending → ▼
-    expect(scoreHeader.parentElement?.textContent).toMatch(/▼/);
+    // First click on numeric column → descending → ▼.
+    // Asserting on the <th> directly (not the row) so a glyph that
+    // accidentally rendered in a sibling column wouldn't pass.
+    expect(scoreHeader.textContent).toMatch(/▼/);
     fireEvent.click(scoreHeader);
-    expect(scoreHeader.parentElement?.textContent).toMatch(/▲/);
+    expect(scoreHeader.textContent).toMatch(/▲/);
   });
 });
