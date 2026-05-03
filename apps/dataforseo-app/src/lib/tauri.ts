@@ -232,6 +232,23 @@ export const tauriApi = {
   brandSentiment: (args: { keyword: string; limit: number; useCache: boolean }) =>
     invoke<BrandSentimentView>("brand_sentiment", args),
 
+  backlinksBulkBacklinks: (args: { params: BulkBacklinksParams; useCache: boolean }) =>
+    invoke<BulkRowsView>("backlinks_bulk_backlinks", args),
+  backlinksBulkReferringDomains: (args: { params: BulkBacklinksParams; useCache: boolean }) =>
+    invoke<BulkRowsView>("backlinks_bulk_referring_domains", args),
+  backlinksBulkRanks: (args: { params: BulkBacklinksParams; useCache: boolean }) =>
+    invoke<BulkRowsView>("backlinks_bulk_ranks", args),
+  backlinksBulkSpamScore: (args: { params: BulkBacklinksParams; useCache: boolean }) =>
+    invoke<BulkRowsView>("backlinks_bulk_spam_score", args),
+  backlinksBulkNewLost: (args: { params: BulkBacklinksParams; useCache: boolean }) =>
+    invoke<BulkRowsView>("backlinks_bulk_new_lost", args),
+  backlinksReferringNetworks: (params: BacklinksListParams) =>
+    invoke<BacklinksListView>("backlinks_referring_networks", { params }),
+  backlinksDomainPagesSummary: (args: { target: string; includeSubdomains: boolean; useCache: boolean }) =>
+    invoke<DomainPagesSummaryView>("backlinks_domain_pages_summary", args),
+  backlinksAvailableFilters: (args: { useCache: boolean }) =>
+    invoke<AvailableFiltersView>("backlinks_available_filters", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -636,6 +653,35 @@ export interface BrandSentimentView {
   items: Array<Record<string, unknown>>;
   cost_usd: number;
   estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface BulkBacklinksParams {
+  targets: string[];
+  includeSubdomains: boolean;
+}
+
+export interface BulkRowsView {
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface DomainPagesSummaryView {
+  target: string;
+  result: Record<string, unknown> | null;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface AvailableFiltersView {
+  // DataForSEO returns a nested map of fields → operators per endpoint.
+  result: Record<string, unknown> | null;
   from_cache: boolean;
   fetched_at: string | null;
 }

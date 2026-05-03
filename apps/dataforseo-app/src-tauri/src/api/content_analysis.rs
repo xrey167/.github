@@ -140,3 +140,68 @@ impl ApiClient {
         Ok(ContentSentimentResponse { items, cost })
     }
 }
+
+// ---------- Phase A: Rating Distribution / Phrase Trends / Category Trends ----------
+
+impl ApiClient {
+    pub async fn content_analysis_rating_distribution_live(
+        &self,
+        keyword: &str,
+    ) -> Result<Value> {
+        let body = serde_json::json!([{
+            "keyword": keyword,
+            "page_type": ["news", "blogs", "ecommerce_and_business", "message-board"],
+        }]);
+        let raw = self
+            .post_json(Family::ContentAnalysis, "/v3/content_analysis/rating_distribution/live", &body)
+            .await?;
+        ensure_api_success(&raw)?;
+        Ok(raw
+            .pointer("/tasks/0/result/0")
+            .cloned()
+            .unwrap_or(Value::Null))
+    }
+
+    pub async fn content_analysis_phrase_trends_live(
+        &self,
+        keyword: &str,
+        date_from: Option<&str>,
+        date_to: Option<&str>,
+    ) -> Result<Value> {
+        let mut payload = serde_json::json!({ "keyword": keyword });
+        if let Some(f) = date_from {
+            payload["date_from"] = serde_json::Value::String(f.to_owned());
+        }
+        if let Some(t) = date_to {
+            payload["date_to"] = serde_json::Value::String(t.to_owned());
+        }
+        let body = serde_json::json!([payload]);
+        let raw = self
+            .post_json(Family::ContentAnalysis, "/v3/content_analysis/phrase_trends/live", &body)
+            .await?;
+        ensure_api_success(&raw)?;
+        Ok(raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new())))
+    }
+
+    pub async fn content_analysis_category_trends_live(
+        &self,
+        category_code: i64,
+    ) -> Result<Value> {
+        let body = serde_json::json!([{ "category_code": category_code }]);
+        let raw = self
+            .post_json(Family::ContentAnalysis, "/v3/content_analysis/category_trends/live", &body)
+            .await?;
+        ensure_api_success(&raw)?;
+        Ok(raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(Value::Array)
+            .unwrap_or_else(|| Value::Array(Vec::new())))
+    }
+}

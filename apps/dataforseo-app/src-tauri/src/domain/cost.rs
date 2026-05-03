@@ -93,6 +93,39 @@ pub enum CostAction {
     ContentAnalysisSummary,
     /// Content Analysis Sentiment · 0.0005 USD per row.
     ContentAnalysisSentiment { rows: u32 },
+    /// Backlinks bulk endpoints (bulk_backlinks, bulk_referring_domains,
+    /// bulk_ranks, bulk_spam_score, bulk_new_lost) · 0.02 USD per target.
+    BacklinksBulk { target_count: u32 },
+    /// Backlinks Domain Pages Summary · 0.02 USD per request (one summary
+    /// row regardless of how many pages the target has).
+    BacklinksDomainPagesSummary,
+    /// Backlinks Available Filters · free.
+    BacklinksAvailableFilters,
+    /// On-Page sub-endpoints (pages, resources, links, etc.) ·
+    /// 0.0001 USD per row.
+    OnPageSubItems { rows: u32 },
+    /// On-Page Lighthouse Audits / Versions · free.
+    OnPageLighthouseAudits,
+    /// On-Page Content Parsing · 0.0025 USD per request.
+    OnPageContentParsing,
+    /// Labs flat-priced endpoints (historical_rank_overview, subdomains,
+    /// relevant_pages, page_intersection, keyword_ideas, top_searches) ·
+    /// 0.0125 USD per request.
+    LabsFlat,
+    /// Labs Categories For Keywords · 0.0001 USD per call.
+    LabsCategoriesForKeywords,
+    /// Content Analysis Rating Distribution · 0.0005 USD flat.
+    ContentAnalysisRatingDistribution,
+    /// Content Analysis Phrase Trends · 0.0005 USD per row.
+    ContentAnalysisPhraseTrends { rows: u32 },
+    /// Content Analysis Category Trends · 0.0005 USD per row.
+    ContentAnalysisCategoryTrends { rows: u32 },
+    /// Domain Analytics Domains by Technology · 0.001 USD per call.
+    DomainAnalyticsDomainsByTechnology,
+    /// Domain Analytics Aggregation Technologies · 0.001 USD per call.
+    DomainAnalyticsAggregationTechnologies,
+    /// Free Appendix endpoints — status, errors.
+    AppendixFree,
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -163,6 +196,20 @@ pub fn estimate(action: &CostAction) -> f64 {
         ContentAnalysisSearch { rows } => (*rows as f64).max(1.0) * 0.001,
         ContentAnalysisSummary => 0.001,
         ContentAnalysisSentiment { rows } => (*rows as f64).max(1.0) * 0.0005,
+        BacklinksBulk { target_count } => (*target_count as f64).max(1.0) * 0.02,
+        BacklinksDomainPagesSummary => 0.02,
+        BacklinksAvailableFilters => 0.0,
+        OnPageSubItems { rows } => (*rows as f64).max(1.0) * 0.0001,
+        OnPageLighthouseAudits => 0.0,
+        OnPageContentParsing => 0.0025,
+        LabsFlat => 0.0125,
+        LabsCategoriesForKeywords => 0.0001,
+        ContentAnalysisRatingDistribution => 0.0005,
+        ContentAnalysisPhraseTrends { rows } => (*rows as f64).max(1.0) * 0.0005,
+        ContentAnalysisCategoryTrends { rows } => (*rows as f64).max(1.0) * 0.0005,
+        DomainAnalyticsDomainsByTechnology => 0.001,
+        DomainAnalyticsAggregationTechnologies => 0.001,
+        AppendixFree => 0.0,
     }
 }
 

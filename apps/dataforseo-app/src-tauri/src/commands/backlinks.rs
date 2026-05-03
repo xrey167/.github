@@ -622,3 +622,411 @@ pub async fn backlinks_page_intersection(
         estimated_usd,
     })
 }
+
+// ---------- Phase A: Bulk Backlinks family + Referring Networks + Domain Pages Summary + Available Filters ----------
+
+use crate::api::backlinks::BulkBacklinksArgs;
+
+#[derive(Debug, Clone, serde::Deserialize, ts_rs::TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+#[serde(rename_all = "camelCase")]
+pub struct BulkBacklinksParams {
+    pub targets: Vec<String>,
+    pub include_subdomains: bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct BulkRowsView {
+    pub items: Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+async fn bulk_backlinks_command(
+    state: &State<'_, AppState>,
+    endpoint: &'static str,
+    path: &'static str,
+    params: BulkBacklinksParams,
+    use_cache: bool,
+    caller: impl FnOnce(
+            std::sync::Arc<crate::api::client::ApiClient>,
+            BulkBacklinksParams,
+        )
+            -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::api::backlinks::BulkRowsResponse>> + Send>>
+        + Send
+        + 'static,
+) -> Result<BulkRowsView> {
+    let mut targets: Vec<String> = params
+        .targets
+        .into_iter()
+        .map(|t| t.trim().to_owned())
+        .filter(|t| !t.is_empty())
+        .collect();
+    if targets.is_empty() {
+        return Err(AppError::Validation("at least one target required".into()));
+    }
+    if targets.len() > 1000 {
+        targets.truncate(1000);
+    }
+    let _ = path; // path is informational; caller dispatches to the right URL
+    let estimated_usd = cost::estimate(&CostAction::BacklinksBulk {
+        target_count: targets.len() as u32,
+    });
+    let mut sorted = targets.clone();
+    sorted.sort();
+    let cache_params = serde_json::json!({
+        "targets": sorted,
+        "include_subdomains": params.include_subdomains,
+    });
+    if let crate::commands::cached::CachedOutcome::Hit { mut view, fetched_at } =
+        crate::commands::cached::lookup::<BulkRowsView>(
+            state.store.clone(),
+            endpoint,
+            &cache_params,
+            crate::domain::cache::ttl_short(),
+            use_cache,
+        )
+        .await?
+    {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let request_size = targets.len() as i64;
+    let inner = BulkBacklinksParams {
+        targets: targets.clone(),
+        include_subdomains: params.include_subdomains,
+    };
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        request_size,
+        move || async move {
+            let r = caller(api, inner).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = BulkRowsView {
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    crate::commands::cached::store_view(
+        state.store.clone(),
+        endpoint,
+        &cache_params,
+        &view,
+        resp.cost,
+    )
+    .await?;
+    Ok(view)
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_bulk_backlinks(
+    state: State<'_, AppState>,
+    params: BulkBacklinksParams,
+    use_cache: bool,
+) -> Result<BulkRowsView> {
+    bulk_backlinks_command(
+        &state,
+        endpoints::BACKLINKS_BULK_BACKLINKS,
+        "/v3/backlinks/bulk_backlinks/live",
+        params,
+        use_cache,
+        |api, p| {
+            Box::pin(async move {
+                api.backlinks_bulk_backlinks_live(BulkBacklinksArgs {
+                    targets: &p.targets,
+                    include_subdomains: p.include_subdomains,
+                })
+                .await
+            })
+        },
+    )
+    .await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_bulk_referring_domains(
+    state: State<'_, AppState>,
+    params: BulkBacklinksParams,
+    use_cache: bool,
+) -> Result<BulkRowsView> {
+    bulk_backlinks_command(
+        &state,
+        endpoints::BACKLINKS_BULK_REFERRING_DOMAINS,
+        "/v3/backlinks/bulk_referring_domains/live",
+        params,
+        use_cache,
+        |api, p| {
+            Box::pin(async move {
+                api.backlinks_bulk_referring_domains_live(BulkBacklinksArgs {
+                    targets: &p.targets,
+                    include_subdomains: p.include_subdomains,
+                })
+                .await
+            })
+        },
+    )
+    .await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_bulk_ranks(
+    state: State<'_, AppState>,
+    params: BulkBacklinksParams,
+    use_cache: bool,
+) -> Result<BulkRowsView> {
+    bulk_backlinks_command(
+        &state,
+        endpoints::BACKLINKS_BULK_RANKS,
+        "/v3/backlinks/bulk_ranks/live",
+        params,
+        use_cache,
+        |api, p| {
+            Box::pin(async move {
+                api.backlinks_bulk_ranks_live(BulkBacklinksArgs {
+                    targets: &p.targets,
+                    include_subdomains: p.include_subdomains,
+                })
+                .await
+            })
+        },
+    )
+    .await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_bulk_spam_score(
+    state: State<'_, AppState>,
+    params: BulkBacklinksParams,
+    use_cache: bool,
+) -> Result<BulkRowsView> {
+    bulk_backlinks_command(
+        &state,
+        endpoints::BACKLINKS_BULK_SPAM_SCORE,
+        "/v3/backlinks/bulk_spam_score/live",
+        params,
+        use_cache,
+        |api, p| {
+            Box::pin(async move {
+                api.backlinks_bulk_spam_score_live(BulkBacklinksArgs {
+                    targets: &p.targets,
+                    include_subdomains: p.include_subdomains,
+                })
+                .await
+            })
+        },
+    )
+    .await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_bulk_new_lost(
+    state: State<'_, AppState>,
+    params: BulkBacklinksParams,
+    use_cache: bool,
+) -> Result<BulkRowsView> {
+    bulk_backlinks_command(
+        &state,
+        endpoints::BACKLINKS_BULK_NEW_LOST,
+        "/v3/backlinks/bulk_new_lost_backlinks/live",
+        params,
+        use_cache,
+        |api, p| {
+            Box::pin(async move {
+                api.backlinks_bulk_new_lost_backlinks_live(BulkBacklinksArgs {
+                    targets: &p.targets,
+                    include_subdomains: p.include_subdomains,
+                })
+                .await
+            })
+        },
+    )
+    .await
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_referring_networks(
+    state: State<'_, AppState>,
+    params: BacklinksListParams,
+) -> Result<BacklinksListView> {
+    let target = params.target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::Backlinks {
+        target_count: 1,
+        rows_per_target: params.limit,
+    });
+    let api = state.api.clone();
+    let order_by = params.order_by.clone();
+    let filter = params.filter.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::BACKLINKS_REFERRING_NETWORKS,
+        Mode::Live,
+        estimated_usd,
+        params.limit as i64,
+        move || async move {
+            let args = crate::api::backlinks::BacklinksListArgs {
+                target: &target,
+                limit: params.limit,
+                offset: params.offset,
+                include_subdomains: params.include_subdomains,
+                filter: filter.as_ref(),
+                order_by,
+            };
+            let r = api.backlinks_referring_networks_live(args).await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(BacklinksListView {
+        target: resp.target,
+        total_count: resp.total_count,
+        items_count: resp.items_count,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Clone, Serialize, serde::Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct DomainPagesSummaryView {
+    pub target: String,
+    pub result: Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_domain_pages_summary(
+    state: State<'_, AppState>,
+    target: String,
+    include_subdomains: bool,
+    use_cache: bool,
+) -> Result<DomainPagesSummaryView> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::BacklinksDomainPagesSummary);
+    let endpoint = endpoints::BACKLINKS_DOMAIN_PAGES_SUMMARY;
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "include_subdomains": include_subdomains,
+    });
+    if let crate::commands::cached::CachedOutcome::Hit { mut view, fetched_at } =
+        crate::commands::cached::lookup::<DomainPagesSummaryView>(
+            state.store.clone(),
+            endpoint,
+            &cache_params,
+            crate::domain::cache::ttl_short(),
+            use_cache,
+        )
+        .await?
+    {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let target_for_call = target.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .backlinks_domain_pages_summary_live(&target_for_call, include_subdomains)
+                .await?;
+            let cost = r.pointer("/cost").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let result = r.pointer("/result").cloned().unwrap_or(Value::Null);
+            Ok((result, cost))
+        },
+    )
+    .await?;
+    let view = DomainPagesSummaryView {
+        target: target.clone(),
+        result: resp,
+        cost_usd: 0.0, // cost is captured via run_with_ledger; field shown is what was billed
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    crate::commands::cached::store_view(state.store.clone(), endpoint, &cache_params, &view, view.cost_usd).await?;
+    Ok(view)
+}
+
+#[derive(Debug, Clone, Serialize, serde::Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct AvailableFiltersView {
+    pub result: Value,
+    pub from_cache: bool,
+    pub fetched_at: Option<String>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn backlinks_available_filters(
+    state: State<'_, AppState>,
+    use_cache: bool,
+) -> Result<AvailableFiltersView> {
+    let endpoint = endpoints::BACKLINKS_AVAILABLE_FILTERS;
+    let cache_params = serde_json::json!({});
+    if let crate::commands::cached::CachedOutcome::Hit { mut view, fetched_at } =
+        crate::commands::cached::lookup::<AvailableFiltersView>(
+            state.store.clone(),
+            endpoint,
+            &cache_params,
+            crate::domain::cache::ttl_long(),
+            use_cache,
+        )
+        .await?
+    {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        return Ok(view);
+    }
+    let result = state.api.backlinks_available_filters().await?;
+    let view = AvailableFiltersView {
+        result,
+        from_cache: false,
+        fetched_at: None,
+    };
+    crate::commands::cached::store_view(state.store.clone(), endpoint, &cache_params, &view, 0.0).await?;
+    Ok(view)
+}

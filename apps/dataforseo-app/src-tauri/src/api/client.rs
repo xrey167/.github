@@ -43,6 +43,33 @@ impl ApiClient {
         Self::deserialize_or_err(resp).await
     }
 
+    /// Free /v3/appendix/status — returns DataForSEO service health for
+    /// each endpoint family. Powers the Settings › Service status panel.
+    pub async fn appendix_status(&self) -> Result<serde_json::Value> {
+        let creds = self.credentials().await?;
+        let resp = self
+            .http
+            .get(format!("{BASE_URL}/v3/appendix/status"))
+            .basic_auth(&creds.login, Some(&creds.password))
+            .send()
+            .await?;
+        Self::deserialize_or_err(resp).await
+    }
+
+    /// Free /v3/appendix/errors — recent error occurrences for the
+    /// account. Useful for debugging when our local ledger doesn't have
+    /// the response status code.
+    pub async fn appendix_errors(&self) -> Result<serde_json::Value> {
+        let creds = self.credentials().await?;
+        let resp = self
+            .http
+            .get(format!("{BASE_URL}/v3/appendix/errors"))
+            .basic_auth(&creds.login, Some(&creds.password))
+            .send()
+            .await?;
+        Self::deserialize_or_err(resp).await
+    }
+
     /// POST a JSON body and return the parsed response, gated by the rate
     /// limiter for the given family.
     pub(crate) async fn post_json(
