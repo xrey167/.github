@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import CostPreview from "../components/CostPreview";
+import FilterBuilder from "../components/FilterBuilder";
 import { formatCount, formatUsd } from "../lib/format";
 import {
   tauriApi,
@@ -262,38 +263,35 @@ function SummaryView({ view }: { view: BacklinksSummaryView }) {
 
 // ---------- Detail tab ----------
 
-type FilterPreset = "all" | "dofollow" | "rank30" | "lost";
+type FilterPreset = "dofollow" | "rank30" | "lost";
 
 const PRESET_LABELS: Record<FilterPreset, string> = {
-  all: "All backlinks",
   dofollow: "Dofollow only",
   rank30: "Domain rank > 30",
   lost: "Lost links",
 };
 
-// Each preset returns the (filter, statusOverride) pair. Status is forced to
-// "lost" for the lost preset; the rest leave the user's status selection
-// untouched. Filter is null for "all".
-function buildPreset(
+// Presets are now quick-load shortcuts into the visual filter builder
+// (and a status flip for "lost"). The builder owns the canonical filter
+// state — presets just seed it.
+function applyPreset(
   preset: FilterPreset,
-): { filter: FilterTree | null; statusOverride: BacklinksDetailStatus | null } {
+): { filter: FilterTree | null; status: BacklinksDetailStatus | null } {
   switch (preset) {
-    case "all":
-      return { filter: null, statusOverride: null };
     case "dofollow":
       return {
         filter: { kind: "condition", field: "dofollow", operator: "eq", value: true },
-        statusOverride: null,
+        status: null,
       };
     case "rank30":
       return {
         filter: { kind: "condition", field: "domain_from_rank", operator: "gt", value: 30 },
-        statusOverride: null,
+        status: null,
       };
     case "lost":
       // For "lost" we don't need a filter expression — DataForSEO has a
       // dedicated `backlinks_status_type=lost` query parameter.
-      return { filter: null, statusOverride: "lost" };
+      return { filter: null, status: "lost" };
   }
 }
 
@@ -301,14 +299,17 @@ function DetailTab() {
   const [target, setTarget] = useState("");
   const [mode, setMode] = useState<BacklinksDetailMode>("as_is");
   const [status, setStatus] = useState<BacklinksDetailStatus>("live");
-  const [preset, setPreset] = useState<FilterPreset>("all");
+  const [filter, setFilter] = useState<FilterTree | null>(null);
   const [limit, setLimit] = useState(100);
   const [includeSubdomains, setIncludeSubdomains] = useState(true);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<BacklinksDetailView | null>(null);
 
-  const effective = useMemo(() => buildPreset(preset), [preset]);
-  const effectiveStatus = effective.statusOverride ?? status;
+  function loadPreset(preset: FilterPreset) {
+    const p = applyPreset(preset);
+    setFilter(p.filter);
+    if (p.status != null) setStatus(p.status);
+  }
 
   async function onRun() {
     const trimmed = target.trim();
@@ -318,11 +319,11 @@ function DetailTab() {
       const result = await tauriApi.backlinksDetail({
         target: trimmed,
         mode,
-        status: effectiveStatus,
+        status,
         limit,
         offset: 0,
         includeSubdomains,
-        filter: effective.filter,
+        filter,
         orderBy: ["domain_from_rank,desc"],
       });
       setView(result);
@@ -356,21 +357,6 @@ function DetailTab() {
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700">Preset</span>
-              <select
-                value={preset}
-                onChange={(e) => setPreset(e.target.value as FilterPreset)}
-                disabled={busy}
-                className="rounded border px-2 py-1 disabled:bg-slate-50"
-              >
-                {(Object.keys(PRESET_LABELS) as FilterPreset[]).map((p) => (
-                  <option key={p} value={p}>
-                    {PRESET_LABELS[p]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
               <span className="font-medium text-slate-700">Mode</span>
               <select
                 value={mode}
@@ -386,11 +372,11 @@ function DetailTab() {
             <label className="flex flex-col gap-1">
               <span className="font-medium text-slate-700">Status</span>
               <select
-                value={effectiveStatus}
+                value={status}
                 onChange={(e) =>
                   setStatus(e.target.value as BacklinksDetailStatus)
                 }
-                disabled={busy || effective.statusOverride !== null}
+                disabled={busy}
                 className="rounded border px-2 py-1 disabled:bg-slate-50"
               >
                 <option value="live">Live</option>
@@ -423,6 +409,23 @@ function DetailTab() {
               />
             </label>
           </div>
+
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <span className="mr-1 text-slate-500">Quick presets:</span>
+            {(Object.keys(PRESET_LABELS) as FilterPreset[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => loadPreset(p)}
+                disabled={busy}
+                className="rounded border border-slate-300 bg-white px-2 py-0.5 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              >
+                {PRESET_LABELS[p]}
+              </button>
+            ))}
+          </div>
+
+          <FilterBuilder value={filter} onChange={setFilter} disabled={busy} />
         </div>
 
         <div className="flex flex-col gap-3">
@@ -434,8 +437,10 @@ function DetailTab() {
             }}
             details={[
               `Up to ${formatCount(limit)} rows`,
-              `Preset: ${PRESET_LABELS[preset]}`,
-              `Status: ${effectiveStatus}`,
+              `Status: ${status}`,
+              filter == null
+                ? "No filter"
+                : `Filter: ${filterCount(filter)} condition${filterCount(filter) === 1 ? "" : "s"}`,
             ]}
             disabled={busy || !target.trim()}
           />
@@ -463,11 +468,17 @@ function DetailTab() {
 
       {!view && !busy && (
         <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
-          Pick a domain and a preset, then load the per-link table.
+          Pick a domain, build a filter (or load a preset), then run.
         </div>
       )}
     </div>
   );
+}
+
+/// Count leaf conditions in a filter tree, for the cost-preview hint.
+function filterCount(t: FilterTree): number {
+  if (t.kind === "condition") return 1;
+  return t.nodes.reduce((sum, n) => sum + filterCount(n), 0);
 }
 
 function DetailTable({ view }: { view: BacklinksDetailView }) {

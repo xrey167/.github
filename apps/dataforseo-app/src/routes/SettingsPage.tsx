@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
+import { getLocale, setLocale, SUPPORTED_LOCALES, type Locale } from "../i18n";
 import { formatUsd } from "../lib/format";
 import { getCrashReportsOptIn, setCrashReportsOptIn } from "../lib/telemetry";
 import { tauriApi, type AiProviderStatus, type UserInfo } from "../lib/tauri";
+
+const LOCALE_LABELS: Record<Locale, string> = { de: "Deutsch", en: "English" };
 
 const PROVIDERS: { id: string; label: string; placeholder: string }[] = [
   { id: "anthropic", label: "Anthropic Claude", placeholder: "sk-ant-..." },
@@ -11,6 +15,7 @@ const PROVIDERS: { id: string; label: string; placeholder: string }[] = [
 ];
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [info, setInfo] = useState<UserInfo | null>(null);
@@ -19,6 +24,10 @@ export default function SettingsPage() {
   const [aiStatus, setAiStatus] = useState<AiProviderStatus[]>([]);
   const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({});
   const [crashReportsOn, setCrashReportsOn] = useState(getCrashReportsOptIn());
+  // Track active locale for the picker — `getLocale()` is the source of
+  // truth, but we mirror it into local state so the <select> re-renders
+  // immediately on change.
+  const [locale, setLocaleState] = useState<Locale>(getLocale());
 
   async function refreshAi() {
     try {
@@ -36,10 +45,10 @@ export default function SettingsPage() {
     setBusy(true);
     try {
       await tauriApi.saveCredentials(login, password);
-      toast.success("Credentials gespeichert");
+      toast.success(t("settings.dataforseo.credentialsSaved"));
       setPassword("");
     } catch (e) {
-      toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
     } finally {
       setBusy(false);
     }
@@ -50,9 +59,9 @@ export default function SettingsPage() {
     try {
       const result = await tauriApi.testConnection();
       setInfo(result);
-      toast.success(`Verbunden als ${result.login}`);
+      toast.success(t("settings.dataforseo.connectedAs", { login: result.login }));
     } catch (e) {
-      toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
     } finally {
       setBusy(false);
     }
@@ -66,9 +75,9 @@ export default function SettingsPage() {
       await tauriApi.aiSaveProviderKey({ provider, apiKey: key });
       setKeyDrafts((d) => ({ ...d, [provider]: "" }));
       await refreshAi();
-      toast.success(`${provider} key gespeichert`);
+      toast.success(t("settings.ai.keySaved", { provider }));
     } catch (e) {
-      toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
     } finally {
       setBusy(false);
     }
@@ -79,9 +88,9 @@ export default function SettingsPage() {
     try {
       await tauriApi.aiClearProviderKey({ provider });
       await refreshAi();
-      toast.success(`${provider} key entfernt`);
+      toast.success(t("settings.ai.keyRemoved", { provider }));
     } catch (e) {
-      toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
     } finally {
       setBusy(false);
     }
@@ -92,9 +101,9 @@ export default function SettingsPage() {
     try {
       await tauriApi.aiSetActiveProvider({ provider });
       await refreshAi();
-      toast.success(`${provider} aktiv`);
+      toast.success(t("settings.ai.activated", { provider }));
     } catch (e) {
-      toast.error(`Fehler: ${(e as { message?: string })?.message ?? e}`);
+      toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
     } finally {
       setBusy(false);
     }
@@ -105,10 +114,10 @@ export default function SettingsPage() {
   return (
     <section className="flex max-w-md flex-col gap-8">
       <div>
-        <h2 className="text-xl font-semibold">DataForSEO</h2>
+        <h2 className="text-xl font-semibold">{t("settings.dataforseo.section")}</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
-            <span className="text-sm text-slate-700">Login</span>
+            <span className="text-sm text-slate-700">{t("settings.dataforseo.login")}</span>
             <input
               type="text"
               className="mt-1 w-full rounded border px-2 py-1"
@@ -118,7 +127,7 @@ export default function SettingsPage() {
             />
           </label>
           <label className="block">
-            <span className="text-sm text-slate-700">Password</span>
+            <span className="text-sm text-slate-700">{t("settings.dataforseo.password")}</span>
             <input
               type="password"
               className="mt-1 w-full rounded border px-2 py-1"
@@ -135,7 +144,7 @@ export default function SettingsPage() {
               onClick={onSaveDataforseo}
               className="rounded bg-slate-800 px-3 py-1 text-sm text-white disabled:opacity-50"
             >
-              Save
+              {t("settings.dataforseo.save")}
             </button>
             <button
               type="button"
@@ -143,17 +152,17 @@ export default function SettingsPage() {
               onClick={onTest}
               className="rounded border px-3 py-1 text-sm disabled:opacity-50"
             >
-              Test Connection
+              {t("settings.dataforseo.test")}
             </button>
           </div>
 
           {info && (
             <div className="mt-4 rounded border bg-slate-50 p-3 text-sm">
               <div>
-                <strong>Login:</strong> {info.login}
+                <strong>{t("settings.dataforseo.login")}:</strong> {info.login}
               </div>
               <div>
-                <strong>Balance:</strong> {formatUsd(info.balance)}
+                <strong>{t("settings.dataforseo.balance")}:</strong> {formatUsd(info.balance)}
               </div>
             </div>
           )}
@@ -161,11 +170,8 @@ export default function SettingsPage() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold">AI Chat</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Powers /chat. Anthropic and OpenAI both work; pick one as the active
-          provider. Keys live in the OS keychain.
-        </p>
+        <h2 className="text-xl font-semibold">{t("settings.ai.section")}</h2>
+        <p className="mt-1 text-sm text-slate-600">{t("settings.ai.description")}</p>
 
         <div className="mt-4 space-y-4">
           {PROVIDERS.map((p) => {
@@ -181,13 +187,13 @@ export default function SettingsPage() {
                       {status?.configured ? (
                         isActive ? (
                           <span className="text-emerald-700">
-                            active ({status.model ?? "model unknown"})
+                            {t("settings.ai.active")} ({status.model ?? t("settings.ai.modelUnknown")})
                           </span>
                         ) : (
-                          <span className="text-slate-600">stored, inactive</span>
+                          <span className="text-slate-600">{t("settings.ai.stored")}</span>
                         )
                       ) : (
-                        <span className="text-amber-700">no key stored</span>
+                        <span className="text-amber-700">{t("settings.ai.noKey")}</span>
                       )}
                     </div>
                   </div>
@@ -198,12 +204,12 @@ export default function SettingsPage() {
                       disabled={busy}
                       className="rounded border px-2 py-0.5 text-xs disabled:opacity-50"
                     >
-                      Activate
+                      {t("settings.ai.activate")}
                     </button>
                   )}
                 </div>
                 <label className="mt-2 block">
-                  <span className="text-xs text-slate-600">API Key</span>
+                  <span className="text-xs text-slate-600">{t("settings.ai.apiKey")}</span>
                   <input
                     type="password"
                     className="mt-1 w-full rounded border px-2 py-1 font-mono text-xs"
@@ -222,7 +228,7 @@ export default function SettingsPage() {
                     onClick={() => onSaveAi(p.id)}
                     className="rounded bg-slate-800 px-3 py-1 text-xs text-white disabled:opacity-50"
                   >
-                    Save key
+                    {t("settings.ai.saveKey")}
                   </button>
                   <button
                     type="button"
@@ -230,7 +236,7 @@ export default function SettingsPage() {
                     onClick={() => onClearAi(p.id)}
                     className="rounded border px-3 py-1 text-xs disabled:opacity-50"
                   >
-                    Remove
+                    {t("settings.ai.remove")}
                   </button>
                 </div>
               </div>
@@ -240,13 +246,8 @@ export default function SettingsPage() {
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold">Crash reports</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Opt in to send crash reports to help improve the app. Disabled by default —
-          credentials and request payloads are scrubbed before send. Requires a build-time
-          VITE_SENTRY_DSN to actually transmit anything; you'll just see a debug log
-          otherwise.
-        </p>
+        <h3 className="text-sm font-semibold">{t("settings.telemetry.section")}</h3>
+        <p className="mt-1 text-xs text-slate-500">{t("settings.telemetry.description")}</p>
         <label className="mt-2 inline-flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -256,16 +257,36 @@ export default function SettingsPage() {
               setCrashReportsOn(e.target.checked);
             }}
           />
-          Send crash reports
+          {t("settings.telemetry.checkbox")}
         </label>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold">Setup</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Re-run the first-run wizard to change credentials, budget, or pick a different
-          starter project. Existing data is left untouched.
-        </p>
+        <h3 className="text-sm font-semibold">{t("settings.language.section")}</h3>
+        <p className="mt-1 text-xs text-slate-500">{t("settings.language.description")}</p>
+        <label className="mt-2 inline-flex items-center gap-2 text-sm">
+          <span className="text-slate-700">{t("settings.language.label")}</span>
+          <select
+            value={locale}
+            onChange={(e) => {
+              const next = e.target.value as Locale;
+              setLocale(next);
+              setLocaleState(next);
+            }}
+            className="rounded border px-2 py-1 text-sm"
+          >
+            {SUPPORTED_LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_LABELS[l]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold">{t("settings.setup.section")}</h3>
+        <p className="mt-1 text-xs text-slate-500">{t("settings.setup.description")}</p>
         <button
           type="button"
           onClick={async () => {
@@ -273,12 +294,12 @@ export default function SettingsPage() {
               await tauriApi.clearCredentials();
               window.location.reload();
             } catch (e) {
-              toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+              toast.error(`${t("common.failed")}: ${(e as { message?: string })?.message ?? e}`);
             }
           }}
           className="mt-2 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
         >
-          Re-run onboarding
+          {t("settings.setup.button")}
         </button>
       </div>
     </section>
