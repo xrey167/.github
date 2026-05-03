@@ -35,6 +35,7 @@ export default function OnboardingPage({ onComplete }: Props) {
   // Budget
   const [dailyLimit, setDailyLimit] = useState("5");
   const [alertAt, setAlertAt] = useState("80");
+  const [savingBudget, setSavingBudget] = useState(false);
 
   // Project
   const [projectTarget, setProjectTarget] = useState("");
@@ -70,6 +71,7 @@ export default function OnboardingPage({ onComplete }: Props) {
       toast.error("Alert threshold must be between 1 and 100");
       return;
     }
+    setSavingBudget(true);
     try {
       await tauriApi.setBudget({
         budget: { period: "daily", limit_usd: limit, alert_at_pct: pct },
@@ -78,6 +80,8 @@ export default function OnboardingPage({ onComplete }: Props) {
       setActive("project");
     } catch (e) {
       toast.error(`Failed: ${(e as { message?: string })?.message ?? e}`);
+    } finally {
+      setSavingBudget(false);
     }
   }
 
@@ -209,7 +213,8 @@ export default function OnboardingPage({ onComplete }: Props) {
                     step="0.01"
                     value={dailyLimit}
                     onChange={(e) => setDailyLimit(e.target.value)}
-                    className="rounded border px-2 py-1 text-sm"
+                    disabled={savingBudget}
+                    className="rounded border px-2 py-1 text-sm disabled:bg-slate-50"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -221,7 +226,8 @@ export default function OnboardingPage({ onComplete }: Props) {
                     step="1"
                     value={alertAt}
                     onChange={(e) => setAlertAt(e.target.value)}
-                    className="rounded border px-2 py-1 text-sm"
+                    disabled={savingBudget}
+                    className="rounded border px-2 py-1 text-sm disabled:bg-slate-50"
                   />
                 </label>
               </div>
@@ -233,16 +239,18 @@ export default function OnboardingPage({ onComplete }: Props) {
                 <button
                   type="button"
                   onClick={() => setActive("credentials")}
-                  className="rounded border border-slate-300 px-4 py-2 text-sm text-slate-700"
+                  disabled={savingBudget}
+                  className="rounded border border-slate-300 px-4 py-2 text-sm text-slate-700 disabled:opacity-50"
                 >
                   ← Back
                 </button>
                 <button
                   type="button"
                   onClick={onSetBudget}
-                  className="rounded bg-slate-800 px-4 py-2 text-sm text-white"
+                  disabled={savingBudget}
+                  className="rounded bg-slate-800 px-4 py-2 text-sm text-white disabled:opacity-50"
                 >
-                  Set budget →
+                  {savingBudget ? "Saving…" : "Set budget →"}
                 </button>
               </div>
             </section>
@@ -361,11 +369,36 @@ function Stepper({ active }: { active: StepId }) {
   );
 }
 
-/// Helper for App.tsx: returns true once `tauriApi.testConnection` succeeds,
-/// false once it errors with auth, and null while pending. The host
-/// component decides whether to render OnboardingPage or the main UI.
+/// Helper for App.tsx: classifies the result of `tauriApi.testConnection`
+/// into one of four states. We deliberately don't conflate transient
+/// network errors with the genuine "no credentials yet" / "credentials
+/// rejected" cases — forcing the user back through the onboarding wizard
+/// because their wifi blipped is a worse experience than letting them
+/// click Retry.
+export type GateStatus = "loading" | "ready" | "needs-onboarding" | "error";
+
 export function useOnboardingGate() {
-  const [status, setStatus] = useState<"loading" | "ready" | "needs-onboarding">("loading");
+  const [status, setStatus] = useState<GateStatus>("loading");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  function probe() {
+    setStatus("loading");
+    setErrorMessage(null);
+    tauriApi
+      .testConnection()
+      .then(() => setStatus("ready"))
+      .catch((e: unknown) => {
+        const msg = typeof e === "object" && e && "message" in e
+          ? String((e as { message?: unknown }).message ?? "")
+          : String(e);
+        if (isAuthOrConfigError(msg)) {
+          setStatus("needs-onboarding");
+        } else {
+          setErrorMessage(msg || "Failed to reach DataForSEO");
+          setStatus("error");
+        }
+      });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -374,13 +407,47 @@ export function useOnboardingGate() {
       .then(() => {
         if (!cancelled) setStatus("ready");
       })
-      .catch(() => {
-        if (!cancelled) setStatus("needs-onboarding");
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const msg = typeof e === "object" && e && "message" in e
+          ? String((e as { message?: unknown }).message ?? "")
+          : String(e);
+        if (isAuthOrConfigError(msg)) {
+          setStatus("needs-onboarding");
+        } else {
+          setErrorMessage(msg || "Failed to reach DataForSEO");
+          setStatus("error");
+        }
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  return [status, () => setStatus("ready")] as const;
+  return [
+    status,
+    () => setStatus("ready"),
+    { errorMessage, retry: probe },
+  ] as const;
+}
+
+/// Heuristic for "should this error force the onboarding wizard?". The
+/// AppError variants we care about: Auth (no creds set or wrong creds)
+/// and Validation (creds malformed). Everything else — network failures,
+/// 5xx upstream errors, timeout — is treated as transient and the user
+/// gets a Retry button instead of a forced re-setup.
+function isAuthOrConfigError(message: string): boolean {
+  const lc = message.toLowerCase();
+  return (
+    lc.includes("credentials not set") ||
+    lc.includes("credentials") && lc.includes("invalid") ||
+    lc.includes("unauthorized") ||
+    lc.includes("auth") ||
+    lc.includes("401") ||
+    lc.includes("403") ||
+    // DataForSEO returns 20100 ("login or password incorrect") inside
+    // a 200 response body; AppError::Api wraps it.
+    lc.includes("20100") ||
+    lc.includes("status_code: 20100")
+  );
 }

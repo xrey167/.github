@@ -131,6 +131,13 @@ function DifficultyTable({ view }: { view: BulkDifficultyView }) {
     () => [
       { id: "keyword", header: "Keyword", accessorKey: "keyword" },
       { id: "keyword_difficulty", header: "Difficulty", accessorKey: "keyword_difficulty" },
+      // Mirror the on-screen "Bucket" column so the CSV/JSON matches
+      // what the user is looking at.
+      {
+        id: "bucket",
+        header: "Bucket",
+        accessorFn: (row) => bucketLabel(row.keyword_difficulty),
+      },
     ],
     [],
   );

@@ -148,8 +148,11 @@ export default function KeywordGapTab() {
             </span>
             <span className="ml-auto">
               <ExportMenu
-                filenameStem={`keyword-gap-${view.yours}-vs-${view.competitor}`}
-                rows={view.items}
+                // Match the visible bucket — exporting the full union
+                // would surprise the user since the on-screen table is
+                // already scoped to one of missing/weak/strong/unique.
+                filenameStem={`keyword-gap-${view.yours}-vs-${view.competitor}-${activeBucket}`}
+                rows={filtered}
                 columns={exportColumns}
               />
             </span>
