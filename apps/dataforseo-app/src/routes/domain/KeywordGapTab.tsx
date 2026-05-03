@@ -1,7 +1,9 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
 import { tauriApi, type GapKeyword, type KeywordGapView } from "../../lib/tauri";
@@ -59,6 +61,19 @@ export default function KeywordGapTab() {
   const filtered = useMemo<GapKeyword[]>(
     () => (view ? view.items.filter((k) => k.bucket === activeBucket) : []),
     [view, activeBucket],
+  );
+
+  const exportColumns = useMemo<ColumnDef<GapKeyword, unknown>[]>(
+    () => [
+      { id: "keyword", header: "Keyword", accessorKey: "keyword" },
+      { id: "bucket", header: "Bucket", accessorKey: "bucket" },
+      { id: "search_volume", header: "Volume", accessorKey: "search_volume" },
+      { id: "keyword_difficulty", header: "KD", accessorKey: "keyword_difficulty" },
+      { id: "cpc", header: "CPC", accessorKey: "cpc" },
+      { id: "rank_yours", header: "Your Rank", accessorKey: "rank_yours" },
+      { id: "rank_theirs", header: "Their Rank", accessorKey: "rank_theirs" },
+    ],
+    [],
   );
 
   return (
@@ -130,6 +145,13 @@ export default function KeywordGapTab() {
             <span>
               {view.yours} vs {view.competitor} · actual {formatUsd(view.cost_usd)} · estimated{" "}
               {formatUsd(view.estimated_usd)}
+            </span>
+            <span className="ml-auto">
+              <ExportMenu
+                filenameStem={`keyword-gap-${view.yours}-vs-${view.competitor}`}
+                rows={view.items}
+                columns={exportColumns}
+              />
             </span>
           </div>
 

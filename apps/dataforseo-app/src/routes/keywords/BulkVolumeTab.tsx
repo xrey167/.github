@@ -1,11 +1,13 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CacheBadge from "../../components/CacheBadge";
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
-import { tauriApi, type BulkVolumeView } from "../../lib/tauri";
+import { tauriApi, type BulkVolumeItem, type BulkVolumeView } from "../../lib/tauri";
 
 const MAX_KEYWORDS = 1000;
 
@@ -61,6 +63,17 @@ export default function BulkVolumeTab() {
           )
         : [],
     [view],
+  );
+
+  const exportColumns = useMemo<ColumnDef<BulkVolumeItem, unknown>[]>(
+    () => [
+      { id: "keyword", header: "Keyword", accessorKey: "keyword" },
+      { id: "search_volume", header: "Volume", accessorKey: "search_volume" },
+      { id: "competition", header: "Competition", accessorKey: "competition" },
+      { id: "competition_level", header: "Level", accessorKey: "competition_level" },
+      { id: "cpc", header: "CPC", accessorKey: "cpc" },
+    ],
+    [],
   );
 
   return (
@@ -123,6 +136,9 @@ export default function BulkVolumeTab() {
           <span>
             {view.items.length} rows · actual {formatUsd(view.cost_usd)} · estimated{" "}
             {formatUsd(view.estimated_usd)}
+          </span>
+          <span className="ml-auto">
+            <ExportMenu filenameStem="bulk-volume" rows={sorted} columns={exportColumns} />
           </span>
         </div>
       )}

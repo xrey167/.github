@@ -1,10 +1,12 @@
-import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
-import { tauriApi, type SerpCompetitorsView } from "../../lib/tauri";
+import { tauriApi, type SerpCompetitor, type SerpCompetitorsView } from "../../lib/tauri";
 
 export default function SerpCompetitorsTab() {
   const [keyword, setKeyword] = useState("");
@@ -12,6 +14,18 @@ export default function SerpCompetitorsTab() {
   const [view, setView] = useState<SerpCompetitorsView | null>(null);
 
   const trimmed = keyword.trim();
+
+  const exportColumns = useMemo<ColumnDef<SerpCompetitor, unknown>[]>(
+    () => [
+      { id: "domain", header: "Domain", accessorKey: "domain" },
+      { id: "avg_position", header: "Avg Position", accessorKey: "avg_position" },
+      { id: "median_position", header: "Median Position", accessorKey: "median_position" },
+      { id: "etv", header: "ETV", accessorKey: "etv" },
+      { id: "count", header: "Keywords", accessorKey: "count" },
+      { id: "rating", header: "Rating", accessorKey: "rating" },
+    ],
+    [],
+  );
 
   async function onRun() {
     if (!trimmed) return;
@@ -73,9 +87,17 @@ export default function SerpCompetitorsTab() {
 
       {view && view.items.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-500">
-            {view.items.length} domains ranking for &ldquo;{view.keyword}&rdquo; · {formatUsd(view.cost_usd)}
-          </p>
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>
+              {view.items.length} domains ranking for &ldquo;{view.keyword}&rdquo; ·{" "}
+              {formatUsd(view.cost_usd)}
+            </span>
+            <ExportMenu
+              filenameStem={`serp-competitors-${view.keyword}`}
+              rows={view.items}
+              columns={exportColumns}
+            />
+          </div>
           <div className="overflow-x-auto rounded border bg-white">
             <table className="min-w-full text-xs">
               <thead className="bg-slate-50 text-slate-600">

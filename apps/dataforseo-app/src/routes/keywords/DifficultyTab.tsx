@@ -1,11 +1,14 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
 import {
   tauriApi,
+  type BulkDifficultyItem,
   type BulkDifficultyView,
 } from "../../lib/tauri";
 
@@ -124,6 +127,14 @@ function DifficultyTable({ view }: { view: BulkDifficultyView }) {
     [view.items],
   );
 
+  const exportColumns = useMemo<ColumnDef<BulkDifficultyItem, unknown>[]>(
+    () => [
+      { id: "keyword", header: "Keyword", accessorKey: "keyword" },
+      { id: "keyword_difficulty", header: "Difficulty", accessorKey: "keyword_difficulty" },
+    ],
+    [],
+  );
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -132,6 +143,11 @@ function DifficultyTable({ view }: { view: BulkDifficultyView }) {
           actual {formatUsd(view.cost_usd)} · estimated{" "}
           {formatUsd(view.estimated_usd)}
         </span>
+        <ExportMenu
+          filenameStem="keyword-difficulty"
+          rows={sorted}
+          columns={exportColumns}
+        />
       </div>
       <div className="overflow-x-auto rounded border bg-white">
         <table className="min-w-full text-xs">
