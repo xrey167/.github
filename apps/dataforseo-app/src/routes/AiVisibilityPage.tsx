@@ -1,10 +1,11 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../components/CostPreview";
 import ExportMenu from "../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../lib/constants";
+import { estimate } from "../lib/cost";
 import { formatError } from "../lib/errors";
 import { formatUsd } from "../lib/format";
 import { useProject } from "../lib/project-store";
@@ -37,7 +38,9 @@ const COLUMNS: ColumnDef<VisibilityRow, unknown>[] = [
   },
 ];
 
-const COST_PER_LOOKUP = 0.0001;
+// Single source of truth for the per-call cost lives in cost.ts so it
+// stays in sync with the Usage tab's estimate.
+const COST_PER_LOOKUP = estimate({ kind: "SerpAiOverview" });
 
 /// Extract { url, domain } pairs from the AI Overview raw item. Robust to
 /// the two shapes DataForSEO uses depending on whether the overview
@@ -83,9 +86,22 @@ export default function AiVisibilityPage() {
 
   const [target, setTarget] = useState<string>(activeProject?.target ?? "");
   const [keywordsText, setKeywordsText] = useState<string>("");
+  const [locationCode, setLocationCode] = useState<number>(DEFAULT_LOCATION);
+  const [languageCode, setLanguageCode] = useState<string>(DEFAULT_LANGUAGE);
   const [rows, setRows] = useState<VisibilityRow[]>([]);
   const [running, setRunning] = useState(false);
   const [tracked, setTracked] = useState<TrackedKeywordWithRank[]>([]);
+
+  // Cancellation ref — set on unmount so the sequential loop stops
+  // making API calls if the user navigates away mid-run. Saves DataForSEO
+  // budget on long lists.
+  const cancelledRef = useRef(false);
+  useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   // Auto-fill target when the active project changes — but only if the
   // user hasn't typed something else yet.
@@ -131,12 +147,12 @@ export default function AiVisibilityPage() {
   }
 
   const checkOne = useCallback(
-    async (kw: string, tgt: string): Promise<VisibilityRow> => {
+    async (kw: string, tgt: string, loc: number, lang: string): Promise<VisibilityRow> => {
       try {
         const view = await tauriApi.serpAiOverview({
           keyword: kw,
-          locationCode: DEFAULT_LOCATION,
-          languageCode: DEFAULT_LANGUAGE,
+          locationCode: loc,
+          languageCode: lang,
         });
         const refs = extractReferences(view.item);
         const tgtDomain = normaliseDomain(tgt);
@@ -186,18 +202,24 @@ export default function AiVisibilityPage() {
     // Sequential to stay well within the SerpLive 60 rpm bucket. For
     // larger sets this could fan out 5-wide; one keyword at a time
     // keeps the cost preview easy to reason about.
+    let processed = 0;
     for (let i = 0; i < keywords.length; i++) {
+      if (cancelledRef.current) break; // user navigated away → stop spending
       const kw = keywords[i];
       setRows((prev) =>
         prev.map((r, idx) => (idx === i ? { ...r, status: "checking" } : r)),
       );
-      const result = await checkOne(kw, target);
+      const result = await checkOne(kw, target, locationCode, languageCode);
+      if (cancelledRef.current) break;
       setRows((prev) => prev.map((r, idx) => (idx === i ? result : r)));
+      processed++;
     }
     setRunning(false);
-    toast.success(
-      `Checked ${keywords.length} keyword${keywords.length === 1 ? "" : "s"}.`,
-    );
+    if (!cancelledRef.current) {
+      toast.success(
+        `Checked ${processed} keyword${processed === 1 ? "" : "s"}.`,
+      );
+    }
   }
 
   // Summary counts for the dashboard header.
@@ -246,6 +268,31 @@ export default function AiVisibilityPage() {
               autoComplete="off"
             />
           </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-slate-700">Location code</span>
+              <input
+                type="number"
+                value={locationCode}
+                onChange={(e) => setLocationCode(parseInt(e.target.value, 10) || DEFAULT_LOCATION)}
+                disabled={running}
+                className="rounded border px-2 py-1 text-sm disabled:bg-slate-50"
+                title="DataForSEO location_code — 2840 = US, 2276 = DE, 2826 = UK"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-slate-700">Language</span>
+              <input
+                type="text"
+                value={languageCode}
+                onChange={(e) => setLanguageCode(e.target.value)}
+                disabled={running}
+                className="rounded border px-2 py-1 font-mono text-sm disabled:bg-slate-50"
+                placeholder="en"
+                maxLength={5}
+              />
+            </label>
+          </div>
           <label className="flex flex-col gap-1 text-sm">
             <span className="flex items-baseline justify-between font-medium text-slate-700">
               <span>Keywords ({keywords.length}, comma or newline separated)</span>
@@ -305,12 +352,19 @@ export default function AiVisibilityPage() {
               value={summary.mentioned.toLocaleString()}
               good={summary.mentioned > 0}
             />
-            <Stat
-              label="Citation rate"
-              value={`${summary.rate.toFixed(0)}%`}
-              good={summary.rate >= 30}
-              warn={summary.rate > 0 && summary.rate < 30}
-            />
+            {(() => {
+              // Round once so the displayed value and the colour band agree
+              // — e.g. 29.6% must not display "30%" but colour amber.
+              const rounded = Math.round(summary.rate);
+              return (
+                <Stat
+                  label="Citation rate"
+                  value={`${rounded}%`}
+                  good={rounded >= 30}
+                  warn={rounded > 0 && rounded < 30}
+                />
+              );
+            })()}
           </div>
 
           <div className="flex items-center justify-between">
