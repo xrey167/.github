@@ -35,7 +35,7 @@ Google Ads search-volume data and clickstream-derived stats.
 | Google Ads · Keywords for Site | `/v3/keywords_data/google_ads/keywords_for_site/live` | 0.075 | 0.05 | 🟡 next |
 | Google Ads · Keywords for Keywords | `/v3/keywords_data/google_ads/keywords_for_keywords/live` | 0.075 | 0.05 | 🟡 next |
 | Google Ads · Ad Traffic by Keywords | `/v3/keywords_data/google_ads/ad_traffic_by_keywords/live` | 0.075 | 0.05 | 🟦 plan |
-| Google Trends · Explore | `/v3/keywords_data/google_trends/explore/live` | 0.05 | — | 🟡 next |
+| Google Trends · Explore | `/v3/keywords_data/google_trends/explore/live` | 0.05 | — | ✅ done |
 | Google Trends · Categories | `/v3/keywords_data/google_trends/categories` | 0.0001 | — | 🟦 plan |
 | Bing · Keyword Performance | `/v3/keywords_data/bing/keyword_performance/live` | 0.05 | — | 🟦 plan |
 | Bing · Search Volume | `/v3/keywords_data/bing/search_volume/live` | 0.05 | — | 🟦 plan |
@@ -67,7 +67,7 @@ DataForSEO's own crawl).
 | Google · Search Intent | `/v3/dataforseo_labs/google/search_intent/live` | 0.0125 | ✅ done |
 | Google · Keyword Overview | `/v3/dataforseo_labs/google/keyword_overview/live` | 0.0125 | ✅ done |
 | Google · Keyword Ideas | `/v3/dataforseo_labs/google/keyword_ideas/live` | 0.0125 | 🟦 plan |
-| Google · Categories For Domain | `/v3/dataforseo_labs/google/categories_for_domain/live` | 0.0001 | 🟦 plan |
+| Google · Categories For Domain | `/v3/dataforseo_labs/google/categories_for_domain/live` | 0.0001 | ✅ done |
 | Google · Categories For Keywords | `/v3/dataforseo_labs/google/categories_for_keywords/live` | 0.0001 | 🟦 plan |
 | Google · Top Searches | `/v3/dataforseo_labs/google/top_searches/live` | 0.0125 | 🟦 plan |
 | Bing variants | `/v3/dataforseo_labs/bing/...` (mirror of Google) | 0.0125 | 🟦 plan |
@@ -97,7 +97,7 @@ each.
 | Google · Trends · Explore | `/v3/serp/google/google_trends_explore/{live,...}` | 0.002 | 0.0006 | 🟦 plan |
 | Google · Hotels | `/v3/serp/google/hotels/{live,task_post,...}` | 0.002 | 0.0006 | ⛔ skip |
 | Google · Flights | `/v3/serp/google/flights/{live,task_post,...}` | 0.002 | 0.0006 | ⛔ skip |
-| Google · Autocomplete | `/v3/serp/google/autocomplete/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
+| Google · Autocomplete | `/v3/serp/google/autocomplete/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
 | Google · Dataset | `/v3/serp/google/dataset_info/{live,...}` | 0.002 | — | ⛔ skip |
 | Google · Books | `/v3/serp/google/books/{live,task_post,...}` | 0.002 | 0.0006 | ⛔ skip |
 | Bing · Organic | `/v3/serp/bing/organic/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
@@ -110,7 +110,7 @@ each.
 | Seznam · Organic | `/v3/serp/seznam/organic/{live,task_post,...}` | 0.002 | 0.0006 | ⛔ skip |
 | Baidu · Organic | `/v3/serp/baidu/organic/{live,task_post,...}` | 0.002 | 0.0006 | ⛔ skip |
 | Yandex · Organic | `/v3/serp/yandex/organic/{live,task_post,...}` | 0.002 | 0.0006 | ⛔ skip |
-| AI Overview · Live | `/v3/serp/google/ai_overview/live/...` | 0.0001 / pull | — | 🟡 next |
+| AI Overview · Live | `/v3/serp/google/ai_overview/live/...` | 0.0001 / pull | — | ✅ done |
 
 > Note: Standard queue endpoints follow the pattern `task_post → tasks_ready
 > → task_get/{advanced,html,regular,...}`. The poller in `tasks::poller`

@@ -35,3 +35,7 @@ pub const LABS_BULK_SEARCH_VOLUME: &str = "labs.bulk_search_volume";
 pub const LABS_KEYWORD_OVERVIEW: &str = "labs.keyword_overview";
 pub const LABS_SEARCH_INTENT: &str = "labs.search_intent";
 pub const TOPIC_RESEARCH: &str = "topic.research";
+pub const SERP_GOOGLE_AUTOCOMPLETE: &str = "serp.google.autocomplete";
+pub const SERP_GOOGLE_AI_OVERVIEW: &str = "serp.google.ai_overview";
+pub const KEYWORDS_TRENDS_EXPLORE: &str = "keywords_data.google_trends.explore";
+pub const LABS_CATEGORIES_FOR_DOMAIN: &str = "labs.categories_for_domain";

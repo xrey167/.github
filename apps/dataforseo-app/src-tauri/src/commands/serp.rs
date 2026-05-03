@@ -416,3 +416,115 @@ pub async fn serp_maps_live(
         estimated_usd,
     })
 }
+
+// ---------- Autocomplete + AI Overview ----------
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct AutocompleteSuggestion {
+    pub suggestion: Option<String>,
+    pub relevance: Option<i64>,
+    pub rank_absolute: Option<i32>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct AutocompleteView {
+    pub keyword: String,
+    pub items: Vec<AutocompleteSuggestion>,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn serp_autocomplete(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+) -> Result<AutocompleteView> {
+    let kw = keyword.trim().to_owned();
+    if kw.is_empty() {
+        return Err(AppError::Validation("keyword required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::SerpAutocomplete);
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_GOOGLE_AUTOCOMPLETE,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_google_autocomplete_live(&kw, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(AutocompleteView {
+        keyword: resp.keyword,
+        items: resp
+            .items
+            .into_iter()
+            .map(|it| AutocompleteSuggestion {
+                suggestion: it.suggestion,
+                relevance: it.relevance,
+                rank_absolute: it.rank_absolute,
+            })
+            .collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct AiOverviewView {
+    pub keyword: String,
+    /// Raw item; UI extracts text + references. Null when no AI Overview
+    /// exists for the keyword (DataForSEO returns success + null result).
+    pub item: serde_json::Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn serp_ai_overview(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+) -> Result<AiOverviewView> {
+    let kw = keyword.trim().to_owned();
+    if kw.is_empty() {
+        return Err(AppError::Validation("keyword required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::SerpAiOverview);
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_GOOGLE_AI_OVERVIEW,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_google_ai_overview_live(&kw, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(AiOverviewView {
+        keyword: resp.keyword,
+        item: resp.item,
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}

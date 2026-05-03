@@ -332,3 +332,103 @@ pub struct TaskPostResponse {
     pub task_ids: Vec<String>,
     pub cost: f64,
 }
+
+// ---------- Autocomplete + AI Overview ----------
+
+/// One Google Autocomplete suggestion. Cheap content-ideation source.
+#[derive(Debug, Deserialize)]
+pub struct AutocompleteItem {
+    pub suggestion: Option<String>,
+    pub relevance: Option<i64>,
+    pub rank_absolute: Option<i32>,
+}
+
+#[derive(Debug)]
+pub struct AutocompleteResponse {
+    pub keyword: String,
+    pub items: Vec<AutocompleteItem>,
+    pub cost: f64,
+}
+
+#[derive(Debug)]
+pub struct AiOverviewResponse {
+    pub keyword: String,
+    /// Raw item — UI extracts the AI overview text + reference list.
+    /// Shape isn't stable enough across queries to mirror as a typed
+    /// struct; the page picks `.text`, `.references[]` etc.
+    pub item: serde_json::Value,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    /// Google Autocomplete suggestions for a seed keyword. 0.002 USD
+    /// per call regardless of how many suggestions come back.
+    pub async fn serp_google_autocomplete_live(
+        &self,
+        keyword: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<AutocompleteResponse> {
+        let body = serde_json::json!([{
+            "keyword": keyword,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::SerpLive,
+                "/v3/serp/google/autocomplete/live/advanced",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|raw| serde_json::from_value::<AutocompleteItem>(raw.clone()).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(AutocompleteResponse {
+            keyword: keyword.to_owned(),
+            items,
+            cost,
+        })
+    }
+
+    /// AI Overview pull. Cheap (0.0001 USD) because DataForSEO returns
+    /// pre-cached content rather than scraping live; useful for "is this
+    /// keyword triggering an AI Overview, and what does it say?" Returns
+    /// Null when no overview exists for the keyword.
+    pub async fn serp_google_ai_overview_live(
+        &self,
+        keyword: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<AiOverviewResponse> {
+        let body = serde_json::json!([{
+            "keyword": keyword,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::SerpLive,
+                "/v3/serp/google/ai_overview/live/advanced",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let item = raw
+            .pointer("/tasks/0/result/0")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
+        Ok(AiOverviewResponse {
+            keyword: keyword.to_owned(),
+            item,
+            cost,
+        })
+    }
+}

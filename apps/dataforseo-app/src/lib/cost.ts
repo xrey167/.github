@@ -30,7 +30,11 @@ export type CostAction =
   | { kind: "OnPageAudit"; max_pages: number }
   | { kind: "LabsKeywordOverview" }
   | { kind: "LabsSearchIntent" }
-  | { kind: "TopicResearch" };
+  | { kind: "TopicResearch" }
+  | { kind: "SerpAutocomplete" }
+  | { kind: "SerpAiOverview" }
+  | { kind: "KeywordsTrends" }
+  | { kind: "LabsCategoriesForDomain" };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -94,5 +98,13 @@ export function estimate(action: CostAction): number {
       return 0.0125;
     case "TopicResearch":
       return 0.0125 + 0.002 + 3 * 0.0025;
+    case "SerpAutocomplete":
+      return 0.002;
+    case "SerpAiOverview":
+      return 0.0001;
+    case "KeywordsTrends":
+      return 0.05;
+    case "LabsCategoriesForDomain":
+      return 0.0001;
   }
 }

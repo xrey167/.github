@@ -75,3 +75,56 @@ impl ApiClient {
         Ok(SearchVolumeResponse { items, cost })
     }
 }
+
+// ---------- Google Trends Explore ----------
+//
+// Interest-over-time for up to 5 keywords. Response carries items of
+// type "google_trends_graph" with a `data` array of (timestamp, values
+// per keyword). We pass the raw items through; the UI charts the
+// graph item and shows "topics" / "queries" lists if present.
+
+#[derive(Debug)]
+pub struct TrendsResponse {
+    pub items: serde_json::Value,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    pub async fn google_trends_explore_live(
+        &self,
+        keywords: &[String],
+        location_code: u32,
+        language_code: &str,
+        date_from: Option<&str>,
+        date_to: Option<&str>,
+    ) -> Result<TrendsResponse> {
+        let mut payload = serde_json::json!({
+            "keywords": keywords,
+            "location_code": location_code,
+            "language_code": language_code,
+            "type": "web",
+        });
+        if let Some(from) = date_from {
+            payload["date_from"] = serde_json::Value::String(from.to_owned());
+        }
+        if let Some(to) = date_to {
+            payload["date_to"] = serde_json::Value::String(to.to_owned());
+        }
+        let body = serde_json::json!([payload]);
+        let raw = self
+            .post_json(
+                Family::KeywordsData,
+                "/v3/keywords_data/google_trends/explore/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+        Ok(TrendsResponse { items, cost })
+    }
+}

@@ -193,6 +193,24 @@ export const tauriApi = {
   topicResearch: (args: { seed: string; locationCode: number; languageCode: string; useCache: boolean }) =>
     invoke<TopicBriefView>("topic_research", args),
 
+  serpAutocomplete: (args: { keyword: string; locationCode: number; languageCode: string }) =>
+    invoke<AutocompleteView>("serp_autocomplete", args),
+
+  serpAiOverview: (args: { keyword: string; locationCode: number; languageCode: string }) =>
+    invoke<AiOverviewView>("serp_ai_overview", args),
+
+  googleTrendsExplore: (args: {
+    keywords: string[];
+    locationCode: number;
+    languageCode: string;
+    dateFrom: string | null;
+    dateTo: string | null;
+    useCache: boolean;
+  }) => invoke<TrendsView>("google_trends_explore", args),
+
+  labsCategoriesForDomain: (args: { target: string; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<CategoriesForDomainView>("labs_categories_for_domain", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -518,6 +536,50 @@ export interface TopicBriefView {
   top_results: BriefTopResult[];
   total_volume_potential: number;
   avg_difficulty: number;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface AutocompleteSuggestion {
+  suggestion: string | null;
+  relevance: number | null;
+  rank_absolute: number | null;
+}
+
+export interface AutocompleteView {
+  keyword: string;
+  items: AutocompleteSuggestion[];
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface AiOverviewView {
+  keyword: string;
+  // Raw item — UI extracts text + reference list. Null when no AI
+  // Overview exists for the keyword.
+  item: Record<string, unknown> | null;
+  cost_usd: number;
+  estimated_usd: number;
+}
+
+export interface TrendsView {
+  keywords: string[];
+  // Raw items — UI charts the google_trends_graph item; topics_list /
+  // queries_list are rendered as side-by-side lists if present.
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface CategoriesForDomainView {
+  target: string;
+  // IAB-style taxonomy — items have category_code/category_name and
+  // sometimes a coverage percentage.
+  items: Array<Record<string, unknown>>;
   cost_usd: number;
   estimated_usd: number;
   from_cache: boolean;

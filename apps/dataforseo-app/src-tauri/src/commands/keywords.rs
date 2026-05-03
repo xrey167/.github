@@ -1380,3 +1380,169 @@ pub async fn labs_search_intent(
     cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
     Ok(view)
 }
+
+// ---------- Google Trends Explore + Labs Categories For Domain ----------
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct TrendsView {
+    pub keywords: Vec<String>,
+    /// Raw items array — UI charts the `google_trends_graph` item and
+    /// renders `google_trends_topics_list` / `google_trends_queries_list`
+    /// if present.
+    pub items: serde_json::Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn google_trends_explore(
+    state: State<'_, AppState>,
+    keywords: Vec<String>,
+    location_code: u32,
+    language_code: String,
+    date_from: Option<String>,
+    date_to: Option<String>,
+    use_cache: bool,
+) -> Result<TrendsView> {
+    let cleaned: Vec<String> = keywords
+        .into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty())
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one keyword required".into()));
+    }
+    if cleaned.len() > 5 {
+        return Err(AppError::Validation("up to 5 keywords per Trends call".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::KeywordsTrends);
+    let endpoint = endpoints::KEYWORDS_TRENDS_EXPLORE;
+    let cache_params = serde_json::json!({
+        "keywords": &cleaned,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "date_from": &date_from,
+        "date_to": &date_to,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<TrendsView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let cleaned_for_call = cleaned.clone();
+    let from_for_call = date_from.clone();
+    let to_for_call = date_to.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        cleaned.len() as i64,
+        move || async move {
+            let r = api
+                .google_trends_explore_live(
+                    &cleaned_for_call,
+                    location_code,
+                    &language_code,
+                    from_for_call.as_deref(),
+                    to_for_call.as_deref(),
+                )
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = TrendsView {
+        keywords: cleaned,
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../src/lib/types/")]
+pub struct CategoriesForDomainView {
+    pub target: String,
+    pub items: serde_json::Value,
+    pub cost_usd: f64,
+    pub estimated_usd: f64,
+    #[serde(default)]
+    pub from_cache: bool,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn labs_categories_for_domain(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    use_cache: bool,
+) -> Result<CategoriesForDomainView> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::LabsCategoriesForDomain);
+    let endpoint = endpoints::LABS_CATEGORIES_FOR_DOMAIN;
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "location_code": location_code,
+        "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<CategoriesForDomainView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let target_for_call = target.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .labs_categories_for_domain(&target_for_call, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = CategoriesForDomainView {
+        target: target.clone(),
+        items: resp.items,
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}

@@ -71,6 +71,18 @@ pub enum CostAction {
     /// 3× on_page instant. Roughly 0.022 USD on a fresh run, $0
     /// on cache hits.
     TopicResearch,
+    /// SERP Google Autocomplete · 0.002 USD per call. Returns up to
+    /// 10 autocomplete suggestions for a seed keyword.
+    SerpAutocomplete,
+    /// SERP Google AI Overview · 0.0001 USD per pull. Cheap because
+    /// DataForSEO returns pre-cached overviews rather than scraping.
+    SerpAiOverview,
+    /// Google Trends Explore · 0.05 USD per call regardless of how
+    /// many keywords (up to 5) or date range.
+    KeywordsTrends,
+    /// Labs Categories For Domain · 0.0001 USD per call. IAB-style
+    /// taxonomy classification.
+    LabsCategoriesForDomain,
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -133,6 +145,10 @@ pub fn estimate(action: &CostAction) -> f64 {
         // 0.002 + 3× instant pages 0.0025). ~0.022 USD upper bound; cache hits
         // bring this to 0.
         TopicResearch => 0.0125 + 0.002 + 3.0 * 0.0025,
+        SerpAutocomplete => 0.002,
+        SerpAiOverview => 0.0001,
+        KeywordsTrends => 0.05,
+        LabsCategoriesForDomain => 0.0001,
     }
 }
 

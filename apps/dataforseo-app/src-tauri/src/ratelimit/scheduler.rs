@@ -13,6 +13,7 @@ const MIN_WAIT: Duration = Duration::from_millis(1);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Family {
     GoogleAdsLive,
+    KeywordsData,
     Labs,
     SerpLive,
     SerpTask,
@@ -62,6 +63,9 @@ impl Scheduler {
         let mut buckets = HashMap::new();
         // capacity = burst allowed, refill_per_sec = sustained rate.
         buckets.insert(Family::GoogleAdsLive, Bucket::new(12.0, 12.0 / 60.0));
+        // KeywordsData (trends explore, clickstream, bing) shares the
+        // same 60-rpm bucket dynamics as the Labs family.
+        buckets.insert(Family::KeywordsData, Bucket::new(60.0, 10.0));
         buckets.insert(Family::Labs, Bucket::new(60.0, 10.0));
         buckets.insert(Family::SerpLive, Bucket::new(120.0, 20.0));
         buckets.insert(Family::SerpTask, Bucket::new(2000.0, 2000.0 / 60.0));

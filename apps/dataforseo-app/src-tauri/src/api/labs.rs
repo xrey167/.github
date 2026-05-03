@@ -697,3 +697,52 @@ impl ApiClient {
         Ok(SearchIntentResponse { items, cost })
     }
 }
+
+// ---------- Categories For Domain ----------
+//
+// IAB-style taxonomy classification for a single target domain. Useful
+// for understanding what a competitor is "about" without parsing every
+// page. 0.0001 USD — basically free.
+
+#[derive(Debug)]
+pub struct CategoriesForDomainResponse {
+    pub target: String,
+    /// Raw items array — DataForSEO returns objects with `category_code`
+    /// and `category_name` plus optional `coverage` percentage.
+    pub items: serde_json::Value,
+    pub cost: f64,
+}
+
+impl ApiClient {
+    pub async fn labs_categories_for_domain(
+        &self,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<CategoriesForDomainResponse> {
+        let body = serde_json::json!([{
+            "target": target,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::Labs,
+                "/v3/dataforseo_labs/google/categories_for_domain/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result/0/items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .map(serde_json::Value::Array)
+            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+        Ok(CategoriesForDomainResponse {
+            target: target.to_owned(),
+            items,
+            cost,
+        })
+    }
+}

@@ -6,6 +6,7 @@ import KeywordOverviewTab from "./keywords/KeywordOverviewTab";
 import RelatedTab from "./keywords/RelatedTab";
 import SerpCompetitorsTab from "./keywords/SerpCompetitorsTab";
 import SuggestionsTab from "./keywords/SuggestionsTab";
+import TrendsTab from "./keywords/TrendsTab";
 import VolumeTab from "./keywords/VolumeTab";
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
   { id: "related", label: "Related" },
   { id: "difficulty", label: "Difficulty" },
   { id: "serp_competitors", label: "SERP Competitors" },
+  { id: "trends", label: "Trends" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -56,6 +58,7 @@ export default function KeywordsPage() {
       {active === "related" && <RelatedTab />}
       {active === "difficulty" && <DifficultyTab />}
       {active === "serp_competitors" && <SerpCompetitorsTab />}
+      {active === "trends" && <TrendsTab />}
     </section>
   );
 }
