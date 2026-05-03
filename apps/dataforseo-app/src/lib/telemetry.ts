@@ -20,20 +20,18 @@ export function initTelemetry(): void {
 
   // Dynamic import keeps the SDK out of the bundle when not configured.
   // The scrubber is wired through `beforeSend` so credentials never
-  // leave the box even when reporting is on.
+  // leave the box even when reporting is on. browserTracingIntegration
+  // is required for `tracesSampleRate` to actually activate.
   import("@sentry/react")
     .then((Sentry) => {
       Sentry.init({
         dsn,
+        integrations: [Sentry.browserTracingIntegration()],
         // 10% transaction sampling keeps the budget reasonable while
         // still catching slow-call regressions.
         tracesSampleRate: 0.1,
-        beforeSend(event) {
-          return scrubCredentials(event);
-        },
-        beforeBreadcrumb(breadcrumb) {
-          return scrubCredentials(breadcrumb);
-        },
+        beforeSend: scrubCredentials,
+        beforeBreadcrumb: scrubCredentials,
       });
     })
     .catch((e) => {
@@ -65,6 +63,13 @@ function walk(value: unknown): unknown {
   if (value == null) return value;
   if (typeof value === "string") return scrubString(value);
   if (Array.isArray(value)) return value.map(walk);
+  // Preserve non-plain objects whose own-enumerable keys are empty —
+  // Object.entries(new Date()) and Object.entries(new Error()) both
+  // return [], so naive walking would silently drop them. We hand the
+  // SDK back the original instance so timestamps / stack traces survive.
+  if (value instanceof Date || value instanceof Error || value instanceof RegExp) {
+    return value;
+  }
   if (typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
