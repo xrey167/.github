@@ -20,6 +20,7 @@ pub enum Family {
     Backlinks,
     DomainAnalytics,
     OnPage,
+    ContentAnalysis,
 }
 
 struct Bucket {
@@ -82,6 +83,8 @@ impl Scheduler {
         // OnPage instant_pages + lighthouse — DataForSEO documents 2000 rpm
         // for the on_page family. Capacity matches the other 2k families.
         buckets.insert(Family::OnPage, Bucket::new(2000.0, 2000.0 / 60.0));
+        // Content Analysis (search, summary, sentiment) — 2000 rpm.
+        buckets.insert(Family::ContentAnalysis, Bucket::new(2000.0, 2000.0 / 60.0));
         Self { buckets: Mutex::new(buckets) }
     }
 

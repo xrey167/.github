@@ -211,6 +211,27 @@ export const tauriApi = {
   labsCategoriesForDomain: (args: { target: string; locationCode: number; languageCode: string; useCache: boolean }) =>
     invoke<CategoriesForDomainView>("labs_categories_for_domain", args),
 
+  serpAiModeLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
+    invoke<SerpLiveBatch>("serp_ai_mode_live", args),
+
+  serpBingOrganicLive: (args: { keyword: string; locationCode: number; languageCode: string; depth: number }) =>
+    invoke<SerpLiveBatch>("serp_bing_organic_live", args),
+
+  googleAdsKeywordsForSite: (args: { target: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<KeywordVolumeBatch>("google_ads_keywords_for_site", args),
+
+  googleAdsKeywordsForKeywords: (args: { seeds: string[]; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
+    invoke<KeywordVolumeBatch>("google_ads_keywords_for_keywords", args),
+
+  brandSearch: (args: { keyword: string; limit: number; positiveKeywords: string[]; negativeKeywords: string[]; useCache: boolean }) =>
+    invoke<BrandSearchView>("brand_search", args),
+
+  brandSummary: (args: { keyword: string; positiveKeywords: string[]; negativeKeywords: string[]; useCache: boolean }) =>
+    invoke<BrandSummaryView>("brand_summary", args),
+
+  brandSentiment: (args: { keyword: string; limit: number; useCache: boolean }) =>
+    invoke<BrandSentimentView>("brand_sentiment", args),
+
   whoisOverview: (args: { domain: string; useCache: boolean }) =>
     invoke<WhoisView>("whois_overview", args),
 
@@ -579,6 +600,39 @@ export interface CategoriesForDomainView {
   target: string;
   // IAB-style taxonomy — items have category_code/category_name and
   // sometimes a coverage percentage.
+  items: Array<Record<string, unknown>>;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface BrandSearchView {
+  keyword: string;
+  // Each item carries url, title, snippet, source domain, sentiment
+  // (positive/neutral/negative) and rank-style metadata.
+  items: Array<Record<string, unknown>>;
+  items_count: number;
+  total_count: number;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface BrandSummaryView {
+  keyword: string;
+  // Aggregate counts: total_count, sentiments_count.{positive,neutral,
+  // negative}, top_keywords/categories arrays.
+  result: Record<string, unknown> | null;
+  cost_usd: number;
+  estimated_usd: number;
+  from_cache: boolean;
+  fetched_at: string | null;
+}
+
+export interface BrandSentimentView {
+  keyword: string;
   items: Array<Record<string, unknown>>;
   cost_usd: number;
   estimated_usd: number;

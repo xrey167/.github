@@ -1,5 +1,6 @@
 pub mod backlinks;
 pub mod client;
+pub mod content_analysis;
 pub mod domain_analytics;
 pub mod keywords_data;
 pub mod labs;

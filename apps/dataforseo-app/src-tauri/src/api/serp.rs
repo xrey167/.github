@@ -244,6 +244,46 @@ impl ApiClient {
         .await
     }
 
+    /// Google AI Mode SERP (experimental). Returns the AI-generated
+    /// search experience — same shape as organic but with new item
+    /// kinds like "ai_mode_organic_result" and source citations.
+    pub async fn serp_google_ai_mode_live(
+        &self,
+        keyword: &str,
+        location_code: u32,
+        language_code: &str,
+        depth: u32,
+    ) -> Result<SerpLiveResponse> {
+        self.serp_live_impl(
+            keyword,
+            location_code,
+            language_code,
+            depth,
+            "/v3/serp/google/ai_mode/live/advanced",
+        )
+        .await
+    }
+
+    /// Bing Organic SERP — same response shape and cost as Google
+    /// Organic, just a different SERP source. Useful for B2B niches
+    /// where Bing/Edge market share matters.
+    pub async fn serp_bing_organic_live(
+        &self,
+        keyword: &str,
+        location_code: u32,
+        language_code: &str,
+        depth: u32,
+    ) -> Result<SerpLiveResponse> {
+        self.serp_live_impl(
+            keyword,
+            location_code,
+            language_code,
+            depth,
+            "/v3/serp/bing/organic/live/regular",
+        )
+        .await
+    }
+
     /// Google Maps SERP — returns local business listings for a keyword.
     /// Uses the `/advanced` result type because maps results carry structured
     /// place data that requires the richer schema.

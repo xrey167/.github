@@ -528,3 +528,83 @@ pub async fn serp_ai_overview(
         estimated_usd,
     })
 }
+
+// ---------- AI Mode + Bing Organic ----------
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn serp_ai_mode_live(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+    depth: u32,
+) -> Result<SerpLiveBatch> {
+    let estimated_usd = cost::estimate(&CostAction::Serp {
+        count: 1,
+        mode: Mode::Live,
+        depth,
+        extra_params: 0,
+    });
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_GOOGLE_AI_MODE_LIVE,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_google_ai_mode_live(&keyword, location_code, &language_code, depth)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(SerpLiveBatch {
+        keyword: resp.keyword,
+        items: resp.items.into_iter().map(SerpResultItem::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn serp_bing_organic_live(
+    state: State<'_, AppState>,
+    keyword: String,
+    location_code: u32,
+    language_code: String,
+    depth: u32,
+) -> Result<SerpLiveBatch> {
+    let estimated_usd = cost::estimate(&CostAction::Serp {
+        count: 1,
+        mode: Mode::Live,
+        depth,
+        extra_params: 0,
+    });
+    let api = state.api.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoints::SERP_BING_ORGANIC_LIVE,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .serp_bing_organic_live(&keyword, location_code, &language_code, depth)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    Ok(SerpLiveBatch {
+        keyword: resp.keyword,
+        items: resp.items.into_iter().map(SerpResultItem::from).collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+    })
+}

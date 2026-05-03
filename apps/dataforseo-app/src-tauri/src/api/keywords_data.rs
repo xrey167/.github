@@ -128,3 +128,82 @@ impl ApiClient {
         Ok(TrendsResponse { items, cost })
     }
 }
+
+// ---------- Google Ads Keywords-for-Site / Keywords-for-Keywords ----------
+
+/// Google Ads keyword expansion endpoints. Both return the same shape
+/// (a list of keyword ideas with monthly_searches), so we share the
+/// SearchVolumeResponse/Item types from above.
+
+impl ApiClient {
+    /// Keywords for a domain target. Charges 0.075 USD per call regardless
+    /// of how many keywords come back.
+    pub async fn google_ads_keywords_for_site_live(
+        &self,
+        target: &str,
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<SearchVolumeResponse> {
+        let body = serde_json::json!([{
+            "target": target,
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.clamp(1, 1000),
+            "sort_by": "search_volume",
+        }]);
+        let raw = self
+            .post_json(
+                Family::GoogleAdsLive,
+                "/v3/keywords_data/google_ads/keywords_for_site/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|i| serde_json::from_value::<SearchVolumeItem>(i.clone()).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(SearchVolumeResponse { items, cost })
+    }
+
+    /// Keyword expansion from a seed keyword set.
+    pub async fn google_ads_keywords_for_keywords_live(
+        &self,
+        seeds: &[String],
+        location_code: u32,
+        language_code: &str,
+        limit: u32,
+    ) -> Result<SearchVolumeResponse> {
+        let body = serde_json::json!([{
+            "keywords": seeds,
+            "location_code": location_code,
+            "language_code": language_code,
+            "limit": limit.clamp(1, 1000),
+            "sort_by": "search_volume",
+        }]);
+        let raw = self
+            .post_json(
+                Family::GoogleAdsLive,
+                "/v3/keywords_data/google_ads/keywords_for_keywords/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|i| serde_json::from_value::<SearchVolumeItem>(i.clone()).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(SearchVolumeResponse { items, cost })
+    }
+}

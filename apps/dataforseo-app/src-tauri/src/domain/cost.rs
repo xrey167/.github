@@ -83,6 +83,16 @@ pub enum CostAction {
     /// Labs Categories For Domain · 0.0001 USD per call. IAB-style
     /// taxonomy classification.
     LabsCategoriesForDomain,
+    /// Google Ads Keywords-for-Site / Keywords-for-Keywords · flat
+    /// 0.075 USD per call. Both endpoints share the same pricing model;
+    /// the wire path differs but the response shape is identical.
+    GoogleAdsKeywordsExpansion,
+    /// Content Analysis Search · 0.001 USD per row.
+    ContentAnalysisSearch { rows: u32 },
+    /// Content Analysis Summary · 0.001 USD flat.
+    ContentAnalysisSummary,
+    /// Content Analysis Sentiment · 0.0005 USD per row.
+    ContentAnalysisSentiment { rows: u32 },
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -149,6 +159,10 @@ pub fn estimate(action: &CostAction) -> f64 {
         SerpAiOverview => 0.0001,
         KeywordsTrends => 0.05,
         LabsCategoriesForDomain => 0.0001,
+        GoogleAdsKeywordsExpansion => 0.075,
+        ContentAnalysisSearch { rows } => (*rows as f64).max(1.0) * 0.001,
+        ContentAnalysisSummary => 0.001,
+        ContentAnalysisSentiment { rows } => (*rows as f64).max(1.0) * 0.0005,
     }
 }
 

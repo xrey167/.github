@@ -2,6 +2,7 @@ pub mod ai;
 pub mod audit;
 pub mod auth;
 pub mod backlinks;
+pub mod brand;
 pub mod cached;
 pub mod domain_analytics;
 pub mod keywords;

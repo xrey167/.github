@@ -21,7 +21,7 @@ use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use crate::store::keywords_cache::{self, KeywordVolume};
 
-#[derive(Debug, Serialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../src/lib/types/")]
 pub struct KeywordVolumeBatch {
     pub items: Vec<KeywordVolume>,
@@ -1542,6 +1542,163 @@ pub async fn labs_categories_for_domain(
         estimated_usd,
         from_cache: false,
         fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
+// ---------- Google Ads Keywords-for-Site / Keywords-for-Keywords ----------
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn google_ads_keywords_for_site(
+    state: State<'_, AppState>,
+    target: String,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+    use_cache: bool,
+) -> Result<KeywordVolumeBatch> {
+    let target = target.trim().to_owned();
+    if target.is_empty() {
+        return Err(AppError::Validation("target required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::GoogleAdsKeywordsExpansion);
+    let endpoint = endpoints::KEYWORDS_FOR_SITE_GOOGLE_ADS;
+    let cache_params = serde_json::json!({
+        "target": &target,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if use_cache {
+        if let CachedOutcome::Hit { mut view, fetched_at: _ } = cached::lookup::<KeywordVolumeBatch>(
+            state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+        ).await? {
+            view.cost_usd = 0.0;
+            view.estimated_usd = estimated_usd;
+            return Ok(view);
+        }
+    }
+    let api = state.api.clone();
+    let target_for_call = target.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        1,
+        move || async move {
+            let r = api
+                .google_ads_keywords_for_site_live(&target_for_call, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let items: Vec<KeywordVolume> = resp
+        .items
+        .into_iter()
+        .map(|item| KeywordVolume {
+            keyword: item.keyword,
+            search_volume: item.search_volume,
+            competition: item.competition,
+            competition_index: item.competition_index,
+            cpc: item.cpc,
+            low_top_of_page_bid: item.low_top_of_page_bid,
+            high_top_of_page_bid: item.high_top_of_page_bid,
+            monthly_searches: item.monthly_searches,
+            from_cache: false,
+        })
+        .collect();
+    let view = KeywordVolumeBatch {
+        items,
+        cache_hits: 0,
+        fresh: 0,
+        cost_usd: resp.cost,
+        estimated_usd,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn google_ads_keywords_for_keywords(
+    state: State<'_, AppState>,
+    seeds: Vec<String>,
+    location_code: u32,
+    language_code: String,
+    limit: u32,
+    use_cache: bool,
+) -> Result<KeywordVolumeBatch> {
+    let mut seen = HashSet::new();
+    let cleaned: Vec<String> = seeds
+        .into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty() && seen.insert(k.clone()))
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one seed required".into()));
+    }
+    let estimated_usd = cost::estimate(&CostAction::GoogleAdsKeywordsExpansion);
+    let endpoint = endpoints::KEYWORDS_FOR_KEYWORDS_GOOGLE_ADS;
+    let mut sorted_seeds = cleaned.clone();
+    sorted_seeds.sort();
+    let cache_params = serde_json::json!({
+        "seeds": sorted_seeds,
+        "location_code": location_code,
+        "language_code": &language_code,
+        "limit": limit,
+    });
+    if use_cache {
+        if let CachedOutcome::Hit { mut view, fetched_at: _ } = cached::lookup::<KeywordVolumeBatch>(
+            state.store.clone(), endpoint, &cache_params, cache::ttl_medium(), use_cache,
+        ).await? {
+            view.cost_usd = 0.0;
+            view.estimated_usd = estimated_usd;
+            return Ok(view);
+        }
+    }
+    let api = state.api.clone();
+    let seeds_for_call = cleaned.clone();
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        cleaned.len() as i64,
+        move || async move {
+            let r = api
+                .google_ads_keywords_for_keywords_live(&seeds_for_call, location_code, &language_code, limit)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let items: Vec<KeywordVolume> = resp
+        .items
+        .into_iter()
+        .map(|item| KeywordVolume {
+            keyword: item.keyword,
+            search_volume: item.search_volume,
+            competition: item.competition,
+            competition_index: item.competition_index,
+            cpc: item.cpc,
+            low_top_of_page_bid: item.low_top_of_page_bid,
+            high_top_of_page_bid: item.high_top_of_page_bid,
+            monthly_searches: item.monthly_searches,
+            from_cache: false,
+        })
+        .collect();
+    let view = KeywordVolumeBatch {
+        items,
+        cache_hits: 0,
+        fresh: 0,
+        cost_usd: resp.cost,
+        estimated_usd,
     };
     cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
     Ok(view)

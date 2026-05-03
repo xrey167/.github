@@ -34,7 +34,11 @@ export type CostAction =
   | { kind: "SerpAutocomplete" }
   | { kind: "SerpAiOverview" }
   | { kind: "KeywordsTrends" }
-  | { kind: "LabsCategoriesForDomain" };
+  | { kind: "LabsCategoriesForDomain" }
+  | { kind: "GoogleAdsKeywordsExpansion" }
+  | { kind: "ContentAnalysisSearch"; rows: number }
+  | { kind: "ContentAnalysisSummary" }
+  | { kind: "ContentAnalysisSentiment"; rows: number };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -106,5 +110,13 @@ export function estimate(action: CostAction): number {
       return 0.05;
     case "LabsCategoriesForDomain":
       return 0.0001;
+    case "GoogleAdsKeywordsExpansion":
+      return 0.075;
+    case "ContentAnalysisSearch":
+      return Math.max(1, action.rows) * 0.001;
+    case "ContentAnalysisSummary":
+      return 0.001;
+    case "ContentAnalysisSentiment":
+      return Math.max(1, action.rows) * 0.0005;
   }
 }

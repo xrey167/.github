@@ -32,8 +32,8 @@ Google Ads search-volume data and clickstream-derived stats.
 | Endpoint | Path | Live | Standard | Status |
 | --- | --- | --- | --- | --- |
 | Google Ads · Search Volume | `/v3/keywords_data/google_ads/search_volume/live` | 0.075 / 1k kw | 0.05 / 1k | ✅ done |
-| Google Ads · Keywords for Site | `/v3/keywords_data/google_ads/keywords_for_site/live` | 0.075 | 0.05 | 🟡 next |
-| Google Ads · Keywords for Keywords | `/v3/keywords_data/google_ads/keywords_for_keywords/live` | 0.075 | 0.05 | 🟡 next |
+| Google Ads · Keywords for Site | `/v3/keywords_data/google_ads/keywords_for_site/live` | 0.075 | 0.05 | ✅ done |
+| Google Ads · Keywords for Keywords | `/v3/keywords_data/google_ads/keywords_for_keywords/live` | 0.075 | 0.05 | ✅ done |
 | Google Ads · Ad Traffic by Keywords | `/v3/keywords_data/google_ads/ad_traffic_by_keywords/live` | 0.075 | 0.05 | 🟦 plan |
 | Google Trends · Explore | `/v3/keywords_data/google_trends/explore/live` | 0.05 | — | ✅ done |
 | Google Trends · Categories | `/v3/keywords_data/google_trends/categories` | 0.0001 | — | 🟦 plan |
@@ -85,7 +85,7 @@ each.
 | Endpoint | Path | Live (per row) | Standard | Status |
 | --- | --- | --- | --- | --- |
 | Google · Organic | `/v3/serp/google/organic/{live,task_post,task_get/...}` | 0.002 | 0.0006 | ✅ done |
-| Google · Organic AI Mode | `/v3/serp/google/ai_mode/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
+| Google · Organic AI Mode | `/v3/serp/google/ai_mode/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
 | Google · Ads | `/v3/serp/google/ads/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
 | Google · News | `/v3/serp/google/news/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
 | Google · Maps | `/v3/serp/google/maps/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
@@ -100,7 +100,7 @@ each.
 | Google · Autocomplete | `/v3/serp/google/autocomplete/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
 | Google · Dataset | `/v3/serp/google/dataset_info/{live,...}` | 0.002 | — | ⛔ skip |
 | Google · Books | `/v3/serp/google/books/{live,task_post,...}` | 0.002 | 0.0006 | ⛔ skip |
-| Bing · Organic | `/v3/serp/bing/organic/{live,task_post,...}` | 0.002 | 0.0006 | 🟡 next |
+| Bing · Organic | `/v3/serp/bing/organic/{live,task_post,...}` | 0.002 | 0.0006 | ✅ done |
 | Bing · Local Pack | `/v3/serp/bing/local_pack/{live,task_post,...}` | 0.002 | 0.0006 | 🟦 plan |
 | Yahoo · Organic | `/v3/serp/yahoo/organic/{live,task_post,...}` | 0.002 | 0.0006 | 🟦 plan |
 | YouTube · Organic | `/v3/serp/youtube/organic/{live,task_post,...}` | 0.002 | 0.0006 | 🟦 plan |
@@ -187,9 +187,9 @@ Brand-mention monitoring across the open web.
 
 | Endpoint | Path | Live | Status |
 | --- | --- | --- | --- |
-| Search | `/v3/content_analysis/search/live` | 0.001 / row | 🟦 plan |
-| Summary | `/v3/content_analysis/summary/live` | 0.001 | 🟦 plan |
-| Sentiment Analysis | `/v3/content_analysis/sentiment_analysis/live` | 0.0005 / row | 🟦 plan |
+| Search | `/v3/content_analysis/search/live` | 0.001 / row | ✅ done |
+| Summary | `/v3/content_analysis/summary/live` | 0.001 | ✅ done |
+| Sentiment Analysis | `/v3/content_analysis/sentiment_analysis/live` | 0.0005 / row | ✅ done |
 | Rating Distribution | `/v3/content_analysis/rating_distribution/live` | 0.0005 | 🟦 plan |
 | Phrase Trends | `/v3/content_analysis/phrase_trends/live` | 0.0005 / row | 🟦 plan |
 | Categories | `/v3/content_analysis/category_trends/live` | 0.0005 | 🟦 plan |
