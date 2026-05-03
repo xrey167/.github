@@ -11,7 +11,7 @@ use serde_json::Value;
 
 use crate::api::client::ApiClient;
 use crate::api::ensure_api_success;
-use crate::errors::{AppError, Result};
+use crate::errors::Result;
 use crate::ratelimit::Family;
 
 #[derive(Debug)]

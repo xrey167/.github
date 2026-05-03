@@ -11,7 +11,7 @@
 //! "rank > 30 AND anchor like %seo%" presets without bespoke serializer
 //! code.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::api::client::ApiClient;
@@ -49,7 +49,7 @@ fn attach_filter(payload: &mut serde_json::Value, filter: &Filter) {
 /// Aggregate backlink-profile metrics for one target. We keep the API's raw
 /// nested shape on most fields and just lift the often-asked numbers to the
 /// top level — matches what the UI tile renders without parsing.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BacklinksSummary {
     pub target: String,
     pub backlinks: Option<i64>,
