@@ -49,13 +49,19 @@ pub fn get_fresh(
     );
 
     let mut stmt = conn.prepare(&sql)?;
+    // duckdb::types::Value's From impls don't cover &str / NaiveDateTime
+    // directly; spell out the variants. Strings → Text, naive datetimes
+    // → Timestamp (microsecond precision, like CURRENT_TIMESTAMP).
     let mut params_vec: Vec<duckdb::types::Value> = vec![
-        (location_code as i64).into(),
-        language_code.into(),
-        cutoff.naive_utc().into(),
+        duckdb::types::Value::BigInt(location_code as i64),
+        duckdb::types::Value::Text(language_code.to_owned()),
+        duckdb::types::Value::Timestamp(
+            duckdb::types::TimeUnit::Microsecond,
+            cutoff.timestamp_micros(),
+        ),
     ];
     for k in keywords {
-        params_vec.push(k.clone().into());
+        params_vec.push(duckdb::types::Value::Text(k.clone()));
     }
     let params_refs: Vec<&dyn duckdb::ToSql> =
         params_vec.iter().map(|v| v as &dyn duckdb::ToSql).collect();
