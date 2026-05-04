@@ -8,6 +8,7 @@ pub mod ledger;
 pub mod projects;
 pub mod response_cache;
 pub mod schema;
+pub mod semrush_import;
 pub mod serp_results;
 pub mod serp_tasks;
 pub mod tracking;

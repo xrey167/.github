@@ -195,6 +195,8 @@ pub fn run() {
             commands::reports::reports_toggle_schedule,
             commands::reports::reports_delete_schedule,
             commands::reports::reports_list_runs,
+            commands::import::semrush_import,
+            commands::import::semrush_list_imports,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
