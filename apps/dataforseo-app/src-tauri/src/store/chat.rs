@@ -52,6 +52,7 @@ pub fn create_session(
     .map_err(Into::into)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn append_message(
     conn: &mut Connection,
     session_id: i64,
@@ -173,6 +174,7 @@ pub fn load_attachment(conn: &mut Connection, session_id: i64) -> Result<Option<
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn record_ai_call(
     conn: &mut Connection,
     provider: &str,

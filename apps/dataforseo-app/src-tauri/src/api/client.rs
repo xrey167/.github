@@ -11,6 +11,7 @@ pub struct ApiClient {
     http: reqwest::Client,
     credentials: Arc<RwLock<Option<Credentials>>>,
     scheduler: Arc<Scheduler>,
+    base_url: String,
 }
 
 impl ApiClient {
@@ -20,7 +21,23 @@ impl ApiClient {
             .timeout(std::time::Duration::from_secs(60))
             .build()
             .expect("reqwest client should build with default config");
-        Self { http, credentials, scheduler }
+        Self { http, credentials, scheduler, base_url: BASE_URL.into() }
+    }
+
+    /// Constructor for integration tests — overrides the API base URL so
+    /// wiremock can intercept requests without DNS or TLS.
+    #[doc(hidden)]
+    pub fn new_with_base_url(
+        base_url: String,
+        credentials: Arc<RwLock<Option<Credentials>>>,
+        scheduler: Arc<Scheduler>,
+    ) -> Self {
+        let http = reqwest::Client::builder()
+            .user_agent("dataforseo-app/test")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .expect("reqwest client should build");
+        Self { http, credentials, scheduler, base_url }
     }
 
     async fn credentials(&self) -> Result<Credentials> {
@@ -36,7 +53,7 @@ impl ApiClient {
         let creds = self.credentials().await?;
         let resp = self
             .http
-            .get(format!("{BASE_URL}/v3/appendix/user_data"))
+            .get(format!("{}/v3/appendix/user_data", self.base_url))
             .basic_auth(&creds.login, Some(&creds.password))
             .send()
             .await?;
@@ -49,7 +66,7 @@ impl ApiClient {
         let creds = self.credentials().await?;
         let resp = self
             .http
-            .get(format!("{BASE_URL}/v3/appendix/status"))
+            .get(format!("{}/v3/appendix/status", self.base_url))
             .basic_auth(&creds.login, Some(&creds.password))
             .send()
             .await?;
@@ -63,7 +80,7 @@ impl ApiClient {
         let creds = self.credentials().await?;
         let resp = self
             .http
-            .get(format!("{BASE_URL}/v3/appendix/errors"))
+            .get(format!("{}/v3/appendix/errors", self.base_url))
             .basic_auth(&creds.login, Some(&creds.password))
             .send()
             .await?;
@@ -82,7 +99,7 @@ impl ApiClient {
         let creds = self.credentials().await?;
         let resp = self
             .http
-            .post(format!("{BASE_URL}{path}"))
+            .post(format!("{}{path}", self.base_url))
             .basic_auth(&creds.login, Some(&creds.password))
             .json(body)
             .send()
@@ -101,7 +118,7 @@ impl ApiClient {
         let creds = self.credentials().await?;
         let resp = self
             .http
-            .get(format!("{BASE_URL}{path}"))
+            .get(format!("{}{path}", self.base_url))
             .basic_auth(&creds.login, Some(&creds.password))
             .send()
             .await?;

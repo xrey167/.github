@@ -15,7 +15,7 @@ pub enum CostAction {
     KeywordsForDomain { mode: Mode },
     Serp { count: u32, mode: Mode, depth: u32, extra_params: u32 },
     /// Backlinks endpoints follow a different shape: 0.02 USD per request
-    /// + 0.00003 USD per result row. `target_count` is how many separate
+    /// plus 0.00003 USD per result row. `target_count` is how many separate
     /// targets are queried (one POST each), `rows_per_target` the limit
     /// requested. Aggregate endpoints (summary, history) pass rows=1.
     Backlinks { target_count: u32, rows_per_target: u32 },

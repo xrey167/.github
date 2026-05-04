@@ -116,7 +116,7 @@ pub fn put_batch(
                 low_top_of_page_bid = excluded.low_top_of_page_bid,
                 high_top_of_page_bid = excluded.high_top_of_page_bid,
                 monthly_searches = excluded.monthly_searches,
-                fetched_at = CURRENT_TIMESTAMP",
+                fetched_at = excluded.fetched_at",
         )?;
         for r in rows {
             let monthly_str = r

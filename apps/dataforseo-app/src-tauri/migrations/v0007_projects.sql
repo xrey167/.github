@@ -8,8 +8,9 @@
 -- project row and updates the FK. Forward-only; existing data stays
 -- functional even with project_id NULL.
 
+CREATE SEQUENCE IF NOT EXISTS projects_id_seq;
 CREATE TABLE IF NOT EXISTS projects (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('projects_id_seq'),
     name VARCHAR NOT NULL,
     -- Denormalized so the sidebar / API filters don't need a join.
     target VARCHAR NOT NULL,

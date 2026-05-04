@@ -82,11 +82,12 @@ async fn generate_one(
         .map_err(|e| AppError::Internal(format!("write PDF: {e}")))?;
 
     let path_str = pdf_path.to_string_lossy().into_owned();
+    let path_str_db = path_str.clone();
     let sched_id = sched.id;
     let store_c = store.clone();
     tokio::task::spawn_blocking(move || -> Result<()> {
         store_c.with_conn(|c| {
-            reports::record_run(c, sched_id, &path_str)?;
+            reports::record_run(c, sched_id, &path_str_db)?;
             reports::mark_ran(c, sched_id)
         })
     })
@@ -103,7 +104,7 @@ async fn generate_one(
 async fn build_tracking_pdf(store: &Arc<Store>, sched: &ReportSchedule) -> Result<Vec<u8>> {
     let store_c = store.clone();
     let rows = tokio::task::spawn_blocking(move || -> Result<_> {
-        store_c.with_conn(|c| tracking::list_with_ranks(c))
+        store_c.with_conn(tracking::list_with_ranks)
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))??;
@@ -170,7 +171,7 @@ fn build_table_pdf(
         let layer = doc.get_page(page1).get_layer(layer1);
         layer.use_text(heading, 16.0, Mm(20.0), Mm(272.0), &bold);
         layer.use_text(&now, 9.0, Mm(20.0), Mm(265.0), &regular);
-        layer.use_text(&"-".repeat(100), 8.0, Mm(20.0), Mm(261.0), &regular);
+        layer.use_text("-".repeat(100), 8.0, Mm(20.0), Mm(261.0), &regular);
     }
 
     // Table layout constants.

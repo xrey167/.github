@@ -204,7 +204,7 @@ fn parse_labs_response(raw: &serde_json::Value) -> Result<LabsResponse> {
             // .keyword_data; for suggestions the fields are top-level.
             let target = raw_item
                 .pointer("/keyword_data/keyword_info")
-                .or_else(|| Some(raw_item))?;
+                .or(Some(raw_item))?;
             let keyword = target
                 .pointer("/keyword")
                 .or_else(|| raw_item.pointer("/keyword_data/keyword"))
@@ -531,7 +531,7 @@ impl ApiClient {
             .and_then(|v| v.as_array())
             .cloned()
             .map(serde_json::Value::Array)
-            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+            .unwrap_or(serde_json::Value::Array(vec![]));
         Ok(LabsDomainRankOverviewResponse { items, cost })
     }
 
@@ -693,7 +693,7 @@ impl ApiClient {
             .and_then(|v| v.as_array())
             .cloned()
             .map(serde_json::Value::Array)
-            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+            .unwrap_or(serde_json::Value::Array(vec![]));
         Ok(SearchIntentResponse { items, cost })
     }
 }
@@ -738,7 +738,7 @@ impl ApiClient {
             .and_then(|v| v.as_array())
             .cloned()
             .map(serde_json::Value::Array)
-            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+            .unwrap_or(serde_json::Value::Array(vec![]));
         Ok(CategoriesForDomainResponse {
             target: target.to_owned(),
             items,
@@ -927,7 +927,7 @@ impl ApiClient {
             .and_then(|v| v.as_array())
             .cloned()
             .map(serde_json::Value::Array)
-            .unwrap_or_else(|| serde_json::Value::Array(Vec::new()));
+            .unwrap_or(serde_json::Value::Array(vec![]));
         Ok(LabsRawValueResponse { items, cost })
     }
 }

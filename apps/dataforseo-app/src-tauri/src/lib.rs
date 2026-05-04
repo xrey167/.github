@@ -47,7 +47,7 @@ pub fn run() {
                     // keywords / audit runs. Idempotent — re-runs are
                     // a single SELECT + zero updates after the first
                     // post-upgrade boot.
-                    let _ = evict_store.with_conn(|c| store::projects::backfill(c));
+                    let _ = evict_store.with_conn(store::projects::backfill);
                 })
                 .await;
             });

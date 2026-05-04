@@ -131,9 +131,9 @@ impl ApiClient {
 
 // ---------- Google Ads Keywords-for-Site / Keywords-for-Keywords ----------
 
-/// Google Ads keyword expansion endpoints. Both return the same shape
-/// (a list of keyword ideas with monthly_searches), so we share the
-/// SearchVolumeResponse/Item types from above.
+// Google Ads keyword expansion endpoints. Both return the same shape
+// (a list of keyword ideas with monthly_searches), so we share the
+// SearchVolumeResponse/Item types from above.
 
 impl ApiClient {
     /// Keywords for a domain target. Charges 0.075 USD per call regardless

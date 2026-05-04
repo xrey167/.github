@@ -56,14 +56,13 @@ pub fn find_ready(conn: &mut Connection) -> Result<Vec<SerpTask>> {
 }
 
 pub fn list_batch(conn: &mut Connection, batch_id: &str) -> Result<Vec<SerpTask>> {
-    let sql = format!(
+    let mut stmt = conn.prepare(
         "SELECT task_id, batch_id, keyword, location_code, language_code, depth,
                 status, posted_at, fetched_at, poll_attempts, cost_usd, error
            FROM serp_tasks
           WHERE batch_id = $1
-          ORDER BY posted_at"
-    );
-    let mut stmt = conn.prepare(&sql)?;
+          ORDER BY posted_at",
+    )?;
     let rows = stmt.query_map([batch_id], row_to_task)?;
     let mut out = Vec::new();
     for r in rows {

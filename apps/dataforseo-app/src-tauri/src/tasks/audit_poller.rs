@@ -31,7 +31,7 @@ pub async fn run(api: Arc<ApiClient>, store: Arc<Store>) {
 }
 
 async fn tick(api: &Arc<ApiClient>, store: &Arc<Store>) -> Result<()> {
-    let pending = blocking(store, |c| audits::find_pending_runs(c)).await?;
+    let pending = blocking(store, audits::find_pending_runs).await?;
     if pending.is_empty() {
         return Ok(());
     }

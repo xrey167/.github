@@ -36,7 +36,7 @@ async fn poll_once(api: &Arc<ApiClient>, store: &Arc<Store>) -> Result<()> {
     // matches as 'ready'. Skip the network round-trip when we have nothing
     // outstanding, but still process anything already in 'ready' below —
     // a previous tick may have marked them ready and then failed to fetch.
-    let pending = blocking(store, |c| serp_tasks::find_pending(c)).await?;
+    let pending = blocking(store, serp_tasks::find_pending).await?;
     if !pending.is_empty() {
         let ready_ids = api.serp_google_organic_tasks_ready().await?;
         if !ready_ids.is_empty() {
@@ -50,7 +50,7 @@ async fn poll_once(api: &Arc<ApiClient>, store: &Arc<Store>) -> Result<()> {
         }
     }
 
-    let ready = blocking(store, |c| serp_tasks::find_ready(c)).await?;
+    let ready = blocking(store, serp_tasks::find_ready).await?;
     if ready.is_empty() {
         return Ok(());
     }

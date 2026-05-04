@@ -1,11 +1,22 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import CostPreview from "../components/CostPreview";
+import ExportMenu from "../components/ExportMenu";
 import { formatError } from "../lib/errors";
 import { formatUsd } from "../lib/format";
 import { tauriApi, type AuditRun } from "../lib/tauri";
 import AuditRunDetail from "./audit/AuditRunDetail";
+
+const AUDIT_COLUMNS: ColumnDef<AuditRun, unknown>[] = [
+  { header: "Target", accessorKey: "target" },
+  { header: "Status", accessorKey: "status" },
+  { header: "Started", accessorKey: "started_at" },
+  { header: "Pages Crawled", accessorKey: "page_count" },
+  { header: "Max Pages", accessorKey: "max_crawl_pages" },
+  { header: "Cost USD", accessorKey: "cost_usd" },
+];
 
 const PRESET_PAGE_LIMITS = [50, 100, 200, 500, 1000];
 
@@ -146,6 +157,14 @@ export default function AuditPage() {
         </div>
       ) : (
         <div className="rounded border bg-white">
+          <div className="flex items-center justify-between border-b px-3 py-2">
+            <span className="text-xs font-medium text-slate-600">{runs.length} audit{runs.length !== 1 ? "s" : ""}</span>
+            <ExportMenu
+              filenameStem="site-audits"
+              rows={runs}
+              columns={AUDIT_COLUMNS}
+            />
+          </div>
           <table className="min-w-full text-xs">
             <thead className="bg-slate-50 text-slate-600">
               <tr>

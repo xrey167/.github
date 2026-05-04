@@ -45,7 +45,7 @@ pub fn put_summary(
          ON CONFLICT (target) DO UPDATE SET
             summary_json = excluded.summary_json,
             cost_usd = excluded.cost_usd,
-            fetched_at = CURRENT_TIMESTAMP",
+            fetched_at = excluded.fetched_at",
         params![target, json_str, cost_usd],
     )?;
     Ok(())

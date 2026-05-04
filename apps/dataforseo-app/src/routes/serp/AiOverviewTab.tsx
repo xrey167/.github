@@ -1,17 +1,31 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { formatError } from "../../lib/errors";
 
 import CostPreview from "../../components/CostPreview";
+import ExportMenu from "../../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 import { formatUsd } from "../../lib/format";
 import { tauriApi, type AiOverviewView } from "../../lib/tauri";
 
+interface OverviewRef {
+  url: string;
+  title: string | null;
+  domain: string | null;
+}
+
 interface OverviewSlice {
   text: string | null;
-  references: Array<{ url: string; title: string | null; domain: string | null }>;
+  references: OverviewRef[];
 }
+
+const REF_COLUMNS: ColumnDef<OverviewRef, unknown>[] = [
+  { header: "Domain", accessorKey: "domain" },
+  { header: "Title", accessorKey: "title" },
+  { header: "URL", accessorKey: "url" },
+];
 
 function pick(view: AiOverviewView): OverviewSlice {
   const item = view.item ?? {};
@@ -113,9 +127,16 @@ export default function AiOverviewTab() {
           )}
           {slice.references.length > 0 && (
             <div className="rounded border bg-white p-3">
-              <h3 className="mb-2 text-sm font-semibold">
-                References ({slice.references.length})
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">
+                  References ({slice.references.length})
+                </h3>
+                <ExportMenu
+                  filenameStem="ai-overview-references"
+                  rows={slice.references}
+                  columns={REF_COLUMNS}
+                />
+              </div>
               <ol className="space-y-1 text-sm">
                 {slice.references.map((r, i) => (
                   <li key={i} className="flex items-baseline gap-2">

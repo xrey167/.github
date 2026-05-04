@@ -146,7 +146,7 @@ pub fn delete_run(conn: &mut Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
-/// Poller helpers ----------------------------------------------------
+// Poller helpers ----------------------------------------------------
 
 pub fn find_pending_runs(conn: &mut Connection) -> Result<Vec<(i64, String)>> {
     let mut stmt = conn.prepare(

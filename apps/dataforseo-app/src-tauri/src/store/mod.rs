@@ -30,7 +30,17 @@ impl Store {
         }
         let conn = Connection::open(&path)?;
         let store = Self { conn: Mutex::new(conn) };
-        store.with_conn(|c| schema::ensure_current(c))?;
+        store.with_conn(schema::ensure_current)?;
+        Ok(store)
+    }
+
+    /// In-memory store for integration tests. Runs all migrations so the
+    /// full schema is available without touching the filesystem.
+    #[doc(hidden)]
+    pub fn open_in_memory() -> Result<Self> {
+        let conn = Connection::open_in_memory()?;
+        let store = Self { conn: Mutex::new(conn) };
+        store.with_conn(schema::ensure_current)?;
         Ok(store)
     }
 

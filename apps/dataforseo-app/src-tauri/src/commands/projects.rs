@@ -12,7 +12,7 @@ use crate::store::projects::{self, Project};
 pub async fn projects_list(state: State<'_, AppState>) -> Result<Vec<Project>> {
     let store = state.store.clone();
     task::spawn_blocking(move || -> Result<_> {
-        store.with_conn(|c| projects::list(c))
+        store.with_conn(projects::list)
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?

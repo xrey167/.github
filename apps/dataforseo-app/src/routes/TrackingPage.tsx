@@ -1,12 +1,34 @@
-import { useEffect, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { formatError } from "../lib/errors";
 
 import CostPreview from "../components/CostPreview";
+import ExportMenu from "../components/ExportMenu";
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../lib/constants";
 import { tauriApi, type TrackedKeywordWithRank } from "../lib/tauri";
 import TrackingRow from "./tracking/TrackingRow";
+
+interface TrackingExportRow {
+  target: string;
+  keyword: string;
+  frequency: string;
+  current_rank: number | null;
+  previous_rank: number | null;
+  current_url: string | null;
+  last_run_at: string | null;
+}
+
+const TRACKING_COLUMNS: ColumnDef<TrackingExportRow, unknown>[] = [
+  { header: "Target", accessorKey: "target" },
+  { header: "Keyword", accessorKey: "keyword" },
+  { header: "Frequency", accessorKey: "frequency" },
+  { header: "Current Rank", accessorKey: "current_rank" },
+  { header: "Previous Rank", accessorKey: "previous_rank" },
+  { header: "URL", accessorKey: "current_url" },
+  { header: "Last Run", accessorKey: "last_run_at" },
+];
 
 type Frequency = "daily" | "weekly" | "manual";
 
@@ -17,6 +39,20 @@ export default function TrackingPage() {
   const [keyword, setKeyword] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [adding, setAdding] = useState(false);
+
+  const exportRows = useMemo<TrackingExportRow[]>(
+    () =>
+      rows.map((r) => ({
+        target: r.keyword.target,
+        keyword: r.keyword.keyword,
+        frequency: r.keyword.frequency,
+        current_rank: r.current_rank,
+        previous_rank: r.previous_rank,
+        current_url: r.current_url,
+        last_run_at: r.keyword.last_run_at,
+      })),
+    [rows],
+  );
 
   async function reload() {
     setLoading(true);
@@ -163,6 +199,14 @@ export default function TrackingPage() {
         </div>
       ) : (
         <div className="rounded border bg-white">
+          <div className="flex items-center justify-between border-b px-3 py-2">
+            <span className="text-xs font-medium text-slate-600">{rows.length} keywords tracked</span>
+            <ExportMenu
+              filenameStem="tracking"
+              rows={exportRows}
+              columns={TRACKING_COLUMNS}
+            />
+          </div>
           <table className="min-w-full text-xs">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
