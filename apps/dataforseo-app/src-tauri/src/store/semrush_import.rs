@@ -26,15 +26,12 @@ pub fn record(
     language_code: &str,
     cost_saved_usd: f64,
 ) -> Result<i64> {
-    conn.execute(
+    let id: i64 = conn.query_row(
         "INSERT INTO semrush_imports
             (filename, import_type, rows_imported, location_code, language_code, cost_saved_usd)
-         VALUES ($1, $2, $3, $4, $5, $6)",
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id",
         params![filename, import_type, rows_imported, location_code, language_code, cost_saved_usd],
-    )?;
-    let id: i64 = conn.query_row(
-        "SELECT MAX(id) FROM semrush_imports",
-        [],
         |row| row.get(0),
     )?;
     Ok(id)

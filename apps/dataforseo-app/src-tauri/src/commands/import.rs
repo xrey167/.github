@@ -203,6 +203,8 @@ fn do_import(
     store::keywords_cache::put_batch(conn, location_code, language_code, &volume_rows)?;
 
     // ── Write position tracking data ──────────────────────────────────────
+    // All position upserts run in a single transaction via import_positions_batch
+    // so a failure leaves the database in a consistent state.
     let mut positions_recorded: i64 = 0;
     if is_positions && !position_rows.is_empty() {
         match target {
@@ -213,18 +215,13 @@ fn do_import(
                 );
             }
             Some(t) => {
-                for (keyword, position, url) in &position_rows {
-                    let tk_id = store::tracking::add(
-                        conn,
-                        t,
-                        keyword,
-                        location_code,
-                        language_code,
-                        "manual",
-                    )?;
-                    store::tracking::record_result(conn, tk_id, *position, url.as_deref())?;
-                    positions_recorded += 1;
-                }
+                positions_recorded = store::tracking::import_positions_batch(
+                    conn,
+                    t,
+                    location_code,
+                    language_code,
+                    &position_rows,
+                )?;
             }
         }
     }
