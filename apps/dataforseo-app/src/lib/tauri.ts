@@ -392,6 +392,16 @@ export const tauriApi = {
     userContent: string;
     promptTemplateId: string | null;
   }) => invoke<StoredChatMessage>("chat_send", { args }),
+
+  semrushImport: (args: {
+    csvContent: string;
+    filename: string;
+    locationCode: number;
+    languageCode: string;
+    target?: string;
+  }) => invoke<SemrushImportResult>("semrush_import", args),
+
+  semrushListImports: () => invoke<SemrushImport[]>("semrush_list_imports"),
 };
 
 export interface AiProviderStatus {
@@ -1143,4 +1153,24 @@ export interface MapsLiveBatch {
   items: MapsResultItem[];
   cost_usd: number;
   estimated_usd: number;
+}
+
+export interface SemrushImportResult {
+  import_type: string;
+  rows_imported: number;
+  keywords_cached: number;
+  positions_recorded: number;
+  cost_saved_usd: number;
+  warnings: string[];
+}
+
+export interface SemrushImport {
+  id: number;
+  filename: string;
+  import_type: string;
+  rows_imported: number;
+  location_code: number | null;
+  language_code: string | null;
+  cost_saved_usd: number;
+  imported_at: string | null;
 }

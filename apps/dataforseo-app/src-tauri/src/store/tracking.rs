@@ -208,6 +208,63 @@ pub fn history(
     Ok(out)
 }
 
+/// Bulk-import position data from an external source (e.g. SEMrush CSV).
+///
+/// All upserts and result inserts run in a single transaction so that a
+/// failure mid-way leaves the database in a consistent state rather than
+/// partially committed.  Returns the number of position rows written.
+pub fn import_positions_batch(
+    conn: &mut Connection,
+    target: &str,
+    location_code: u32,
+    language_code: &str,
+    entries: &[(String, Option<i32>, Option<String>)],
+) -> Result<i64> {
+    if entries.is_empty() {
+        return Ok(0);
+    }
+    let tx = conn.transaction()?;
+    {
+        let mut upsert = tx.prepare(
+            "INSERT INTO tracked_keywords
+                (target, keyword, location_code, language_code, frequency, active)
+             VALUES ($1, $2, $3, $4, 'manual', TRUE)
+             ON CONFLICT (target, keyword, location_code, language_code) DO UPDATE SET
+                active = TRUE",
+        )?;
+        // Use a correlated subquery to avoid a separate SELECT for the FK.
+        let mut insert_result = tx.prepare(
+            "INSERT INTO tracking_results (tracked_keyword_id, rank_absolute, url)
+             SELECT id, $2, $3 FROM tracked_keywords
+              WHERE target = $1 AND keyword = $4
+                AND location_code = $5 AND language_code = $6",
+        )?;
+        for (keyword, position, url) in entries {
+            upsert.execute(params![
+                target,
+                keyword,
+                location_code as i64,
+                language_code
+            ])?;
+            insert_result.execute(params![
+                target,
+                position,
+                url.as_deref(),
+                keyword,
+                location_code as i64,
+                language_code
+            ])?;
+        }
+        tx.execute(
+            "UPDATE tracked_keywords SET last_run_at = CURRENT_TIMESTAMP
+              WHERE target = $1 AND location_code = $2 AND language_code = $3",
+            params![target, location_code as i64, language_code],
+        )?;
+    }
+    tx.commit()?;
+    Ok(entries.len() as i64)
+}
+
 /// Pull rows that are due for a check. "Due" = active AND
 /// (last_run_at IS NULL OR last_run_at + interval(frequency) < now()).
 /// "manual" rows are never returned — they only run via run_now.
