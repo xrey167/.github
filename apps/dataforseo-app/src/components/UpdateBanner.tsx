@@ -3,27 +3,18 @@ import toast from "react-hot-toast";
 
 import { formatError } from "../lib/errors";
 
+// Type-only import — no runtime cost and degrades gracefully if the
+// plugin isn't registered (the matching dynamic `import()` inside
+// tryCheck() catches the load error).
+import type { Update } from "@tauri-apps/plugin-updater";
+
 // One hour between auto-checks. The first check fires on mount.
 const POLL_INTERVAL_MS = 60 * 60 * 1000;
 
-/// Lazy-import the updater plugin so we degrade gracefully when the
-/// `updater` Cargo feature is off (the Rust plugin is then NOT registered
-/// and `check()` would otherwise reject with `plugin not registered`).
-type UpdateLike = {
-  version: string;
-  date?: string | null;
-  body?: string | null;
-  downloadAndInstall: (
-    progress?: (event: unknown) => void,
-  ) => Promise<void>;
-};
-
-async function tryCheck(): Promise<UpdateLike | null> {
+async function tryCheck(): Promise<Update | null> {
   try {
     const mod = await import("@tauri-apps/plugin-updater");
-    const update = await mod.check();
-    // `check()` returns either an Update or null when no update is available.
-    return update ? (update as unknown as UpdateLike) : null;
+    return await mod.check();
   } catch (e) {
     // Silent fail in dev / when the Rust plugin isn't registered. We
     // never want a missing-update-feed to surface as a toast.
@@ -60,13 +51,15 @@ async function tryRelaunch(): Promise<void> {
 /// configure `plugins.updater.endpoints` + `plugins.updater.pubkey` in
 /// tauri.conf.json (see docs/AUTOUPDATE.md), and ship signed releases.
 export default function UpdateBanner() {
-  const [update, setUpdate] = useState<UpdateLike | null>(null);
+  const [update, setUpdate] = useState<Update | null>(null);
   const [installing, setInstalling] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   // Clean up the interval on unmount; otherwise StrictMode mounts in
-  // dev would cause a double-poll.
-  const pollRef = useRef<number | null>(null);
+  // dev would cause a double-poll. Use ReturnType<typeof setInterval>
+  // since the project may pull in @types/node (where setInterval returns
+  // NodeJS.Timeout, not number).
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,11 +71,11 @@ export default function UpdateBanner() {
     }
 
     void poll();
-    pollRef.current = window.setInterval(poll, POLL_INTERVAL_MS);
+    pollRef.current = setInterval(poll, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       if (pollRef.current !== null) {
-        window.clearInterval(pollRef.current);
+        clearInterval(pollRef.current);
         pollRef.current = null;
       }
     };
@@ -105,7 +98,10 @@ export default function UpdateBanner() {
   }
 
   return (
-    <div className="flex items-center gap-3 border-b border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900">
+    <div
+      role="status"
+      className="flex items-center gap-3 border-b border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900"
+    >
       <span aria-hidden>⬆️</span>
       <span>
         Version <strong>{update.version}</strong> is available.
