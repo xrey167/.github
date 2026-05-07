@@ -98,6 +98,10 @@ export default function ContentStrategyPage() {
     [cursor],
   );
 
+  // Compute today's ymd once per render rather than 42× inside the grid loop.
+  // Recomputed on every render so a session that crosses midnight catches up.
+  const todayYmd = useMemo(() => ymd(new Date()), []);
+
   const unscheduled = useMemo(() => posts.filter((p) => !p.scheduled_for), [posts]);
 
   function shiftMonth(delta: number) {
@@ -211,49 +215,45 @@ export default function ContentStrategyPage() {
             const inMonth = d.getMonth() === cursor.getMonth();
             const key = ymd(d);
             const dayPosts = byDate.get(key) ?? [];
-            const isToday = key === ymd(new Date());
+            const isToday = key === todayYmd;
             return (
-              <button
+              // The cell is a div (not a button) so the date-add button and
+              // the per-post edit buttons inside can each be independently
+              // focused — nesting <button> inside <button> is invalid HTML
+              // and breaks keyboard navigation.
+              <div
                 key={i}
-                type="button"
-                onClick={() => startNew(key)}
-                className={`flex min-h-24 flex-col gap-0.5 border-b border-r p-1 text-left text-[11px] hover:bg-slate-50 last:border-r-0 ${
+                className={`flex min-h-24 flex-col gap-0.5 border-b border-r p-1 text-left text-[11px] last:border-r-0 ${
                   inMonth ? "bg-white" : "bg-slate-50/50 text-slate-400"
                 }`}
               >
-                <span
-                  className={`text-[10px] ${
+                <button
+                  type="button"
+                  onClick={() => startNew(key)}
+                  aria-label={`Add post for ${key}`}
+                  className={`self-start rounded text-[10px] hover:underline ${
                     isToday ? "font-bold text-blue-700" : "text-slate-500"
                   }`}
                 >
                   {d.getDate()}
-                </span>
+                </button>
                 <div className="flex flex-col gap-0.5">
                   {dayPosts.slice(0, 3).map((p) => (
-                    <span
+                    <button
                       key={p.id}
-                      role="link"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
+                      type="button"
+                      onClick={() => {
                         setEditing(p);
                         setShowForm(true);
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          setEditing(p);
-                          setShowForm(true);
-                        }
-                      }}
-                      className={`truncate rounded px-1 py-0.5 text-[10px] hover:opacity-80 ${
+                      className={`truncate rounded px-1 py-0.5 text-left text-[10px] hover:opacity-80 ${
                         STATUS_COLORS[p.status as Status] ??
                         STATUS_COLORS.idea
                       }`}
                       title={p.title}
                     >
                       {p.title}
-                    </span>
+                    </button>
                   ))}
                   {dayPosts.length > 3 && (
                     <span className="text-[9px] text-slate-500">
@@ -261,7 +261,7 @@ export default function ContentStrategyPage() {
                     </span>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

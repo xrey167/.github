@@ -76,17 +76,24 @@ pub fn delete(conn: &mut Connection, id: i64) -> Result<()> {
 pub fn list(conn: &mut Connection, project_id: Option<i64>) -> Result<Vec<PlannedPost>> {
     // DuckDB doesn't optimise away parameters in `(? IS NULL OR project_id = ?)`
     // as cleanly as SQLite, so split the query into two paths.
+    // Named CAST aliases (scheduled_for_s / created_at_s / updated_at_s)
+    // let the row-mapping below use column names instead of indices —
+    // safer if the SELECT list is ever reordered.
     let sql = if project_id.is_some() {
         "SELECT id, project_id, title, target_keyword, status,
-                CAST(scheduled_for AS VARCHAR), notes,
-                CAST(created_at AS VARCHAR), CAST(updated_at AS VARCHAR)
+                CAST(scheduled_for AS VARCHAR) AS scheduled_for_s,
+                notes,
+                CAST(created_at AS VARCHAR)    AS created_at_s,
+                CAST(updated_at AS VARCHAR)    AS updated_at_s
            FROM planned_posts
           WHERE project_id = $1
           ORDER BY scheduled_for DESC NULLS LAST, created_at DESC"
     } else {
         "SELECT id, project_id, title, target_keyword, status,
-                CAST(scheduled_for AS VARCHAR), notes,
-                CAST(created_at AS VARCHAR), CAST(updated_at AS VARCHAR)
+                CAST(scheduled_for AS VARCHAR) AS scheduled_for_s,
+                notes,
+                CAST(created_at AS VARCHAR)    AS created_at_s,
+                CAST(updated_at AS VARCHAR)    AS updated_at_s
            FROM planned_posts
           ORDER BY scheduled_for DESC NULLS LAST, created_at DESC"
     };
@@ -101,15 +108,15 @@ pub fn list(conn: &mut Connection, project_id: Option<i64>) -> Result<Vec<Planne
     let mut out = Vec::new();
     while let Some(row) = rows.next()? {
         out.push(PlannedPost {
-            id: row.get(0)?,
-            project_id: row.get(1)?,
-            title: row.get(2)?,
-            target_keyword: row.get(3)?,
-            status: row.get(4)?,
-            scheduled_for: row.get(5)?,
-            notes: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            id: row.get("id")?,
+            project_id: row.get("project_id")?,
+            title: row.get("title")?,
+            target_keyword: row.get("target_keyword")?,
+            status: row.get("status")?,
+            scheduled_for: row.get("scheduled_for_s")?,
+            notes: row.get("notes")?,
+            created_at: row.get("created_at_s")?,
+            updated_at: row.get("updated_at_s")?,
         });
     }
     Ok(out)
