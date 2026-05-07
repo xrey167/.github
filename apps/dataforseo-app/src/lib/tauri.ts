@@ -402,6 +402,18 @@ export const tauriApi = {
   }) => invoke<SemrushImportResult>("semrush_import", args),
 
   semrushListImports: () => invoke<SemrushImport[]>("semrush_list_imports"),
+
+  plannedPostsList: (args: { projectId: number | null }) =>
+    invoke<PlannedPost[]>("planned_posts_list", args),
+
+  plannedPostsCreate: (args: { input: PlannedPostInput }) =>
+    invoke<number>("planned_posts_create", args),
+
+  plannedPostsUpdate: (args: { id: number; input: PlannedPostInput }) =>
+    invoke<void>("planned_posts_update", args),
+
+  plannedPostsDelete: (args: { id: number }) =>
+    invoke<void>("planned_posts_delete", args),
 };
 
 export interface AiProviderStatus {
@@ -1173,4 +1185,27 @@ export interface SemrushImport {
   language_code: string | null;
   cost_saved_usd: number;
   imported_at: string | null;
+}
+
+export interface PlannedPost {
+  id: number;
+  project_id: number | null;
+  title: string;
+  target_keyword: string | null;
+  /** "idea" | "drafting" | "review" | "published" | "archived" */
+  status: string;
+  /** ISO YYYY-MM-DD */
+  scheduled_for: string | null;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface PlannedPostInput {
+  project_id: number | null;
+  title: string;
+  target_keyword: string | null;
+  status: string | null;
+  scheduled_for: string | null;
+  notes: string | null;
 }

@@ -5,6 +5,7 @@ pub mod auth;
 pub mod backlinks;
 pub mod brand;
 pub mod cached;
+pub mod content_strategy;
 pub mod domain_analytics;
 pub mod import;
 pub mod keywords;
