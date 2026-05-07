@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProjectSwitcher from "./components/ProjectSwitcher";
+import UpdateBanner from "./components/UpdateBanner";
 import { ProjectProvider } from "./lib/project-store";
 import AdsPage from "./routes/AdsPage";
 import AiVisibilityPage from "./routes/AiVisibilityPage";
@@ -102,8 +103,10 @@ function AppShell() {
   }
 
   return (
-    <div className="flex h-screen">
-      <aside className="w-56 border-r bg-slate-50 p-4">
+    <div className="flex h-screen flex-col">
+      <UpdateBanner />
+      <div className="flex min-h-0 flex-1">
+        <aside className="w-56 border-r bg-slate-50 p-4">
         <h1 className="mb-3 text-lg font-semibold">DataForSEO</h1>
         <ProjectSwitcher />
         <nav className="flex flex-col gap-1">
@@ -147,6 +150,7 @@ function AppShell() {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
+      </div>
     </div>
   );
 }
