@@ -20,6 +20,11 @@ interface VisibilityRow {
   domain_mentioned: boolean | null;
   reference_count: number | null;
   reference_domains: string[];
+  // AI Mode (Google's experimental conversational search). Populated only
+  // when the "Include AI Mode" toggle is on; otherwise null.
+  has_ai_mode: boolean | null;
+  domain_in_ai_mode: boolean | null;
+  ai_mode_domains: string[];
   status: "pending" | "checking" | "done" | "error";
   error?: string;
 }
@@ -28,19 +33,35 @@ const COLUMNS: ColumnDef<VisibilityRow, unknown>[] = [
   { id: "keyword", header: "Keyword", accessorKey: "keyword" },
   { id: "target", header: "Target", accessorKey: "target" },
   { id: "has_ai_overview", header: "AI Overview", accessorKey: "has_ai_overview" },
-  { id: "domain_mentioned", header: "Domain mentioned", accessorKey: "domain_mentioned" },
-  { id: "reference_count", header: "References", accessorKey: "reference_count" },
+  { id: "domain_mentioned", header: "AIO domain cited", accessorKey: "domain_mentioned" },
+  { id: "reference_count", header: "AIO references", accessorKey: "reference_count" },
   // Comma-joined for CSV; TS table accessorFn returns strings.
   {
     id: "reference_domains",
-    header: "Reference domains",
+    header: "AIO reference domains",
     accessorFn: (row) => row.reference_domains.join(", "),
+  },
+  { id: "has_ai_mode", header: "AI Mode", accessorKey: "has_ai_mode" },
+  { id: "domain_in_ai_mode", header: "AI Mode cited", accessorKey: "domain_in_ai_mode" },
+  {
+    id: "ai_mode_domains",
+    header: "AI Mode domains",
+    accessorFn: (row) => row.ai_mode_domains.join(", "),
   },
 ];
 
-// Single source of truth for the per-call cost lives in cost.ts so it
-// stays in sync with the Usage tab's estimate.
-const COST_PER_LOOKUP = estimate({ kind: "SerpAiOverview" });
+// Single source of truth for per-call cost lives in cost.ts so it stays
+// in sync with the Usage tab's estimate.
+const COST_AI_OVERVIEW = estimate({ kind: "SerpAiOverview" });
+const COST_AI_MODE = estimate({
+  kind: "Serp",
+  count: 1,
+  mode: "live",
+  depth: 10,
+  extra_params: 0,
+});
+
+const AI_MODE_DEPTH = 10;
 
 /// Extract { url, domain } pairs from the AI Overview raw item. Robust to
 /// the two shapes DataForSEO uses depending on whether the overview
@@ -88,6 +109,7 @@ export default function AiVisibilityPage() {
   const [keywordsText, setKeywordsText] = useState<string>("");
   const [locationCode, setLocationCode] = useState<number>(DEFAULT_LOCATION);
   const [languageCode, setLanguageCode] = useState<string>(DEFAULT_LANGUAGE);
+  const [includeAiMode, setIncludeAiMode] = useState(false);
   const [rows, setRows] = useState<VisibilityRow[]>([]);
   const [running, setRunning] = useState(false);
   const [tracked, setTracked] = useState<TrackedKeywordWithRank[]>([]);
@@ -147,7 +169,29 @@ export default function AiVisibilityPage() {
   }
 
   const checkOne = useCallback(
-    async (kw: string, tgt: string, loc: number, lang: string): Promise<VisibilityRow> => {
+    async (
+      kw: string,
+      tgt: string,
+      loc: number,
+      lang: string,
+      withAiMode: boolean,
+    ): Promise<VisibilityRow> => {
+      const tgtDomain = normaliseDomain(tgt);
+
+      // Default response shape — populated below as each request lands.
+      const out: VisibilityRow = {
+        keyword: kw,
+        target: tgt,
+        has_ai_overview: null,
+        domain_mentioned: null,
+        reference_count: null,
+        reference_domains: [],
+        has_ai_mode: null,
+        domain_in_ai_mode: null,
+        ai_mode_domains: [],
+        status: "done",
+      };
+
       try {
         const view = await tauriApi.serpAiOverview({
           keyword: kw,
@@ -155,30 +199,47 @@ export default function AiVisibilityPage() {
           languageCode: lang,
         });
         const refs = extractReferences(view.item);
-        const tgtDomain = normaliseDomain(tgt);
         const refDomains = Array.from(new Set(refs.map((r) => normaliseDomain(r.domain))));
         const has = view.item != null;
-        return {
-          keyword: kw,
-          target: tgt,
-          has_ai_overview: has,
-          domain_mentioned: has ? refDomains.includes(tgtDomain) : null,
-          reference_count: has ? refs.length : null,
-          reference_domains: refDomains,
-          status: "done",
-        };
+        out.has_ai_overview = has;
+        out.domain_mentioned = has ? refDomains.includes(tgtDomain) : null;
+        out.reference_count = has ? refs.length : null;
+        out.reference_domains = refDomains;
       } catch (e) {
+        // If the AIO call fails the row is an error — don't try AI Mode.
         return {
-          keyword: kw,
-          target: tgt,
-          has_ai_overview: null,
-          domain_mentioned: null,
-          reference_count: null,
-          reference_domains: [],
+          ...out,
           status: "error",
           error: formatError(e),
         };
       }
+
+      if (withAiMode) {
+        try {
+          const aiMode = await tauriApi.serpAiModeLive({
+            keyword: kw,
+            locationCode: loc,
+            languageCode: lang,
+            depth: AI_MODE_DEPTH,
+          });
+          const aiDomains = Array.from(
+            new Set(
+              aiMode.items
+                .map((it) => (it.domain ? normaliseDomain(it.domain) : null))
+                .filter((d): d is string => !!d),
+            ),
+          );
+          out.has_ai_mode = aiMode.items.length > 0;
+          out.domain_in_ai_mode = out.has_ai_mode ? aiDomains.includes(tgtDomain) : null;
+          out.ai_mode_domains = aiDomains;
+        } catch (e) {
+          // AI Mode failed but AIO succeeded — surface as a partial result
+          // rather than failing the whole row.
+          out.error = `AI Mode: ${formatError(e)}`;
+        }
+      }
+
+      return out;
     },
     [],
   );
@@ -195,6 +256,9 @@ export default function AiVisibilityPage() {
       domain_mentioned: null,
       reference_count: null,
       reference_domains: [],
+      has_ai_mode: null,
+      domain_in_ai_mode: null,
+      ai_mode_domains: [],
       status: "pending",
     }));
     setRows(seed);
@@ -209,7 +273,7 @@ export default function AiVisibilityPage() {
       setRows((prev) =>
         prev.map((r, idx) => (idx === i ? { ...r, status: "checking" } : r)),
       );
-      const result = await checkOne(kw, target, locationCode, languageCode);
+      const result = await checkOne(kw, target, locationCode, languageCode, includeAiMode);
       if (cancelledRef.current) break;
       setRows((prev) => prev.map((r, idx) => (idx === i ? result : r)));
       processed++;
@@ -227,14 +291,23 @@ export default function AiVisibilityPage() {
     const done = rows.filter((r) => r.status === "done");
     const withAi = done.filter((r) => r.has_ai_overview);
     const mentioned = done.filter((r) => r.domain_mentioned);
+    const withAiMode = done.filter((r) => r.has_ai_mode);
+    const mentionedAiMode = done.filter((r) => r.domain_in_ai_mode);
     return {
       total: rows.length,
       done: done.length,
       withAi: withAi.length,
       mentioned: mentioned.length,
       rate: withAi.length > 0 ? (mentioned.length / withAi.length) * 100 : 0,
+      withAiMode: withAiMode.length,
+      mentionedAiMode: mentionedAiMode.length,
+      rateAiMode:
+        withAiMode.length > 0 ? (mentionedAiMode.length / withAiMode.length) * 100 : 0,
     };
   }, [rows]);
+
+  // Per-keyword cost = AI Overview always, plus AI Mode when toggled on.
+  const perKeywordCost = COST_AI_OVERVIEW + (includeAiMode ? COST_AI_MODE : 0);
 
   const filenameStem = useMemo(
     () => `ai-visibility-${normaliseDomain(target) || "report"}`,
@@ -246,10 +319,11 @@ export default function AiVisibilityPage() {
       <header>
         <h2 className="text-xl font-semibold">AI Visibility</h2>
         <p className="text-sm text-slate-600">
-          Check whether your domain appears in Google's AI Overview citations
-          for a list of keywords. AI Overview is increasingly the first answer
-          a user sees — being cited inside it matters more than the classic
-          rank-1 spot for many informational queries.
+          Check whether your domain appears in Google's AI surfaces — AI Overview
+          citations, and optionally AI Mode results — for a list of keywords. AI
+          surfaces are increasingly the first answer a user sees, so being cited
+          inside them matters more than the classic rank-1 spot for many
+          informational queries.
         </p>
       </header>
 
@@ -322,12 +396,28 @@ export default function AiVisibilityPage() {
           <CostPreview
             action={costAction}
             details={[
-              `${formatUsd(COST_PER_LOOKUP)} per keyword`,
-              `${keywords.length} keyword${keywords.length === 1 ? "" : "s"} → ${formatUsd(COST_PER_LOOKUP * keywords.length)}`,
-              "AI Overview is not cached — every check is fresh.",
+              includeAiMode
+                ? `${formatUsd(perKeywordCost)} per keyword (AIO + AI Mode)`
+                : `${formatUsd(perKeywordCost)} per keyword`,
+              `${keywords.length} keyword${keywords.length === 1 ? "" : "s"} → ${formatUsd(perKeywordCost * keywords.length)}`,
+              "Live data — no cache, every check is fresh.",
             ]}
             disabled={running || keywords.length === 0 || !target.trim()}
           />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={includeAiMode}
+              onChange={(e) => setIncludeAiMode(e.target.checked)}
+              disabled={running}
+            />
+            <span>
+              Also check AI Mode{" "}
+              <span className="text-xs text-slate-500">
+                (+{formatUsd(COST_AI_MODE)} per keyword)
+              </span>
+            </span>
+          </label>
           <button
             type="button"
             onClick={run}
@@ -348,7 +438,7 @@ export default function AiVisibilityPage() {
               value={`${summary.withAi.toLocaleString()} / ${summary.done.toLocaleString()}`}
             />
             <Stat
-              label="Domain cited"
+              label="AIO domain cited"
               value={summary.mentioned.toLocaleString()}
               good={summary.mentioned > 0}
             />
@@ -358,7 +448,7 @@ export default function AiVisibilityPage() {
               const rounded = Math.round(summary.rate);
               return (
                 <Stat
-                  label="Citation rate"
+                  label="AIO citation rate"
                   value={`${rounded}%`}
                   good={rounded >= 30}
                   warn={rounded > 0 && rounded < 30}
@@ -366,6 +456,32 @@ export default function AiVisibilityPage() {
               );
             })()}
           </div>
+
+          {includeAiMode && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat
+                label="With AI Mode"
+                value={`${summary.withAiMode.toLocaleString()} / ${summary.done.toLocaleString()}`}
+              />
+              <Stat
+                label="AI Mode domain cited"
+                value={summary.mentionedAiMode.toLocaleString()}
+                good={summary.mentionedAiMode > 0}
+              />
+              {(() => {
+                const rounded = Math.round(summary.rateAiMode);
+                return (
+                  <Stat
+                    label="AI Mode citation rate"
+                    value={`${rounded}%`}
+                    good={rounded >= 30}
+                    warn={rounded > 0 && rounded < 30}
+                  />
+                );
+              })()}
+              <Stat label="" value="" />
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Per-keyword breakdown</h3>
@@ -378,9 +494,16 @@ export default function AiVisibilityPage() {
                 <tr>
                   <th className="px-2 py-1 text-left">Keyword</th>
                   <th className="px-2 py-1 text-center">AI Overview</th>
-                  <th className="px-2 py-1 text-center">Domain cited</th>
+                  <th className="px-2 py-1 text-center">AIO cited</th>
                   <th className="px-2 py-1 text-right">Refs</th>
                   <th className="px-2 py-1 text-left">Reference domains</th>
+                  {includeAiMode && (
+                    <>
+                      <th className="px-2 py-1 text-center">AI Mode</th>
+                      <th className="px-2 py-1 text-center">AI Mode cited</th>
+                      <th className="px-2 py-1 text-left">AI Mode domains</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -388,7 +511,9 @@ export default function AiVisibilityPage() {
                   <tr
                     key={i}
                     className={`border-t hover:bg-slate-50 ${
-                      r.domain_mentioned === true ? "bg-emerald-50/40" : ""
+                      r.domain_mentioned === true || r.domain_in_ai_mode === true
+                        ? "bg-emerald-50/40"
+                        : ""
                     }`}
                   >
                     <td className="px-2 py-1 font-mono">{r.keyword}</td>
@@ -419,10 +544,51 @@ export default function AiVisibilityPage() {
                     <td className="px-2 py-1 text-right tabular-nums text-slate-500">
                       {r.reference_count ?? "—"}
                     </td>
-                    <td className="max-w-md truncate px-2 py-1 font-mono text-[11px] text-slate-500" title={r.reference_domains.join(", ")}>
+                    <td
+                      className="max-w-md truncate px-2 py-1 font-mono text-[11px] text-slate-500"
+                      title={r.reference_domains.join(", ")}
+                    >
                       {r.reference_domains.slice(0, 4).join(", ")}
                       {r.reference_domains.length > 4 && ` +${r.reference_domains.length - 4}`}
                     </td>
+                    {includeAiMode && (
+                      <>
+                        <td className="px-2 py-1 text-center">
+                          {r.has_ai_mode === true ? (
+                            <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[11px] text-sky-800">
+                              yes
+                            </span>
+                          ) : r.has_ai_mode === false ? (
+                            <span className="text-slate-400">no</span>
+                          ) : r.error?.startsWith("AI Mode:") ? (
+                            <span className="text-red-700" title={r.error}>
+                              err
+                            </span>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-1 text-center">
+                          {r.domain_in_ai_mode === true ? (
+                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] text-emerald-800">
+                              ✓
+                            </span>
+                          ) : r.domain_in_ai_mode === false ? (
+                            <span className="text-slate-400">—</span>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                        <td
+                          className="max-w-md truncate px-2 py-1 font-mono text-[11px] text-slate-500"
+                          title={r.ai_mode_domains.join(", ")}
+                        >
+                          {r.ai_mode_domains.slice(0, 4).join(", ")}
+                          {r.ai_mode_domains.length > 4 &&
+                            ` +${r.ai_mode_domains.length - 4}`}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
