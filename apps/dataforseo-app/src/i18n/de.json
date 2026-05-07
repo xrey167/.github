@@ -50,5 +50,311 @@
       "description": "Sprache der Oberfläche. Wirkt sofort.",
       "label": "Sprache"
     }
+  },
+  "keywords": {
+    "title": "Keywords",
+    "description": "Suchvolumen aus Google Ads sowie Vorschläge und verwandte Keywords aus DataForSEO Labs.",
+    "common": {
+      "keyword": "Keyword",
+      "volume": "Volumen",
+      "competition": "Wettbewerb",
+      "cpc": "CPC",
+      "difficulty": "Schwierigkeit",
+      "level": "Stufe",
+      "domain": "Domain",
+      "rating": "Bewertung",
+      "cache": "Cache",
+      "loading": "Lädt …",
+      "running": "Läuft …",
+      "lookup": "Abfragen",
+      "run": "Starten",
+      "bypassCache": "Cache umgehen",
+      "bypassCacheRefetch": "Cache umgehen und frisch von DataForSEO laden",
+      "rowsActualEstimated": "{{count}} Zeilen · tatsächlich {{actual}} · geschätzt {{estimated}}",
+      "actualEstimated": "tatsächlich {{actual}} · geschätzt {{estimated}}"
+    },
+    "tabs": {
+      "overview": "Übersicht",
+      "volume": "Volumen",
+      "bulkVolume": "Bulk-Volumen (günstig)",
+      "suggestions": "Vorschläge",
+      "related": "Verwandt",
+      "difficulty": "Schwierigkeit",
+      "serpCompetitors": "SERP-Wettbewerber",
+      "trends": "Trends"
+    },
+    "volume": {
+      "useCache": "30-Tage-Cache verwenden",
+      "uniqueKeywordsCount": "{{count}} eindeutige Keywords",
+      "locationLanguage": "Standort {{location}}, Sprache {{language}}",
+      "cacheReused": "Cache wird wenn möglich genutzt",
+      "cacheDisabled": "Cache deaktiviert",
+      "summary": "{{rows}} Zeilen · {{cacheHits}} aus Cache · {{fresh}} frisch geladen · tatsächliche Kosten {{actual}} (geschätzt {{estimated}})",
+      "toast": "{{fresh}} geladen, {{cacheHits}} aus Cache ({{cost}})",
+      "empty": "Keywords oben eingeben und auf Starten klicken."
+    },
+    "bulkVolume": {
+      "description": "Günstige Bulk-Volumenabfrage via DataForSEO Labs — 0,0001 USD pro Keyword (≈ 0,10 USD für 1000 Keywords vs. ~7,50 USD via Google Ads). Bis zu {{max}} Keywords pro Anfrage.",
+      "keywordsLabel": "Keywords ({{count}}/{{max}})",
+      "perKeyword": "0,0001 USD pro Keyword",
+      "cached30d": "30 Tage gecacht",
+      "loadedCached": "{{count}} Keywords geladen (gecacht, 0,00 $)",
+      "loaded": "{{count}} Keywords geladen ({{cost}})",
+      "empty": "Keywords oben einfügen und auf Abfragen klicken."
+    },
+    "overview": {
+      "description": "Umfassende Single-Call-Abfrage — Volumen, KD, CPC, Suchintention und SERP-Features auf einmal. Ersetzt 4–5 einzelne Labs-Aufrufe. 0,0125 USD pro Abfrage, 7 Tage gecacht.",
+      "perLookup": "0,0125 USD pro Abfrage",
+      "cached7d": "7 Tage gecacht",
+      "cachedToast": "Gecachte Übersicht (0,00 $)",
+      "loadedToast": "Geladen ({{cost}})",
+      "searchVolume": "Suchvolumen",
+      "kdScale": "0–100 KD",
+      "indexLabel": "Index {{value}}",
+      "searchIntent": "Suchintention",
+      "serpFeatures": "Vorhandene SERP-Features",
+      "empty": "Keyword eingeben und auf Abfragen klicken."
+    },
+    "seed": {
+      "seedLabel": "Seed-Keyword",
+      "rowsLine": "{{rows}} Zeilen · tatsächlich {{actual}} · geschätzt {{estimated}}",
+      "loadedCached": "{{count}} Keywords (gecacht, 0,00 $)",
+      "loaded": "{{count}} Keywords ({{cost}})",
+      "empty": "Seed-Keyword oben eingeben und auf Starten klicken.",
+      "actionsHeader": ""
+    },
+    "suggestions": {
+      "title": "Keyword-Vorschläge",
+      "description": "Long-Tail-Keywords mit dem Seed-Begriff, sortiert nach Suchvolumen.",
+      "filenameStem": "keyword-vorschlaege"
+    },
+    "related": {
+      "title": "Verwandte Keywords",
+      "description": "Ideen aus Googles „Ähnliche Suchanfragen“-Block. Höhere Tiefe kostet mehr.",
+      "filenameStem": "verwandte-keywords",
+      "depthLabel": "Tiefe: {{depth}}",
+      "depthHint": "Jede Ebene erweitert verwandte Keywords der vorherigen Ebene (Kosten skalieren linear)."
+    },
+    "difficulty": {
+      "description": "Bulk-Schwierigkeitsabfrage — 0,0001 USD pro Keyword (1000 Keywords ≈ 0,10 USD). Eines pro Zeile, bis zu {{max}} pro Anfrage.",
+      "lookupButton": "Schwierigkeit abfragen",
+      "loaded": "Schwierigkeit für {{count}} Keywords geladen ({{cost}})",
+      "noResults": "Keine Schwierigkeits-Scores zurückgegeben.",
+      "empty": "Keywords oben einfügen und auf Abfragen klicken.",
+      "bucket": "Stufe",
+      "buckets": {
+        "veryEasy": "Sehr einfach",
+        "easy": "Einfach",
+        "possible": "Möglich",
+        "difficult": "Schwierig",
+        "hard": "Hart",
+        "veryHard": "Sehr hart"
+      },
+      "summary": "{{count}} Keywords"
+    },
+    "serpCompetitors": {
+      "description": "Welche Domains für ein Keyword im SERP ranken — inkl. Durchschnittsposition, geschätztem Traffic-Wert und DataForSEO Domain-Rating. 0,0125 USD pro Abfrage.",
+      "perRequest": "0,0125 USD pro Anfrage",
+      "upTo100": "Bis zu 100 Wettbewerber",
+      "avgPos": "Ø Pos",
+      "medianPos": "Median Pos",
+      "etv": "ETV",
+      "keywordsHeader": "Keywords",
+      "loaded": "{{count}} Wettbewerber ({{cost}})",
+      "summary": "{{count}} Domains ranken für „{{keyword}}“ · {{cost}}",
+      "noResults": "Keine Wettbewerber für dieses Keyword gefunden.",
+      "empty": "Keyword oben eingeben und auf Abfragen klicken."
+    },
+    "trends": {
+      "description": "Google Trends Interesse über Zeit für bis zu 5 Keywords. 0,05 USD pro Aufruf unabhängig von Keyword-Anzahl oder Datumsbereich; 7 Tage gecacht.",
+      "keywordsLabel": "Keywords ({{count}}/5, durch Komma oder Zeilenumbruch getrennt)",
+      "perCall": "0,05 USD pro Aufruf",
+      "cached7d": "7 Tage gecacht",
+      "compareButton": "Trends vergleichen",
+      "cachedToast": "Gecachte Trends (0,00 $)",
+      "loadedToast": "Geladen ({{cost}})",
+      "interestOverTime": "Interesse über Zeit",
+      "noGraphData": "Trends-API hat keine Graph-Daten zurückgegeben.",
+      "risingTopics": "Aufstrebende Themen",
+      "risingQueries": "Aufstrebende Suchanfragen",
+      "empty": "Bis zu 5 Keywords eingeben und auf Trends vergleichen klicken."
+    },
+    "summary": {
+      "running": "{{summary}} aus /keywords/volume"
+    }
+  },
+  "backlinks": {
+    "title": "Backlinks",
+    "description": "Aggregiertes Backlink-Profil einer Domain — Gesamtlinks, verweisende Domains, Dofollow-Anteil, TLD-Verteilung. Der Summary-Endpoint ist günstig (eine Anfrage, ~0,02 USD) und 24 Stunden gecacht — kürzlich geprüfte Domains kosten nichts.",
+    "minSpendNotice": "Hinweis: Die DataForSEO-Backlinks-Familie hat ein Mindestbudget von 100 USD/Monat. Das Budget kann APIs-übergreifend verbraucht werden, muss aber monatlich aufgebraucht sein. Vor der Aktivierung beachten.",
+    "tabs": {
+      "summary": "Übersicht",
+      "detail": "Detail",
+      "domains": "Verweisende Domains",
+      "anchors": "Anchor-Texte",
+      "history": "Verlauf",
+      "linkgap": "Link Gap",
+      "domainpages": "Domain-Seiten",
+      "pageintersect": "Seiten-Schnittmenge"
+    },
+    "common": {
+      "targetDomain": "Ziel-Domain",
+      "mode": "Modus",
+      "status": "Status",
+      "limit": "Limit",
+      "loading": "Lädt …",
+      "includeSubdomains": "Subdomains einschließen",
+      "cache": "Cache",
+      "fetchedAt": "geladen {{time}}",
+      "actualEstimated": "tatsächlich {{actual}} · geschätzt {{estimated}}",
+      "rowsOf": "{{count}} von {{total}} Zeilen",
+      "rawDebug": "Rohdaten (Debug)",
+      "yes": "ja",
+      "no": "nein"
+    },
+    "summary": {
+      "singleRequest": "Einzelne backlinks_summary-Anfrage",
+      "cacheReused": "Cache wird genutzt, wenn Letzte-Abfrage <24h",
+      "cacheDisabled": "Cache deaktiviert",
+      "useCache": "24h-Cache verwenden",
+      "loadButton": "Übersicht laden",
+      "fromCache": "aus Cache",
+      "fresh": "{{cost}} frisch",
+      "loaded": "{{target}} geladen ({{note}})",
+      "empty": "Domain oben eingeben und auf Übersicht laden klicken.",
+      "tiles": {
+        "totalBacklinks": "Gesamtlinks",
+        "referringDomains": "Verweisende Domains",
+        "referringMainDomains": "Verweisende Hauptdomains",
+        "referringPages": "Verweisende Seiten",
+        "dofollow": "Dofollow",
+        "nofollow": "Nofollow",
+        "brokenBacklinks": "Defekte Links",
+        "domainRank": "Domain-Rang"
+      }
+    },
+    "detail": {
+      "presetsLabel": "Schnellfilter:",
+      "presets": {
+        "dofollow": "Nur Dofollow",
+        "rank30": "Domain-Rang > 30",
+        "lost": "Verlorene Links"
+      },
+      "modeOptions": {
+        "asIs": "Wie geliefert (roh)",
+        "onePerDomain": "Eine pro Domain",
+        "onePerAnchor": "Eine pro Anchor"
+      },
+      "statusOptions": {
+        "live": "Aktiv",
+        "lost": "Verloren",
+        "all": "Alle"
+      },
+      "upToRows": "Bis zu {{count}} Zeilen",
+      "statusLabel": "Status: {{status}}",
+      "noFilter": "Kein Filter",
+      "filterCount_one": "Filter: {{count}} Bedingung",
+      "filterCount_other": "Filter: {{count}} Bedingungen",
+      "loadButton": "Backlinks laden",
+      "loaded": "{{count}} von {{total}} Links geladen ({{cost}})",
+      "empty": "Domain wählen, Filter aufbauen (oder Preset laden) und ausführen.",
+      "columns": {
+        "source": "Quelle",
+        "anchor": "Anchor",
+        "target": "Ziel",
+        "rank": "Rang",
+        "type": "Typ",
+        "dofollow": "Dofollow"
+      }
+    },
+    "domains": {
+      "loadButton": "Verweisende Domains laden",
+      "upToDomains": "Bis zu {{count}} Domains",
+      "sortedByRank": "Sortiert nach Domain-Rang (absteigend)",
+      "loaded": "{{count}} von {{total}} Domains geladen ({{cost}})",
+      "empty": "Domain eingeben und verweisende Domains laden.",
+      "columns": {
+        "domain": "Domain",
+        "rank": "Rang",
+        "links": "Links",
+        "firstSeen": "Erstmals gesehen",
+        "lost": "Verloren"
+      }
+    },
+    "anchors": {
+      "loadButton": "Anchors laden",
+      "upToAnchors": "Bis zu {{count}} Anchors",
+      "sortedByLinks": "Sortiert nach Backlink-Anzahl (absteigend)",
+      "loaded": "{{count}} von {{total}} Anchors geladen ({{cost}})",
+      "empty": "Domain eingeben und Anchor-Texte laden.",
+      "columns": {
+        "anchor": "Anchor",
+        "backlinks": "Backlinks",
+        "domains": "Domains",
+        "dofollow": "Dofollow"
+      }
+    },
+    "history": {
+      "monthlySnapshots": "Eine Anfrage, monatliche Snapshots",
+      "fiveYears": "Bis zu ~5 Jahre Historie",
+      "flatFee": "Pauschale (keine Pro-Zeile-Komponente)",
+      "loadButton": "Verlauf laden",
+      "loaded": "{{count}} Snapshots geladen ({{cost}})",
+      "snapshots": "{{count}} Snapshots",
+      "empty": "Domain eingeben und Verlaufs-Chart laden.",
+      "lines": {
+        "backlinks": "Backlinks",
+        "referringDomains": "Verweisende Domains"
+      }
+    },
+    "linkgap": {
+      "description": "SEMrush-artige „Link Gap“-Analyse: Domains finden, die zu einem Wettbewerber linken, aber nicht zu dir. Wähle <1>exclude</1>, um Links zu sehen, die {{targetA}} fehlen (von {{targetB}} hat), oder <2>intersect</2>, um gemeinsame verweisende Domains zu sehen.",
+      "yourDomain": "Deine Domain (A)",
+      "competitorDomain": "Wettbewerber-Domain (B)",
+      "modeOptions": {
+        "exclude": "Ausschluss (B \\ A)",
+        "intersect": "Schnittmenge (A ∩ B)"
+      },
+      "modeHints": {
+        "exclude": "Domains, die nur zu B linken",
+        "intersect": "Domains, die zu beiden linken"
+      },
+      "loadButton": "Link Gap finden",
+      "loadedIntersect": "{{count}} Domains, die zu beiden linken, geladen ({{cost}})",
+      "loadedExclude": "{{count}} Domains geladen, die zu {{targetB}} linken, aber nicht zu {{targetA}} ({{cost}})",
+      "upToDomains": "Bis zu {{count}} Domains",
+      "empty": "Eigene Domain und einen Wettbewerber eingeben, dann Gap finden."
+    },
+    "domainpages": {
+      "loadButton": "Domain-Seiten laden",
+      "upToPages": "Bis zu {{count}} Seiten",
+      "sortedByRank": "Sortiert nach Seiten-Rang (absteigend)",
+      "loaded": "{{count}} von {{total}} Seiten geladen ({{cost}})",
+      "empty": "Domain eingeben, um die meistverlinkten Seiten anzuzeigen.",
+      "columns": {
+        "url": "URL",
+        "rank": "Rang",
+        "links": "Links",
+        "refDomains": "Verw. Domains",
+        "firstSeen": "Erstmals gesehen"
+      }
+    },
+    "pageintersect": {
+      "description": "Domains finden, die zu einer Liste von Seiten linken. Praktisch für Outreach (Seiten, die bereits über das Thema bei Wettbewerbern berichten) oder Content-Cluster-Analysen. 2–20 URLs pro Anfrage.",
+      "pagesLabel": "Seiten (eine pro Zeile, {{count}}/20)",
+      "minPagesLabel": "Min. Seiten, zu denen eine Domain linken muss ({{count}})",
+      "limitLabel": "Limit ({{count}})",
+      "intersectSummary": "{{pages}} Seiten, Schnittmenge ≥ {{min}}",
+      "upToDomains": "Bis zu {{count}} Domains",
+      "loadButton": "Gemeinsame Backlinks finden",
+      "loaded": "{{count}} von {{total}} Domains geladen ({{cost}})",
+      "empty": "Mindestens 2 Seiten-URLs einfügen, um gemeinsame Backlinks zu finden.",
+      "columns": {
+        "domain": "Domain",
+        "rank": "Rang",
+        "links": "Links",
+        "refPages": "Verw. Seiten"
+      }
+    }
   }
 }

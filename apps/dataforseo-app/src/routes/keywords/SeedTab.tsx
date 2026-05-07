@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 import { formatError } from "../../lib/errors";
 
@@ -37,6 +38,7 @@ export default function SeedTab({
   extraControls,
   run,
 }: Props) {
+  const { t } = useTranslation();
   const [seed, setSeed] = useState("");
   const [busy, setBusy] = useState(false);
   const [batch, setBatch] = useState<LabsBatch | null>(null);
@@ -45,15 +47,19 @@ export default function SeedTab({
 
   const columns = useMemo<ColumnDef<LabsKeyword, unknown>[]>(
     () => [
-      { header: "Keyword", accessorKey: "keyword", cell: (ctx) => <span className="font-mono">{ctx.getValue<string>()}</span> },
       {
-        header: "Volume",
+        header: t("keywords.common.keyword"),
+        accessorKey: "keyword",
+        cell: (ctx) => <span className="font-mono">{ctx.getValue<string>()}</span>,
+      },
+      {
+        header: t("keywords.common.volume"),
         accessorKey: "search_volume",
         cell: (ctx) => formatCount(ctx.getValue<number>() ?? 0),
       },
-      { header: "Competition", accessorKey: "competition" },
+      { header: t("keywords.common.competition"), accessorKey: "competition" },
       {
-        header: "CPC",
+        header: t("keywords.common.cpc"),
         accessorKey: "cpc",
         cell: (ctx) => {
           const v = ctx.getValue<number | null>();
@@ -61,7 +67,7 @@ export default function SeedTab({
         },
       },
       {
-        header: "Difficulty",
+        header: t("keywords.common.difficulty"),
         accessorKey: "keyword_difficulty",
         cell: (ctx) => ctx.getValue<number | null>() ?? "—",
       },
@@ -73,7 +79,7 @@ export default function SeedTab({
         cell: (ctx) => <QuickActions keyword={ctx.row.original.keyword} compact />,
       },
     ],
-    [],
+    [t],
   );
 
   async function onRun(useCache: boolean) {
@@ -83,8 +89,11 @@ export default function SeedTab({
       const result = await run(trimmed, useCache);
       setBatch(result);
       const note = result.from_cache
-        ? `${result.items.length} keywords (cached, $0.00)`
-        : `${result.items.length} keywords (${formatUsd(result.cost_usd)})`;
+        ? t("keywords.seed.loadedCached", { count: result.items.length })
+        : t("keywords.seed.loaded", {
+            count: result.items.length,
+            cost: formatUsd(result.cost_usd),
+          });
       toast.success(note);
     } catch (e) {
       toast.error(formatError(e));
@@ -103,7 +112,7 @@ export default function SeedTab({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-2">
           <label htmlFor="seed" className="text-sm font-medium text-slate-700">
-            Seed keyword
+            {t("keywords.seed.seedLabel")}
           </label>
           <input
             id="seed"
@@ -120,7 +129,12 @@ export default function SeedTab({
         <div className="flex flex-col gap-3">
           <CostPreview
             action={costAction}
-            details={[`Location ${DEFAULT_LOCATION}, Language ${DEFAULT_LANGUAGE}`]}
+            details={[
+              t("keywords.volume.locationLanguage", {
+                location: DEFAULT_LOCATION,
+                language: DEFAULT_LANGUAGE,
+              }),
+            ]}
             disabled={!trimmed || busy}
           />
           {extraControls}
@@ -131,13 +145,13 @@ export default function SeedTab({
               disabled={busy || !trimmed}
               className="flex-1 rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
             >
-              {busy ? "Running…" : "Run"}
+              {busy ? t("keywords.common.running") : t("keywords.common.run")}
             </button>
             <button
               type="button"
               onClick={() => onRun(false)}
               disabled={busy || !trimmed}
-              title="Bypass cache and refetch from DataForSEO"
+              title={t("keywords.common.bypassCacheRefetch")}
               className="rounded border border-slate-300 px-2 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               ↻
@@ -150,8 +164,11 @@ export default function SeedTab({
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span className="flex items-center gap-2">
             <CacheBadge fromCache={batch.from_cache} fetchedAt={batch.fetched_at} />
-            {batch.items.length} rows · actual {formatUsd(batch.cost_usd)} · estimated{" "}
-            {formatUsd(batch.estimated_usd)}
+            {t("keywords.seed.rowsLine", {
+              rows: batch.items.length,
+              actual: formatUsd(batch.cost_usd),
+              estimated: formatUsd(batch.estimated_usd),
+            })}
           </span>
           <div className="flex gap-2">
             <ChatWithResultsButton
@@ -170,7 +187,7 @@ export default function SeedTab({
       <ResultsTable
         data={batch?.items ?? []}
         columns={columns}
-        emptyMessage="Enter a seed keyword above and click Run."
+        emptyMessage={t("keywords.seed.empty")}
       />
     </div>
   );

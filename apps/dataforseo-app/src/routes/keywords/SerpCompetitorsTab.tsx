@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 import { formatError } from "../../lib/errors";
 
@@ -11,6 +12,7 @@ import { formatUsd } from "../../lib/format";
 import { tauriApi, type SerpCompetitor, type SerpCompetitorsView } from "../../lib/tauri";
 
 export default function SerpCompetitorsTab() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<SerpCompetitorsView | null>(null);
@@ -19,14 +21,26 @@ export default function SerpCompetitorsTab() {
 
   const exportColumns = useMemo<ColumnDef<SerpCompetitor, unknown>[]>(
     () => [
-      { id: "domain", header: "Domain", accessorKey: "domain" },
-      { id: "avg_position", header: "Avg Position", accessorKey: "avg_position" },
-      { id: "median_position", header: "Median Position", accessorKey: "median_position" },
-      { id: "etv", header: "ETV", accessorKey: "etv" },
-      { id: "count", header: "Keywords", accessorKey: "count" },
-      { id: "rating", header: "Rating", accessorKey: "rating" },
+      { id: "domain", header: t("keywords.common.domain"), accessorKey: "domain" },
+      {
+        id: "avg_position",
+        header: t("keywords.serpCompetitors.avgPos"),
+        accessorKey: "avg_position",
+      },
+      {
+        id: "median_position",
+        header: t("keywords.serpCompetitors.medianPos"),
+        accessorKey: "median_position",
+      },
+      { id: "etv", header: t("keywords.serpCompetitors.etv"), accessorKey: "etv" },
+      {
+        id: "count",
+        header: t("keywords.serpCompetitors.keywordsHeader"),
+        accessorKey: "count",
+      },
+      { id: "rating", header: t("keywords.common.rating"), accessorKey: "rating" },
     ],
-    [],
+    [t],
   );
 
   async function onRun() {
@@ -41,7 +55,12 @@ export default function SerpCompetitorsTab() {
         useCache: true,
       });
       setView(result);
-      toast.success(`${result.items.length} competitors (${formatUsd(result.cost_usd)})`);
+      toast.success(
+        t("keywords.serpCompetitors.loaded", {
+          count: result.items.length,
+          cost: formatUsd(result.cost_usd),
+        }),
+      );
     } catch (e) {
       toast.error(formatError(e));
     } finally {
@@ -51,14 +70,11 @@ export default function SerpCompetitorsTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-slate-600">
-        Which domains rank in the SERP for a keyword — with average position, estimated traffic
-        value, and DataForSEO domain rating. 0.0125 USD per lookup.
-      </p>
+      <p className="text-sm text-slate-600">{t("keywords.serpCompetitors.description")}</p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">Keyword</span>
+          <span className="font-medium text-slate-700">{t("keywords.common.keyword")}</span>
           <input
             type="text"
             value={keyword}
@@ -73,7 +89,10 @@ export default function SerpCompetitorsTab() {
         <div className="flex flex-col gap-3">
           <CostPreview
             action={{ kind: "LabsSerpCompetitors" }}
-            details={["0.0125 USD per request", "Up to 100 competitors"]}
+            details={[
+              t("keywords.serpCompetitors.perRequest"),
+              t("keywords.serpCompetitors.upTo100"),
+            ]}
             disabled={!trimmed || busy}
           />
           <button
@@ -82,7 +101,7 @@ export default function SerpCompetitorsTab() {
             disabled={busy || !trimmed}
             className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? "Loading…" : "Lookup"}
+            {busy ? t("keywords.common.loading") : t("keywords.common.lookup")}
           </button>
         </div>
       </div>
@@ -91,8 +110,11 @@ export default function SerpCompetitorsTab() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>
-              {view.items.length} domains ranking for &ldquo;{view.keyword}&rdquo; ·{" "}
-              {formatUsd(view.cost_usd)}
+              {t("keywords.serpCompetitors.summary", {
+                count: view.items.length,
+                keyword: view.keyword,
+                cost: formatUsd(view.cost_usd),
+              })}
             </span>
             <ExportMenu
               filenameStem={`serp-competitors-${view.keyword}`}
@@ -104,12 +126,18 @@ export default function SerpCompetitorsTab() {
             <table className="min-w-full text-xs">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="px-2 py-1 text-left">Domain</th>
-                  <th className="px-2 py-1 text-right">Avg Pos</th>
-                  <th className="px-2 py-1 text-right">Median Pos</th>
-                  <th className="px-2 py-1 text-right">ETV</th>
-                  <th className="px-2 py-1 text-right">Keywords</th>
-                  <th className="px-2 py-1 text-right">Rating</th>
+                  <th className="px-2 py-1 text-left">{t("keywords.common.domain")}</th>
+                  <th className="px-2 py-1 text-right">
+                    {t("keywords.serpCompetitors.avgPos")}
+                  </th>
+                  <th className="px-2 py-1 text-right">
+                    {t("keywords.serpCompetitors.medianPos")}
+                  </th>
+                  <th className="px-2 py-1 text-right">{t("keywords.serpCompetitors.etv")}</th>
+                  <th className="px-2 py-1 text-right">
+                    {t("keywords.serpCompetitors.keywordsHeader")}
+                  </th>
+                  <th className="px-2 py-1 text-right">{t("keywords.common.rating")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -137,12 +165,12 @@ export default function SerpCompetitorsTab() {
         </div>
       ) : view ? (
         <div className="rounded border bg-white p-6 text-center text-sm text-slate-500">
-          No competitors found for this keyword.
+          {t("keywords.serpCompetitors.noResults")}
         </div>
       ) : (
         !busy && (
           <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
-            Enter a keyword above and click Lookup.
+            {t("keywords.serpCompetitors.empty")}
           </div>
         )
       )}

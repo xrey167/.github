@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 import { formatError } from "../../lib/errors";
 
@@ -14,6 +15,7 @@ import { tauriApi, type KeywordVolume, type KeywordVolumeBatch } from "../../lib
 import { DEFAULT_LANGUAGE, DEFAULT_LOCATION } from "../../lib/constants";
 
 export default function VolumeTab() {
+  const { t } = useTranslation();
   const [raw, setRaw] = useState("");
   const [busy, setBusy] = useState(false);
   const [batch, setBatch] = useState<KeywordVolumeBatch | null>(null);
@@ -24,25 +26,27 @@ export default function VolumeTab() {
   const columns = useMemo<ColumnDef<KeywordVolume, unknown>[]>(
     () => [
       {
-        header: "Keyword",
+        header: t("keywords.common.keyword"),
         accessorKey: "keyword",
         cell: (ctx) => (
           <span className="font-mono">
             {ctx.getValue<string>()}
             {ctx.row.original.from_cache && (
-              <span className="ml-2 rounded bg-slate-200 px-1 text-xs">cache</span>
+              <span className="ml-2 rounded bg-slate-200 px-1 text-xs">
+                {t("keywords.common.cache")}
+              </span>
             )}
           </span>
         ),
       },
       {
-        header: "Volume",
+        header: t("keywords.common.volume"),
         accessorKey: "search_volume",
         cell: (ctx) => formatCount(ctx.getValue<number>() ?? 0),
       },
-      { header: "Competition", accessorKey: "competition" },
+      { header: t("keywords.common.competition"), accessorKey: "competition" },
       {
-        header: "CPC",
+        header: t("keywords.common.cpc"),
         accessorKey: "cpc",
         cell: (ctx) => {
           const v = ctx.getValue<number | null>();
@@ -50,7 +54,7 @@ export default function VolumeTab() {
         },
       },
     ],
-    [],
+    [t],
   );
 
   async function onRun() {
@@ -65,7 +69,11 @@ export default function VolumeTab() {
       });
       setBatch(result);
       toast.success(
-        `${result.fresh} fetched, ${result.cache_hits} from cache (${formatUsd(result.cost_usd)})`,
+        t("keywords.volume.toast", {
+          fresh: result.fresh,
+          cacheHits: result.cache_hits,
+          cost: formatUsd(result.cost_usd),
+        }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -86,9 +94,14 @@ export default function VolumeTab() {
               mode: "live",
             }}
             details={[
-              `${keywords.length} unique keywords`,
-              `Location ${DEFAULT_LOCATION}, Language ${DEFAULT_LANGUAGE}`,
-              useCache ? "Cache reused where possible" : "Cache disabled",
+              t("keywords.volume.uniqueKeywordsCount", { count: keywords.length }),
+              t("keywords.volume.locationLanguage", {
+                location: DEFAULT_LOCATION,
+                language: DEFAULT_LANGUAGE,
+              }),
+              useCache
+                ? t("keywords.volume.cacheReused")
+                : t("keywords.volume.cacheDisabled"),
             ]}
             disabled={keywords.length === 0 || busy}
           />
@@ -99,7 +112,7 @@ export default function VolumeTab() {
               onChange={(e) => setUseCache(e.target.checked)}
               disabled={busy}
             />
-            Use 30-day cache
+            {t("keywords.volume.useCache")}
           </label>
           <button
             type="button"
@@ -107,7 +120,7 @@ export default function VolumeTab() {
             disabled={busy || keywords.length === 0 || keywords.length > 1000}
             className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? "Running…" : "Run"}
+            {busy ? t("keywords.common.running") : t("keywords.common.run")}
           </button>
         </div>
       </div>
@@ -115,13 +128,20 @@ export default function VolumeTab() {
       {batch && (
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>
-            {batch.items.length} rows · {batch.cache_hits} from cache · {batch.fresh} freshly fetched ·
-            actual cost {formatUsd(batch.cost_usd)} (estimated {formatUsd(batch.estimated_usd)})
+            {t("keywords.volume.summary", {
+              rows: batch.items.length,
+              cacheHits: batch.cache_hits,
+              fresh: batch.fresh,
+              actual: formatUsd(batch.cost_usd),
+              estimated: formatUsd(batch.estimated_usd),
+            })}
           </span>
           <div className="flex gap-2">
             <ChatWithResultsButton
               rows={batch.items}
-              summary={`${batch.items.length} keywords from /keywords/volume`}
+              summary={t("keywords.summary.running", {
+                summary: `${batch.items.length} keywords`,
+              })}
             />
             <ExportMenu
               filenameStem="keyword-volume"
@@ -135,7 +155,7 @@ export default function VolumeTab() {
       <ResultsTable
         data={batch?.items ?? []}
         columns={columns}
-        emptyMessage="Enter keywords above and click Run."
+        emptyMessage={t("keywords.volume.empty")}
       />
     </div>
   );

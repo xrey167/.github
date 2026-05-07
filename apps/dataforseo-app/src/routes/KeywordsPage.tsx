@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import BulkVolumeTab from "./keywords/BulkVolumeTab";
 import DifficultyTab from "./keywords/DifficultyTab";
@@ -9,44 +10,54 @@ import SuggestionsTab from "./keywords/SuggestionsTab";
 import TrendsTab from "./keywords/TrendsTab";
 import VolumeTab from "./keywords/VolumeTab";
 
-const TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "volume", label: "Volume" },
-  { id: "bulk_volume", label: "Bulk Volume (cheap)" },
-  { id: "suggestions", label: "Suggestions" },
-  { id: "related", label: "Related" },
-  { id: "difficulty", label: "Difficulty" },
-  { id: "serp_competitors", label: "SERP Competitors" },
-  { id: "trends", label: "Trends" },
+const TAB_IDS = [
+  "overview",
+  "volume",
+  "bulk_volume",
+  "suggestions",
+  "related",
+  "difficulty",
+  "serp_competitors",
+  "trends",
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+type TabId = (typeof TAB_IDS)[number];
+
+const TAB_LABEL_KEYS: Record<TabId, string> = {
+  overview: "keywords.tabs.overview",
+  volume: "keywords.tabs.volume",
+  bulk_volume: "keywords.tabs.bulkVolume",
+  suggestions: "keywords.tabs.suggestions",
+  related: "keywords.tabs.related",
+  difficulty: "keywords.tabs.difficulty",
+  serp_competitors: "keywords.tabs.serpCompetitors",
+  trends: "keywords.tabs.trends",
+};
 
 export default function KeywordsPage() {
+  const { t } = useTranslation();
   const [active, setActive] = useState<TabId>("volume");
 
   return (
     <section className="flex flex-col gap-6">
       <header>
-        <h2 className="text-xl font-semibold">Keywords</h2>
-        <p className="text-sm text-slate-600">
-          Volume from Google Ads, plus Suggestions and Related from DataForSEO Labs.
-        </p>
+        <h2 className="text-xl font-semibold">{t("keywords.title")}</h2>
+        <p className="text-sm text-slate-600">{t("keywords.description")}</p>
       </header>
 
       <nav className="flex gap-1 border-b">
-        {TABS.map((tab) => (
+        {TAB_IDS.map((id) => (
           <button
-            key={tab.id}
+            key={id}
             type="button"
-            onClick={() => setActive(tab.id)}
+            onClick={() => setActive(id)}
             className={`-mb-px border-b-2 px-3 py-1.5 text-sm transition-colors ${
-              active === tab.id
+              active === id
                 ? "border-slate-800 font-medium text-slate-800"
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
-            {tab.label}
+            {t(TAB_LABEL_KEYS[id])}
           </button>
         ))}
       </nav>

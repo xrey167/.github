@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 import { formatError } from "../../lib/errors";
 import {
@@ -63,6 +64,7 @@ function pickList(
 }
 
 export default function TrendsTab() {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<TrendsView | null>(null);
@@ -91,8 +93,8 @@ export default function TrendsTab() {
       });
       setView(result);
       const note = result.from_cache
-        ? `Cached trends ($0.00)`
-        : `Loaded (${formatUsd(result.cost_usd)})`;
+        ? t("keywords.trends.cachedToast")
+        : t("keywords.trends.loadedToast", { cost: formatUsd(result.cost_usd) });
       toast.success(note);
     } catch (e) {
       toast.error(formatError(e));
@@ -111,12 +113,6 @@ export default function TrendsTab() {
     [view],
   );
 
-  // ExportMenu columns are derived from the actual keywords queried, plus
-  // the leading date column. CSV export is the most useful artifact since
-  // it's a time series — pastes straight into a spreadsheet.
-  //
-  // accessorFn (not accessorKey) so a keyword like "example.com" doesn't
-  // get treated as a nested path by TanStack Table.
   const exportColumns = useMemo<ColumnDef<ChartPoint, unknown>[]>(
     () => [
       { id: "date", header: "Date", accessorKey: "date" },
@@ -131,15 +127,12 @@ export default function TrendsTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-slate-600">
-        Google Trends interest-over-time for up to 5 keywords. 0.05 USD per call regardless of
-        keyword count or date range; cached for 7 days.
-      </p>
+      <p className="text-sm text-slate-600">{t("keywords.trends.description")}</p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-700">
-            Keywords ({keywords.length}/5, comma or newline separated)
+            {t("keywords.trends.keywordsLabel", { count: keywords.length })}
           </span>
           <textarea
             value={text}
@@ -153,7 +146,7 @@ export default function TrendsTab() {
         <div className="flex flex-col gap-3">
           <CostPreview
             action={{ kind: "KeywordsTrends" }}
-            details={["0.05 USD per call", "Cached for 7 days"]}
+            details={[t("keywords.trends.perCall"), t("keywords.trends.cached7d")]}
             disabled={busy || keywords.length === 0}
           />
           <div className="flex gap-2">
@@ -163,13 +156,13 @@ export default function TrendsTab() {
               disabled={busy || keywords.length === 0}
               className="flex-1 rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
             >
-              {busy ? "Loading…" : "Compare trends"}
+              {busy ? t("keywords.common.loading") : t("keywords.trends.compareButton")}
             </button>
             <button
               type="button"
               onClick={() => onRun(false)}
               disabled={busy || keywords.length === 0}
-              title="Bypass cache"
+              title={t("keywords.common.bypassCache")}
               className="rounded border border-slate-300 px-2 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               ↻
@@ -182,7 +175,10 @@ export default function TrendsTab() {
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <CacheBadge fromCache={view.from_cache} fetchedAt={view.fetched_at} />
           <span>
-            actual {formatUsd(view.cost_usd)} · estimated {formatUsd(view.estimated_usd)}
+            {t("keywords.common.actualEstimated", {
+              actual: formatUsd(view.cost_usd),
+              estimated: formatUsd(view.estimated_usd),
+            })}
           </span>
           {chartData && chartData.length > 0 && (
             <span className="ml-auto">
@@ -198,7 +194,7 @@ export default function TrendsTab() {
 
       {chartData && chartData.length > 0 ? (
         <div className="rounded border bg-white p-3">
-          <h3 className="mb-2 text-sm font-semibold">Interest over time</h3>
+          <h3 className="mb-2 text-sm font-semibold">{t("keywords.trends.interestOverTime")}</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
@@ -224,7 +220,7 @@ export default function TrendsTab() {
         </div>
       ) : view ? (
         <div className="rounded border bg-white p-6 text-center text-sm text-slate-500">
-          Trends API returned no graph data for this query.
+          {t("keywords.trends.noGraphData")}
         </div>
       ) : null}
 
@@ -232,11 +228,11 @@ export default function TrendsTab() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {topics.length > 0 && (
             <div className="rounded border bg-white p-3">
-              <h3 className="mb-2 text-sm font-semibold">Rising topics</h3>
+              <h3 className="mb-2 text-sm font-semibold">{t("keywords.trends.risingTopics")}</h3>
               <ul className="space-y-1 text-xs">
-                {topics.map((t, i) => (
+                {topics.map((tt, i) => (
                   <li key={i} className="rounded bg-slate-50 px-2 py-1">
-                    {t}
+                    {tt}
                   </li>
                 ))}
               </ul>
@@ -244,7 +240,7 @@ export default function TrendsTab() {
           )}
           {queries.length > 0 && (
             <div className="rounded border bg-white p-3">
-              <h3 className="mb-2 text-sm font-semibold">Rising queries</h3>
+              <h3 className="mb-2 text-sm font-semibold">{t("keywords.trends.risingQueries")}</h3>
               <ul className="space-y-1 text-xs">
                 {queries.map((q, i) => (
                   <li key={i} className="rounded bg-slate-50 px-2 py-1 font-mono">
@@ -259,7 +255,7 @@ export default function TrendsTab() {
 
       {!view && !busy && (
         <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
-          Enter up to 5 keywords and click Compare trends.
+          {t("keywords.trends.empty")}
         </div>
       )}
     </div>
