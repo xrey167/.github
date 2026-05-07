@@ -560,6 +560,10 @@ export default function AiVisibilityPage() {
                             </span>
                           ) : r.has_ai_mode === false ? (
                             <span className="text-slate-400">no</span>
+                          ) : r.error?.startsWith("AI Mode:") ? (
+                            <span className="text-red-700" title={r.error}>
+                              err
+                            </span>
                           ) : (
                             <span className="text-slate-300">—</span>
                           )}
