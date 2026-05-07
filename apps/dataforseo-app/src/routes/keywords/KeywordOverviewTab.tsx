@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 import { formatError } from "../../lib/errors";
 
@@ -58,6 +59,7 @@ const INTENT_COLORS: Record<string, string> = {
 };
 
 export default function KeywordOverviewTab() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<KeywordOverviewView | null>(null);
@@ -76,8 +78,8 @@ export default function KeywordOverviewTab() {
       });
       setView(result);
       const note = result.from_cache
-        ? `Cached overview ($0.00)`
-        : `Loaded (${formatUsd(result.cost_usd)})`;
+        ? t("keywords.overview.cachedToast")
+        : t("keywords.overview.loadedToast", { cost: formatUsd(result.cost_usd) });
       toast.success(note);
     } catch (e) {
       toast.error(formatError(e));
@@ -88,15 +90,11 @@ export default function KeywordOverviewTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-slate-600">
-        Comprehensive single-call keyword lookup — volume, KD, CPC, search intent, and SERP
-        feature signals all at once. Replaces 4-5 separate Labs calls. 0.0125 USD per lookup,
-        cached for 7 days.
-      </p>
+      <p className="text-sm text-slate-600">{t("keywords.overview.description")}</p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">Keyword</span>
+          <span className="font-medium text-slate-700">{t("keywords.common.keyword")}</span>
           <input
             type="text"
             value={keyword}
@@ -111,7 +109,10 @@ export default function KeywordOverviewTab() {
         <div className="flex flex-col gap-3">
           <CostPreview
             action={{ kind: "LabsKeywordOverview" }}
-            details={["0.0125 USD per lookup", "Cached for 7 days"]}
+            details={[
+              t("keywords.overview.perLookup"),
+              t("keywords.overview.cached7d"),
+            ]}
             disabled={busy || !trimmed}
           />
           <div className="flex gap-2">
@@ -121,13 +122,13 @@ export default function KeywordOverviewTab() {
               disabled={busy || !trimmed}
               className="flex-1 rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
             >
-              {busy ? "Loading…" : "Lookup"}
+              {busy ? t("keywords.common.loading") : t("keywords.common.lookup")}
             </button>
             <button
               type="button"
               onClick={() => onRun(false)}
               disabled={busy || !trimmed}
-              title="Bypass cache"
+              title={t("keywords.common.bypassCache")}
               className="rounded border border-slate-300 px-2 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               ↻
@@ -141,7 +142,10 @@ export default function KeywordOverviewTab() {
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <CacheBadge fromCache={view.from_cache} fetchedAt={view.fetched_at} />
             <span>
-              actual {formatUsd(view.cost_usd)} · estimated {formatUsd(view.estimated_usd)}
+              {t("keywords.common.actualEstimated", {
+                actual: formatUsd(view.cost_usd),
+                estimated: formatUsd(view.estimated_usd),
+              })}
             </span>
             <span className="ml-auto">
               <QuickActions keyword={view.keyword} />
@@ -150,24 +154,24 @@ export default function KeywordOverviewTab() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Tile
-              label="Search volume"
+              label={t("keywords.overview.searchVolume")}
               value={data.search_volume?.toLocaleString() ?? "—"}
             />
             <Tile
-              label="Difficulty"
+              label={t("keywords.common.difficulty")}
               value={data.keyword_difficulty != null ? String(data.keyword_difficulty) : "—"}
-              detail="0–100 KD"
+              detail={t("keywords.overview.kdScale")}
             />
             <Tile
-              label="CPC"
+              label={t("keywords.common.cpc")}
               value={data.cpc != null ? formatUsd(data.cpc) : "—"}
             />
             <Tile
-              label="Competition"
+              label={t("keywords.common.competition")}
               value={data.competition ?? "—"}
               detail={
                 data.competition_index != null
-                  ? `index ${data.competition_index}`
+                  ? t("keywords.overview.indexLabel", { value: data.competition_index })
                   : undefined
               }
             />
@@ -175,7 +179,9 @@ export default function KeywordOverviewTab() {
 
           {data.search_intent && (
             <div className="rounded border bg-white p-3">
-              <h3 className="mb-2 text-sm font-semibold">Search intent</h3>
+              <h3 className="mb-2 text-sm font-semibold">
+                {t("keywords.overview.searchIntent")}
+              </h3>
               <span
                 className={`rounded px-2 py-0.5 text-xs ${
                   INTENT_COLORS[data.search_intent] ?? "bg-slate-100 text-slate-700"
@@ -188,7 +194,9 @@ export default function KeywordOverviewTab() {
 
           {data.serp_features.length > 0 && (
             <div className="rounded border bg-white p-3">
-              <h3 className="mb-2 text-sm font-semibold">SERP features present</h3>
+              <h3 className="mb-2 text-sm font-semibold">
+                {t("keywords.overview.serpFeatures")}
+              </h3>
               <div className="flex flex-wrap gap-1">
                 {data.serp_features.map((f) => (
                   <span
@@ -206,7 +214,7 @@ export default function KeywordOverviewTab() {
 
       {!view && !busy && (
         <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
-          Enter a keyword and click Lookup.
+          {t("keywords.overview.empty")}
         </div>
       )}
     </div>

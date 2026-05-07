@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans, useTranslation } from "react-i18next";
 
 import { formatError } from "../lib/errors";
 import {
@@ -36,51 +37,35 @@ type Tab =
   | "domainpages"
   | "pageintersect";
 
+const TAB_KEYS: Record<Tab, string> = {
+  summary: "backlinks.tabs.summary",
+  detail: "backlinks.tabs.detail",
+  domains: "backlinks.tabs.domains",
+  anchors: "backlinks.tabs.anchors",
+  history: "backlinks.tabs.history",
+  linkgap: "backlinks.tabs.linkgap",
+  domainpages: "backlinks.tabs.domainpages",
+  pageintersect: "backlinks.tabs.pageintersect",
+};
+
 export default function BacklinksPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("summary");
 
   return (
     <section className="flex flex-col gap-6">
       <header>
-        <h2 className="text-xl font-semibold">Backlinks</h2>
-        <p className="text-sm text-slate-600">
-          Aggregate backlink profile for any domain — total links, referring
-          domains, dofollow split, TLD distribution. The summary endpoint is
-          cheap (one request, ~0.02 USD) and cached for 24 hours, so checking
-          a domain you've looked at recently is free.
-        </p>
-        <p className="mt-1 text-xs text-amber-700">
-          Reminder: DataForSEO's Backlinks family has a 100 USD/month minimum
-          spend. The commitment can be used across all DataForSEO APIs but
-          must be consumed monthly. Plan accordingly before activating.
-        </p>
+        <h2 className="text-xl font-semibold">{t("backlinks.title")}</h2>
+        <p className="text-sm text-slate-600">{t("backlinks.description")}</p>
+        <p className="mt-1 text-xs text-amber-700">{t("backlinks.minSpendNotice")}</p>
       </header>
 
       <nav className="flex gap-1 border-b text-sm">
-        <TabButton active={tab === "summary"} onClick={() => setTab("summary")}>
-          Summary
-        </TabButton>
-        <TabButton active={tab === "detail"} onClick={() => setTab("detail")}>
-          Detail
-        </TabButton>
-        <TabButton active={tab === "domains"} onClick={() => setTab("domains")}>
-          Referring Domains
-        </TabButton>
-        <TabButton active={tab === "anchors"} onClick={() => setTab("anchors")}>
-          Anchors
-        </TabButton>
-        <TabButton active={tab === "history"} onClick={() => setTab("history")}>
-          History
-        </TabButton>
-        <TabButton active={tab === "linkgap"} onClick={() => setTab("linkgap")}>
-          Link Gap
-        </TabButton>
-        <TabButton active={tab === "domainpages"} onClick={() => setTab("domainpages")}>
-          Domain Pages
-        </TabButton>
-        <TabButton active={tab === "pageintersect"} onClick={() => setTab("pageintersect")}>
-          Page Intersection
-        </TabButton>
+        {(Object.keys(TAB_KEYS) as Tab[]).map((id) => (
+          <TabButton key={id} active={tab === id} onClick={() => setTab(id)}>
+            {t(TAB_KEYS[id])}
+          </TabButton>
+        ))}
       </nav>
 
       {tab === "summary" && <SummaryTab />}
@@ -120,6 +105,7 @@ function TabButton({
 }
 
 function SummaryTab() {
+  const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<BacklinksSummaryView | null>(null);
@@ -136,9 +122,9 @@ function SummaryTab() {
       });
       setSummary(result);
       const note = result.from_cache
-        ? "from cache"
-        : `${formatUsd(result.cost_usd)} fresh`;
-      toast.success(`Loaded ${trimmed} (${note})`);
+        ? t("backlinks.summary.fromCache")
+        : t("backlinks.summary.fresh", { cost: formatUsd(result.cost_usd) });
+      toast.success(t("backlinks.summary.loaded", { target: trimmed, note }));
     } catch (e) {
       toast.error(formatError(e));
     } finally {
@@ -150,7 +136,7 @@ function SummaryTab() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">Target domain</span>
+          <span className="font-medium text-slate-700">{t("backlinks.common.targetDomain")}</span>
           <input
             type="text"
             value={target}
@@ -170,8 +156,10 @@ function SummaryTab() {
               rows_per_target: 1,
             }}
             details={[
-              "Single backlinks_summary request",
-              useCache ? "Cache reused if last fetch <24h" : "Cache disabled",
+              t("backlinks.summary.singleRequest"),
+              useCache
+                ? t("backlinks.summary.cacheReused")
+                : t("backlinks.summary.cacheDisabled"),
             ]}
             disabled={busy || !target.trim()}
           />
@@ -182,7 +170,7 @@ function SummaryTab() {
               onChange={(e) => setUseCache(e.target.checked)}
               disabled={busy}
             />
-            Use 24h cache
+            {t("backlinks.summary.useCache")}
           </label>
           <button
             type="button"
@@ -190,7 +178,7 @@ function SummaryTab() {
             disabled={busy || !target.trim()}
             className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? "Loading…" : "Load summary"}
+            {busy ? t("backlinks.common.loading") : t("backlinks.summary.loadButton")}
           </button>
         </div>
       </div>
@@ -199,7 +187,7 @@ function SummaryTab() {
 
       {!summary && !busy && (
         <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
-          Enter a domain above and click Load summary.
+          {t("backlinks.summary.empty")}
         </div>
       )}
     </div>
@@ -207,21 +195,22 @@ function SummaryTab() {
 }
 
 function SummaryView({ view }: { view: BacklinksSummaryView }) {
+  const { t } = useTranslation();
   const s = view.summary as Record<string, unknown>;
-  const num = (k: string) => {
+  const numAt = (k: string) => {
     const v = s?.[k];
     return typeof v === "number" ? v : null;
   };
 
   const tiles = [
-    { label: "Total backlinks", value: num("backlinks") },
-    { label: "Referring domains", value: num("referring_domains") },
-    { label: "Referring main domains", value: num("referring_main_domains") },
-    { label: "Referring pages", value: num("referring_pages") },
-    { label: "Dofollow", value: num("dofollow_backlinks") },
-    { label: "Nofollow", value: num("nofollow_backlinks") },
-    { label: "Broken backlinks", value: num("broken_backlinks") },
-    { label: "Domain rank", value: num("rank") },
+    { label: t("backlinks.summary.tiles.totalBacklinks"), value: numAt("backlinks") },
+    { label: t("backlinks.summary.tiles.referringDomains"), value: numAt("referring_domains") },
+    { label: t("backlinks.summary.tiles.referringMainDomains"), value: numAt("referring_main_domains") },
+    { label: t("backlinks.summary.tiles.referringPages"), value: numAt("referring_pages") },
+    { label: t("backlinks.summary.tiles.dofollow"), value: numAt("dofollow_backlinks") },
+    { label: t("backlinks.summary.tiles.nofollow"), value: numAt("nofollow_backlinks") },
+    { label: t("backlinks.summary.tiles.brokenBacklinks"), value: numAt("broken_backlinks") },
+    { label: t("backlinks.summary.tiles.domainRank"), value: numAt("rank") },
   ];
 
   return (
@@ -229,23 +218,25 @@ function SummaryView({ view }: { view: BacklinksSummaryView }) {
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <strong className="font-mono text-slate-700">{view.target}</strong>
         {view.from_cache && (
-          <span className="rounded bg-slate-200 px-1 py-0.5">cache</span>
+          <span className="rounded bg-slate-200 px-1 py-0.5">{t("backlinks.common.cache")}</span>
         )}
         {view.fetched_at && (
-          <span>fetched {view.fetched_at.slice(0, 16)}</span>
+          <span>{t("backlinks.common.fetchedAt", { time: view.fetched_at.slice(0, 16) })}</span>
         )}
         <span className="ml-auto">
-          actual {formatUsd(view.cost_usd)} · estimated{" "}
-          {formatUsd(view.estimated_usd)}
+          {t("backlinks.common.actualEstimated", {
+            actual: formatUsd(view.cost_usd),
+            estimated: formatUsd(view.estimated_usd),
+          })}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {tiles.map((t) => (
-          <div key={t.label} className="rounded border bg-white p-3">
-            <div className="text-xs text-slate-500">{t.label}</div>
+        {tiles.map((tile) => (
+          <div key={tile.label} className="rounded border bg-white p-3">
+            <div className="text-xs text-slate-500">{tile.label}</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
-              {t.value != null ? formatCount(t.value) : "—"}
+              {tile.value != null ? formatCount(tile.value) : "—"}
             </div>
           </div>
         ))}
@@ -253,7 +244,7 @@ function SummaryView({ view }: { view: BacklinksSummaryView }) {
 
       <details className="rounded border bg-slate-50 p-3 text-xs">
         <summary className="cursor-pointer font-medium text-slate-700">
-          Raw response (debug)
+          {t("backlinks.common.rawDebug")}
         </summary>
         <pre className="mt-2 overflow-x-auto text-[11px]">
           {JSON.stringify(view.summary, null, 2)}
@@ -267,15 +258,12 @@ function SummaryView({ view }: { view: BacklinksSummaryView }) {
 
 type FilterPreset = "dofollow" | "rank30" | "lost";
 
-const PRESET_LABELS: Record<FilterPreset, string> = {
-  dofollow: "Dofollow only",
-  rank30: "Domain rank > 30",
-  lost: "Lost links",
+const PRESET_KEYS: Record<FilterPreset, string> = {
+  dofollow: "backlinks.detail.presets.dofollow",
+  rank30: "backlinks.detail.presets.rank30",
+  lost: "backlinks.detail.presets.lost",
 };
 
-// Presets are now quick-load shortcuts into the visual filter builder
-// (and a status flip for "lost"). The builder owns the canonical filter
-// state — presets just seed it.
 function applyPreset(
   preset: FilterPreset,
 ): { filter: FilterTree | null; status: BacklinksDetailStatus | null } {
@@ -291,13 +279,12 @@ function applyPreset(
         status: null,
       };
     case "lost":
-      // For "lost" we don't need a filter expression — DataForSEO has a
-      // dedicated `backlinks_status_type=lost` query parameter.
       return { filter: null, status: "lost" };
   }
 }
 
 function DetailTab() {
+  const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [mode, setMode] = useState<BacklinksDetailMode>("as_is");
   const [status, setStatus] = useState<BacklinksDetailStatus>("live");
@@ -330,7 +317,11 @@ function DetailTab() {
       });
       setView(result);
       toast.success(
-        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} links (${formatUsd(result.cost_usd)})`,
+        t("backlinks.detail.loaded", {
+          count: formatCount(result.items_count),
+          total: formatCount(result.total_count),
+          cost: formatUsd(result.cost_usd),
+        }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -339,12 +330,16 @@ function DetailTab() {
     }
   }
 
+  const conditionCount = filter == null ? 0 : filterCount(filter);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Target domain</span>
+            <span className="font-medium text-slate-700">
+              {t("backlinks.common.targetDomain")}
+            </span>
             <input
               type="text"
               value={target}
@@ -359,43 +354,42 @@ function DetailTab() {
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700">Mode</span>
+              <span className="font-medium text-slate-700">{t("backlinks.common.mode")}</span>
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value as BacklinksDetailMode)}
                 disabled={busy}
                 className="rounded border px-2 py-1 disabled:bg-slate-50"
               >
-                <option value="as_is">As-is (raw)</option>
-                <option value="one_per_domain">One per domain</option>
-                <option value="one_per_anchor">One per anchor</option>
+                <option value="as_is">{t("backlinks.detail.modeOptions.asIs")}</option>
+                <option value="one_per_domain">
+                  {t("backlinks.detail.modeOptions.onePerDomain")}
+                </option>
+                <option value="one_per_anchor">
+                  {t("backlinks.detail.modeOptions.onePerAnchor")}
+                </option>
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700">Status</span>
+              <span className="font-medium text-slate-700">{t("backlinks.common.status")}</span>
               <select
                 value={status}
-                onChange={(e) =>
-                  setStatus(e.target.value as BacklinksDetailStatus)
-                }
+                onChange={(e) => setStatus(e.target.value as BacklinksDetailStatus)}
                 disabled={busy}
                 className="rounded border px-2 py-1 disabled:bg-slate-50"
               >
-                <option value="live">Live</option>
-                <option value="lost">Lost</option>
-                <option value="all">All</option>
+                <option value="live">{t("backlinks.detail.statusOptions.live")}</option>
+                <option value="lost">{t("backlinks.detail.statusOptions.lost")}</option>
+                <option value="all">{t("backlinks.detail.statusOptions.all")}</option>
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700">Limit</span>
+              <span className="font-medium text-slate-700">{t("backlinks.common.limit")}</span>
               <input
                 type="number"
                 min={1}
                 max={1000}
                 value={limit}
-                // Allow intermediate values during typing — clamping here
-                // would jump 1→empty→0 to 1, blocking the user from
-                // editing digit-by-digit. We finalise on blur instead.
                 onChange={(e) => {
                   const n = e.target.valueAsNumber;
                   setLimit(Number.isFinite(n) ? n : 0);
@@ -413,8 +407,8 @@ function DetailTab() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1 text-xs">
-            <span className="mr-1 text-slate-500">Quick presets:</span>
-            {(Object.keys(PRESET_LABELS) as FilterPreset[]).map((p) => (
+            <span className="mr-1 text-slate-500">{t("backlinks.detail.presetsLabel")}</span>
+            {(Object.keys(PRESET_KEYS) as FilterPreset[]).map((p) => (
               <button
                 key={p}
                 type="button"
@@ -422,7 +416,7 @@ function DetailTab() {
                 disabled={busy}
                 className="rounded border border-slate-300 bg-white px-2 py-0.5 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
               >
-                {PRESET_LABELS[p]}
+                {t(PRESET_KEYS[p])}
               </button>
             ))}
           </div>
@@ -438,11 +432,11 @@ function DetailTab() {
               rows_per_target: limit,
             }}
             details={[
-              `Up to ${formatCount(limit)} rows`,
-              `Status: ${status}`,
+              t("backlinks.detail.upToRows", { count: formatCount(limit) }),
+              t("backlinks.detail.statusLabel", { status }),
               filter == null
-                ? "No filter"
-                : `Filter: ${filterCount(filter)} condition${filterCount(filter) === 1 ? "" : "s"}`,
+                ? t("backlinks.detail.noFilter")
+                : t("backlinks.detail.filterCount", { count: conditionCount }),
             ]}
             disabled={busy || !target.trim()}
           />
@@ -453,7 +447,7 @@ function DetailTab() {
               onChange={(e) => setIncludeSubdomains(e.target.checked)}
               disabled={busy}
             />
-            Include subdomains
+            {t("backlinks.common.includeSubdomains")}
           </label>
           <button
             type="button"
@@ -461,7 +455,7 @@ function DetailTab() {
             disabled={busy || !target.trim()}
             className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? "Loading…" : "Load backlinks"}
+            {busy ? t("backlinks.common.loading") : t("backlinks.detail.loadButton")}
           </button>
         </div>
       </div>
@@ -470,7 +464,7 @@ function DetailTab() {
 
       {!view && !busy && (
         <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
-          Pick a domain, build a filter (or load a preset), then run.
+          {t("backlinks.detail.empty")}
         </div>
       )}
     </div>
@@ -478,22 +472,28 @@ function DetailTab() {
 }
 
 /// Count leaf conditions in a filter tree, for the cost-preview hint.
-function filterCount(t: FilterTree): number {
-  if (t.kind === "condition") return 1;
-  return t.nodes.reduce((sum, n) => sum + filterCount(n), 0);
+function filterCount(tree: FilterTree): number {
+  if (tree.kind === "condition") return 1;
+  return tree.nodes.reduce((sum, n) => sum + filterCount(n), 0);
 }
 
 function DetailTable({ view }: { view: BacklinksDetailView }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <strong className="font-mono text-slate-700">{view.target}</strong>
         <span>
-          {formatCount(view.items_count)} of {formatCount(view.total_count)} rows
+          {t("backlinks.common.rowsOf", {
+            count: formatCount(view.items_count),
+            total: formatCount(view.total_count),
+          })}
         </span>
         <span className="ml-auto">
-          actual {formatUsd(view.cost_usd)} · estimated{" "}
-          {formatUsd(view.estimated_usd)}
+          {t("backlinks.common.actualEstimated", {
+            actual: formatUsd(view.cost_usd),
+            estimated: formatUsd(view.estimated_usd),
+          })}
         </span>
       </div>
 
@@ -501,12 +501,12 @@ function DetailTable({ view }: { view: BacklinksDetailView }) {
         <table className="min-w-full text-xs">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="px-2 py-1 text-left">Source</th>
-              <th className="px-2 py-1 text-left">Anchor</th>
-              <th className="px-2 py-1 text-left">Target</th>
-              <th className="px-2 py-1 text-right">Rank</th>
-              <th className="px-2 py-1 text-center">Type</th>
-              <th className="px-2 py-1 text-center">Dofollow</th>
+              <th className="px-2 py-1 text-left">{t("backlinks.detail.columns.source")}</th>
+              <th className="px-2 py-1 text-left">{t("backlinks.detail.columns.anchor")}</th>
+              <th className="px-2 py-1 text-left">{t("backlinks.detail.columns.target")}</th>
+              <th className="px-2 py-1 text-right">{t("backlinks.detail.columns.rank")}</th>
+              <th className="px-2 py-1 text-center">{t("backlinks.detail.columns.type")}</th>
+              <th className="px-2 py-1 text-center">{t("backlinks.detail.columns.dofollow")}</th>
             </tr>
           </thead>
           <tbody>
@@ -519,21 +519,19 @@ function DetailTable({ view }: { view: BacklinksDetailView }) {
               const dofollow = bool(row, "dofollow");
               return (
                 <tr key={i} className="border-t hover:bg-slate-50">
-                  <td className="max-w-xs truncate px-2 py-1 font-mono">
-                    {sourceUrl ?? "—"}
-                  </td>
+                  <td className="max-w-xs truncate px-2 py-1 font-mono">{sourceUrl ?? "—"}</td>
                   <td className="max-w-xs truncate px-2 py-1">{anchor ?? "—"}</td>
-                  <td className="max-w-xs truncate px-2 py-1 font-mono">
-                    {targetUrl ?? "—"}
-                  </td>
+                  <td className="max-w-xs truncate px-2 py-1 font-mono">{targetUrl ?? "—"}</td>
                   <td className="px-2 py-1 text-right tabular-nums">
                     {rank != null ? rank : "—"}
                   </td>
-                  <td className="px-2 py-1 text-center text-slate-500">
-                    {itemType ?? "—"}
-                  </td>
+                  <td className="px-2 py-1 text-center text-slate-500">{itemType ?? "—"}</td>
                   <td className="px-2 py-1 text-center">
-                    {dofollow == null ? "—" : dofollow ? "yes" : "no"}
+                    {dofollow == null
+                      ? "—"
+                      : dofollow
+                        ? t("backlinks.common.yes")
+                        : t("backlinks.common.no")}
                   </td>
                 </tr>
               );
@@ -544,7 +542,7 @@ function DetailTable({ view }: { view: BacklinksDetailView }) {
 
       <details className="rounded border bg-slate-50 p-3 text-xs">
         <summary className="cursor-pointer font-medium text-slate-700">
-          Raw response (debug)
+          {t("backlinks.common.rawDebug")}
         </summary>
         <pre className="mt-2 max-h-96 overflow-auto text-[11px]">
           {JSON.stringify(view.items, null, 2)}
@@ -572,6 +570,7 @@ function bool(row: Record<string, unknown>, key: string): boolean | null {
 // ---------- Referring Domains tab ----------
 
 function ReferringDomainsTab() {
+  const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [limit, setLimit] = useState(100);
   const [includeSubdomains, setIncludeSubdomains] = useState(true);
@@ -593,7 +592,11 @@ function ReferringDomainsTab() {
       });
       setView(result);
       toast.success(
-        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} domains (${formatUsd(result.cost_usd)})`,
+        t("backlinks.domains.loaded", {
+          count: formatCount(result.items_count),
+          total: formatCount(result.total_count),
+          cost: formatUsd(result.cost_usd),
+        }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -613,35 +616,45 @@ function ReferringDomainsTab() {
         setIncludeSubdomains={setIncludeSubdomains}
         busy={busy}
         onRun={onRun}
-        runLabel="Load referring domains"
+        runLabel={t("backlinks.domains.loadButton")}
         details={[
-          `Up to ${formatCount(limit)} domains`,
-          "Sorted by domain rank (desc)",
+          t("backlinks.domains.upToDomains", { count: formatCount(limit) }),
+          t("backlinks.domains.sortedByRank"),
         ]}
       />
       {view ? (
         <ListTable
           view={view}
           columns={[
-            { key: "domain", label: "Domain", kind: "string" },
-            { key: "rank", label: "Rank", kind: "number", align: "right" },
-            { key: "backlinks", label: "Links", kind: "number", align: "right" },
+            { key: "domain", label: t("backlinks.domains.columns.domain"), kind: "string" },
+            {
+              key: "rank",
+              label: t("backlinks.domains.columns.rank"),
+              kind: "number",
+              align: "right",
+            },
+            {
+              key: "backlinks",
+              label: t("backlinks.domains.columns.links"),
+              kind: "number",
+              align: "right",
+            },
             {
               key: "first_seen",
-              label: "First seen",
+              label: t("backlinks.domains.columns.firstSeen"),
               kind: "string",
               transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
             },
             {
               key: "lost_date",
-              label: "Lost",
+              label: t("backlinks.domains.columns.lost"),
               kind: "string",
               transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
             },
           ]}
         />
       ) : (
-        !busy && <EmptyHint label="Enter a domain and load referring domains." />
+        !busy && <EmptyHint label={t("backlinks.domains.empty")} />
       )}
     </div>
   );
@@ -650,6 +663,7 @@ function ReferringDomainsTab() {
 // ---------- Anchors tab ----------
 
 function AnchorsTab() {
+  const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [limit, setLimit] = useState(100);
   const [includeSubdomains, setIncludeSubdomains] = useState(true);
@@ -671,7 +685,11 @@ function AnchorsTab() {
       });
       setView(result);
       toast.success(
-        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} anchors (${formatUsd(result.cost_usd)})`,
+        t("backlinks.anchors.loaded", {
+          count: formatCount(result.items_count),
+          total: formatCount(result.total_count),
+          cost: formatUsd(result.cost_usd),
+        }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -691,39 +709,39 @@ function AnchorsTab() {
         setIncludeSubdomains={setIncludeSubdomains}
         busy={busy}
         onRun={onRun}
-        runLabel="Load anchors"
+        runLabel={t("backlinks.anchors.loadButton")}
         details={[
-          `Up to ${formatCount(limit)} anchors`,
-          "Sorted by backlink count (desc)",
+          t("backlinks.anchors.upToAnchors", { count: formatCount(limit) }),
+          t("backlinks.anchors.sortedByLinks"),
         ]}
       />
       {view ? (
         <ListTable
           view={view}
           columns={[
-            { key: "anchor", label: "Anchor", kind: "string" },
+            { key: "anchor", label: t("backlinks.anchors.columns.anchor"), kind: "string" },
             {
               key: "backlinks",
-              label: "Backlinks",
+              label: t("backlinks.anchors.columns.backlinks"),
               kind: "number",
               align: "right",
             },
             {
               key: "referring_domains",
-              label: "Domains",
+              label: t("backlinks.anchors.columns.domains"),
               kind: "number",
               align: "right",
             },
             {
               key: "dofollow_backlinks",
-              label: "Dofollow",
+              label: t("backlinks.anchors.columns.dofollow"),
               kind: "number",
               align: "right",
             },
           ]}
         />
       ) : (
-        !busy && <EmptyHint label="Enter a domain and load anchor texts." />
+        !busy && <EmptyHint label={t("backlinks.anchors.empty")} />
       )}
     </div>
   );
@@ -732,6 +750,7 @@ function AnchorsTab() {
 // ---------- History tab ----------
 
 function HistoryTab() {
+  const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<BacklinksListView | null>(null);
@@ -748,7 +767,10 @@ function HistoryTab() {
       });
       setView(result);
       toast.success(
-        `Loaded ${formatCount(result.items_count)} snapshots (${formatUsd(result.cost_usd)})`,
+        t("backlinks.history.loaded", {
+          count: formatCount(result.items_count),
+          cost: formatUsd(result.cost_usd),
+        }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -773,7 +795,7 @@ function HistoryTab() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">Target domain</span>
+          <span className="font-medium text-slate-700">{t("backlinks.common.targetDomain")}</span>
           <input
             type="text"
             value={target}
@@ -793,9 +815,9 @@ function HistoryTab() {
               rows_per_target: 1,
             }}
             details={[
-              "One request, monthly snapshots",
-              "Up to ~5 years of history",
-              "Flat fee (no per-row component)",
+              t("backlinks.history.monthlySnapshots"),
+              t("backlinks.history.fiveYears"),
+              t("backlinks.history.flatFee"),
             ]}
             disabled={busy || !target.trim()}
           />
@@ -805,7 +827,7 @@ function HistoryTab() {
             disabled={busy || !target.trim()}
             className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? "Loading…" : "Load history"}
+            {busy ? t("backlinks.common.loading") : t("backlinks.history.loadButton")}
           </button>
         </div>
       </div>
@@ -814,10 +836,12 @@ function HistoryTab() {
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <strong className="font-mono text-slate-700">{view.target}</strong>
-            <span>{formatCount(view.items_count)} snapshots</span>
+            <span>{t("backlinks.history.snapshots", { count: view.items_count })}</span>
             <span className="ml-auto">
-              actual {formatUsd(view.cost_usd)} · estimated{" "}
-              {formatUsd(view.estimated_usd)}
+              {t("backlinks.common.actualEstimated", {
+                actual: formatUsd(view.cost_usd),
+                estimated: formatUsd(view.estimated_usd),
+              })}
             </span>
           </div>
           <div className="h-72 rounded border bg-white p-3">
@@ -836,14 +860,12 @@ function HistoryTab() {
                   tick={{ fontSize: 11 }}
                   tickFormatter={(v) => formatCount(v as number)}
                 />
-                <Tooltip
-                  formatter={(value, name) => [formatCount(value as number), name]}
-                />
+                <Tooltip formatter={(value, name) => [formatCount(value as number), name]} />
                 <Line
                   yAxisId="left"
                   type="monotone"
                   dataKey="backlinks"
-                  name="Backlinks"
+                  name={t("backlinks.history.lines.backlinks")}
                   stroke="#1e293b"
                   dot={false}
                 />
@@ -851,7 +873,7 @@ function HistoryTab() {
                   yAxisId="right"
                   type="monotone"
                   dataKey="referringDomains"
-                  name="Referring domains"
+                  name={t("backlinks.history.lines.referringDomains")}
                   stroke="#0ea5e9"
                   dot={false}
                 />
@@ -861,7 +883,7 @@ function HistoryTab() {
         </div>
       )}
 
-      {!view && !busy && <EmptyHint label="Enter a domain and load the history chart." />}
+      {!view && !busy && <EmptyHint label={t("backlinks.history.empty")} />}
     </div>
   );
 }
@@ -880,6 +902,7 @@ function ListInputs(props: {
   runLabel: string;
   details: string[];
 }) {
+  const { t } = useTranslation();
   const {
     target,
     setTarget,
@@ -896,7 +919,7 @@ function ListInputs(props: {
     <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">Target domain</span>
+          <span className="font-medium text-slate-700">{t("backlinks.common.targetDomain")}</span>
           <input
             type="text"
             value={target}
@@ -909,7 +932,7 @@ function ListInputs(props: {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">Limit</span>
+          <span className="font-medium text-slate-700">{t("backlinks.common.limit")}</span>
           <input
             type="number"
             min={1}
@@ -921,9 +944,7 @@ function ListInputs(props: {
             }}
             onBlur={(e) => {
               const n = e.target.valueAsNumber;
-              setLimit(
-                Number.isFinite(n) ? Math.max(1, Math.min(1000, n)) : 100,
-              );
+              setLimit(Number.isFinite(n) ? Math.max(1, Math.min(1000, n)) : 100);
             }}
             disabled={busy}
             className="rounded border px-2 py-1 disabled:bg-slate-50"
@@ -948,7 +969,7 @@ function ListInputs(props: {
             onChange={(e) => setIncludeSubdomains(e.target.checked)}
             disabled={busy}
           />
-          Include subdomains
+          {t("backlinks.common.includeSubdomains")}
         </label>
         <button
           type="button"
@@ -956,7 +977,7 @@ function ListInputs(props: {
           disabled={busy || !target.trim()}
           className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
         >
-          {busy ? "Loading…" : runLabel}
+          {busy ? t("backlinks.common.loading") : runLabel}
         </button>
       </div>
     </div>
@@ -978,16 +999,22 @@ function ListTable({
   view: BacklinksListView;
   columns: ListColumn[];
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <strong className="font-mono text-slate-700">{view.target}</strong>
         <span>
-          {formatCount(view.items_count)} of {formatCount(view.total_count)} rows
+          {t("backlinks.common.rowsOf", {
+            count: formatCount(view.items_count),
+            total: formatCount(view.total_count),
+          })}
         </span>
         <span className="ml-auto">
-          actual {formatUsd(view.cost_usd)} · estimated{" "}
-          {formatUsd(view.estimated_usd)}
+          {t("backlinks.common.actualEstimated", {
+            actual: formatUsd(view.cost_usd),
+            estimated: formatUsd(view.estimated_usd),
+          })}
         </span>
       </div>
 
@@ -998,9 +1025,7 @@ function ListTable({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-2 py-1 ${
-                    col.align === "right" ? "text-right" : "text-left"
-                  }`}
+                  className={`px-2 py-1 ${col.align === "right" ? "text-right" : "text-left"}`}
                 >
                   {col.label}
                 </th>
@@ -1043,15 +1068,14 @@ function ListTable({
 
 function EmptyHint({ label }: { label: string }) {
   return (
-    <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">
-      {label}
-    </div>
+    <div className="rounded border bg-white p-8 text-center text-sm text-slate-500">{label}</div>
   );
 }
 
 // ---------- Link Gap (Domain Intersection) tab ----------
 
 function LinkGapTab() {
+  const { t } = useTranslation();
   const [targetA, setTargetA] = useState("");
   const [targetB, setTargetB] = useState("");
   const [mode, setMode] = useState<BacklinksIntersectionMode>("exclude");
@@ -1066,12 +1090,6 @@ function LinkGapTab() {
     if (!a || !b) return;
     setBusy(true);
     try {
-      // DataForSEO's "exclude" mode returns (target_a \ target_b) — i.e.
-      // domains linking to the first target but not the second. To find
-      // the "Link Gap" (the competitor's links the user is missing), we
-      // need to send (competitor \ user), so swap the order when mode is
-      // "exclude". For "intersect" the order doesn't matter (set
-      // intersection is commutative).
       const result = await tauriApi.backlinksDomainIntersection({
         targetA: mode === "exclude" ? b : a,
         targetB: mode === "exclude" ? a : b,
@@ -1083,12 +1101,18 @@ function LinkGapTab() {
         orderBy: ["rank,desc"],
       });
       setView(result);
-      const label =
-        mode === "intersect"
-          ? `domains linking to both`
-          : `domains linking to ${b} but not ${a}`;
       toast.success(
-        `Loaded ${formatCount(result.items_count)} ${label} (${formatUsd(result.cost_usd)})`,
+        mode === "intersect"
+          ? t("backlinks.linkgap.loadedIntersect", {
+              count: formatCount(result.items_count),
+              cost: formatUsd(result.cost_usd),
+            })
+          : t("backlinks.linkgap.loadedExclude", {
+              count: formatCount(result.items_count),
+              targetA: a,
+              targetB: b,
+              cost: formatUsd(result.cost_usd),
+            }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -1100,16 +1124,17 @@ function LinkGapTab() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-xs text-slate-600">
-        SEMrush-style "Link Gap": find domains linking to a competitor but
-        not to you. Pick <strong>exclude</strong> to see {targetB || "B"}'s
-        links that {targetA || "A"} is missing, or <strong>intersect</strong>{" "}
-        to see which referring domains both already share.
+        <Trans
+          i18nKey="backlinks.linkgap.description"
+          values={{ targetA: targetA || "A", targetB: targetB || "B" }}
+          components={{ 1: <strong />, 2: <strong /> }}
+        />
       </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Your domain (A)</span>
+            <span className="font-medium text-slate-700">{t("backlinks.linkgap.yourDomain")}</span>
             <input
               type="text"
               value={targetA}
@@ -1123,7 +1148,7 @@ function LinkGapTab() {
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700">
-              Competitor domain (B)
+              {t("backlinks.linkgap.competitorDomain")}
             </span>
             <input
               type="text"
@@ -1138,21 +1163,21 @@ function LinkGapTab() {
           </label>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700">Mode</span>
+              <span className="font-medium text-slate-700">{t("backlinks.common.mode")}</span>
               <select
                 value={mode}
-                onChange={(e) =>
-                  setMode(e.target.value as BacklinksIntersectionMode)
-                }
+                onChange={(e) => setMode(e.target.value as BacklinksIntersectionMode)}
                 disabled={busy}
                 className="rounded border px-2 py-1 disabled:bg-slate-50"
               >
-                <option value="exclude">Exclude (B \ A)</option>
-                <option value="intersect">Intersect (A ∩ B)</option>
+                <option value="exclude">{t("backlinks.linkgap.modeOptions.exclude")}</option>
+                <option value="intersect">
+                  {t("backlinks.linkgap.modeOptions.intersect")}
+                </option>
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700">Limit</span>
+              <span className="font-medium text-slate-700">{t("backlinks.common.limit")}</span>
               <input
                 type="number"
                 min={1}
@@ -1164,11 +1189,7 @@ function LinkGapTab() {
                 }}
                 onBlur={(e) => {
                   const n = e.target.valueAsNumber;
-                  setLimit(
-                    Number.isFinite(n)
-                      ? Math.max(1, Math.min(1000, n))
-                      : 100,
-                  );
+                  setLimit(Number.isFinite(n) ? Math.max(1, Math.min(1000, n)) : 100);
                 }}
                 disabled={busy}
                 className="rounded border px-2 py-1 disabled:bg-slate-50"
@@ -1185,10 +1206,10 @@ function LinkGapTab() {
               rows_per_target: limit,
             }}
             details={[
-              `Up to ${formatCount(limit)} domains`,
+              t("backlinks.linkgap.upToDomains", { count: formatCount(limit) }),
               mode === "exclude"
-                ? "Domains linking only to B"
-                : "Domains linking to both",
+                ? t("backlinks.linkgap.modeHints.exclude")
+                : t("backlinks.linkgap.modeHints.intersect"),
             ]}
             disabled={busy || !targetA.trim() || !targetB.trim()}
           />
@@ -1199,7 +1220,7 @@ function LinkGapTab() {
               onChange={(e) => setIncludeSubdomains(e.target.checked)}
               disabled={busy}
             />
-            Include subdomains
+            {t("backlinks.common.includeSubdomains")}
           </label>
           <button
             type="button"
@@ -1207,7 +1228,7 @@ function LinkGapTab() {
             disabled={busy || !targetA.trim() || !targetB.trim()}
             className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? "Loading…" : "Find link gap"}
+            {busy ? t("backlinks.common.loading") : t("backlinks.linkgap.loadButton")}
           </button>
         </div>
       </div>
@@ -1216,26 +1237,29 @@ function LinkGapTab() {
         <ListTable
           view={view}
           columns={[
-            { key: "domain", label: "Domain", kind: "string" },
-            { key: "rank", label: "Rank", kind: "number", align: "right" },
+            { key: "domain", label: t("backlinks.domains.columns.domain"), kind: "string" },
+            {
+              key: "rank",
+              label: t("backlinks.domains.columns.rank"),
+              kind: "number",
+              align: "right",
+            },
             {
               key: "backlinks",
-              label: "Links",
+              label: t("backlinks.domains.columns.links"),
               kind: "number",
               align: "right",
             },
             {
               key: "first_seen",
-              label: "First seen",
+              label: t("backlinks.domains.columns.firstSeen"),
               kind: "string",
               transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
             },
           ]}
         />
       ) : (
-        !busy && (
-          <EmptyHint label="Enter your domain and a competitor, then find the gap." />
-        )
+        !busy && <EmptyHint label={t("backlinks.linkgap.empty")} />
       )}
     </div>
   );
@@ -1244,6 +1268,7 @@ function LinkGapTab() {
 // ---------- Domain Pages tab ----------
 
 function DomainPagesTab() {
+  const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [limit, setLimit] = useState(100);
   const [includeSubdomains, setIncludeSubdomains] = useState(true);
@@ -1268,7 +1293,11 @@ function DomainPagesTab() {
       });
       setView(result);
       toast.success(
-        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} pages (${formatUsd(result.cost_usd)})`,
+        t("backlinks.domainpages.loaded", {
+          count: formatCount(result.items_count),
+          total: formatCount(result.total_count),
+          cost: formatUsd(result.cost_usd),
+        }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -1288,35 +1317,45 @@ function DomainPagesTab() {
         setIncludeSubdomains={setIncludeSubdomains}
         busy={busy}
         onRun={onRun}
-        runLabel="Load domain pages"
+        runLabel={t("backlinks.domainpages.loadButton")}
         details={[
-          `Up to ${formatCount(limit)} pages`,
-          "Sorted by page rank (desc)",
+          t("backlinks.domainpages.upToPages", { count: formatCount(limit) }),
+          t("backlinks.domainpages.sortedByRank"),
         ]}
       />
       {view ? (
         <ListTable
           view={view}
           columns={[
-            { key: "url", label: "URL", kind: "string" },
-            { key: "rank", label: "Rank", kind: "number", align: "right" },
-            { key: "backlinks", label: "Links", kind: "number", align: "right" },
+            { key: "url", label: t("backlinks.domainpages.columns.url"), kind: "string" },
+            {
+              key: "rank",
+              label: t("backlinks.domainpages.columns.rank"),
+              kind: "number",
+              align: "right",
+            },
+            {
+              key: "backlinks",
+              label: t("backlinks.domainpages.columns.links"),
+              kind: "number",
+              align: "right",
+            },
             {
               key: "referring_domains",
-              label: "Ref. domains",
+              label: t("backlinks.domainpages.columns.refDomains"),
               kind: "number",
               align: "right",
             },
             {
               key: "first_seen",
-              label: "First seen",
+              label: t("backlinks.domainpages.columns.firstSeen"),
               kind: "string",
               transform: (v) => (typeof v === "string" ? v.slice(0, 10) : "—"),
             },
           ]}
         />
       ) : (
-        !busy && <EmptyHint label="Enter a domain to list its most-linked pages." />
+        !busy && <EmptyHint label={t("backlinks.domainpages.empty")} />
       )}
     </div>
   );
@@ -1325,6 +1364,7 @@ function DomainPagesTab() {
 // ---------- Page Intersection tab ----------
 
 function PageIntersectionTab() {
+  const { t } = useTranslation();
   const [pagesText, setPagesText] = useState("");
   const [intersections, setIntersections] = useState(2);
   const [limit, setLimit] = useState(100);
@@ -1368,7 +1408,11 @@ function PageIntersectionTab() {
       });
       setView(result);
       toast.success(
-        `Loaded ${formatCount(result.items_count)} of ${formatCount(result.total_count)} domains (${formatUsd(result.cost_usd)})`,
+        t("backlinks.pageintersect.loaded", {
+          count: formatCount(result.items_count),
+          total: formatCount(result.total_count),
+          cost: formatUsd(result.cost_usd),
+        }),
       );
     } catch (e) {
       toast.error(formatError(e));
@@ -1379,15 +1423,12 @@ function PageIntersectionTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-slate-600">
-        Find domains that link to a set of pages. Useful for outreach (sites that already cover the
-        topic across competitors) or content-cluster analysis. 2–20 URLs per request.
-      </p>
+      <p className="text-sm text-slate-600">{t("backlinks.pageintersect.description")}</p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-700">
-            Pages (one per line, {pages.length}/20)
+            {t("backlinks.pageintersect.pagesLabel", { count: pages.length })}
           </span>
           <textarea
             value={pagesText}
@@ -1402,7 +1443,7 @@ function PageIntersectionTab() {
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-xs">
             <span className="text-slate-600">
-              Min pages a domain must link to ({effectiveIntersections})
+              {t("backlinks.pageintersect.minPagesLabel", { count: effectiveIntersections })}
             </span>
             <input
               type="range"
@@ -1415,7 +1456,9 @@ function PageIntersectionTab() {
             />
           </label>
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-slate-600">Limit ({limit})</span>
+            <span className="text-slate-600">
+              {t("backlinks.pageintersect.limitLabel", { count: limit })}
+            </span>
             <input
               type="number"
               min={10}
@@ -1434,13 +1477,16 @@ function PageIntersectionTab() {
               onChange={(e) => setIncludeSubdomains(e.target.checked)}
               disabled={busy}
             />
-            Include subdomains
+            {t("backlinks.common.includeSubdomains")}
           </label>
           <CostPreview
             action={{ kind: "Backlinks", target_count: 1, rows_per_target: limit }}
             details={[
-              `${pages.length} pages, intersect ≥ ${effectiveIntersections}`,
-              `Up to ${formatCount(limit)} domains`,
+              t("backlinks.pageintersect.intersectSummary", {
+                pages: pages.length,
+                min: effectiveIntersections,
+              }),
+              t("backlinks.pageintersect.upToDomains", { count: formatCount(limit) }),
             ]}
             disabled={busy || pages.length < 2}
           />
@@ -1450,7 +1496,7 @@ function PageIntersectionTab() {
             disabled={busy || pages.length < 2}
             className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? "Loading…" : "Find common backlinks"}
+            {busy ? t("backlinks.common.loading") : t("backlinks.pageintersect.loadButton")}
           </button>
         </div>
       </div>
@@ -1459,12 +1505,26 @@ function PageIntersectionTab() {
         <ListTable
           view={view}
           columns={[
-            { key: "domain", label: "Domain", kind: "string" },
-            { key: "rank", label: "Rank", kind: "number", align: "right" },
-            { key: "backlinks", label: "Links", kind: "number", align: "right" },
+            {
+              key: "domain",
+              label: t("backlinks.pageintersect.columns.domain"),
+              kind: "string",
+            },
+            {
+              key: "rank",
+              label: t("backlinks.pageintersect.columns.rank"),
+              kind: "number",
+              align: "right",
+            },
+            {
+              key: "backlinks",
+              label: t("backlinks.pageintersect.columns.links"),
+              kind: "number",
+              align: "right",
+            },
             {
               key: "referring_pages",
-              label: "Ref. pages",
+              label: t("backlinks.pageintersect.columns.refPages"),
               kind: "number",
               align: "right",
             },
@@ -1472,9 +1532,7 @@ function PageIntersectionTab() {
         />
       ) : (
         !busy &&
-        pages.length < 2 && (
-          <EmptyHint label="Paste at least 2 page URLs to find common backlinks." />
-        )
+        pages.length < 2 && <EmptyHint label={t("backlinks.pageintersect.empty")} />
       )}
     </div>
   );
