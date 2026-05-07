@@ -16,8 +16,19 @@ use tauri::Manager;
 pub fn run() {
     telemetry::init();
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_shell::init());
+
+    // Auto-updater plugin — gated behind the `updater` Cargo feature so
+    // default builds don't pull in the dep until release infrastructure
+    // (pubkey + signed-release feed) is provisioned. See docs/AUTOUPDATE.md.
+    #[cfg(feature = "updater")]
+    {
+        builder = builder
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .plugin(tauri_plugin_process::init());
+    }
+
+    builder
         .setup(|app| {
             let dir = app
                 .path()
