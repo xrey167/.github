@@ -2,6 +2,7 @@ pub mod audits;
 pub mod reports;
 pub mod backlinks;
 pub mod chat;
+pub mod content_strategy;
 pub mod cost_budget;
 pub mod keywords_cache;
 pub mod ledger;

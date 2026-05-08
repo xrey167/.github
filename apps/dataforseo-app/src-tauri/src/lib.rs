@@ -208,6 +208,10 @@ pub fn run() {
             commands::reports::reports_list_runs,
             commands::import::semrush_import,
             commands::import::semrush_list_imports,
+            commands::content_strategy::planned_posts_list,
+            commands::content_strategy::planned_posts_create,
+            commands::content_strategy::planned_posts_update,
+            commands::content_strategy::planned_posts_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
