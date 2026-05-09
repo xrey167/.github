@@ -212,6 +212,10 @@ pub fn run() {
             commands::content_strategy::planned_posts_create,
             commands::content_strategy::planned_posts_update,
             commands::content_strategy::planned_posts_delete,
+            commands::content_strategy::topic_clusters_list,
+            commands::content_strategy::topic_clusters_create,
+            commands::content_strategy::topic_clusters_update,
+            commands::content_strategy::topic_clusters_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

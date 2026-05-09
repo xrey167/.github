@@ -414,6 +414,18 @@ export const tauriApi = {
 
   plannedPostsDelete: (args: { id: number }) =>
     invoke<void>("planned_posts_delete", args),
+
+  topicClustersList: (args: { projectId: number | null }) =>
+    invoke<TopicCluster[]>("topic_clusters_list", args),
+
+  topicClustersCreate: (args: { input: TopicClusterInput }) =>
+    invoke<number>("topic_clusters_create", args),
+
+  topicClustersUpdate: (args: { id: number; input: TopicClusterInput }) =>
+    invoke<void>("topic_clusters_update", args),
+
+  topicClustersDelete: (args: { id: number }) =>
+    invoke<void>("topic_clusters_delete", args),
 };
 
 export interface AiProviderStatus {
@@ -1190,6 +1202,7 @@ export interface SemrushImport {
 export interface PlannedPost {
   id: number;
   project_id: number | null;
+  cluster_id: number | null;
   title: string;
   target_keyword: string | null;
   /** "idea" | "drafting" | "review" | "published" | "archived" */
@@ -1203,9 +1216,29 @@ export interface PlannedPost {
 
 export interface PlannedPostInput {
   project_id: number | null;
+  cluster_id: number | null;
   title: string;
   target_keyword: string | null;
   status: string | null;
   scheduled_for: string | null;
   notes: string | null;
+}
+
+export interface TopicCluster {
+  id: number;
+  project_id: number | null;
+  name: string;
+  pillar_keyword: string | null;
+  description: string | null;
+  color: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface TopicClusterInput {
+  project_id: number | null;
+  name: string;
+  pillar_keyword: string | null;
+  description: string | null;
+  color: string | null;
 }
