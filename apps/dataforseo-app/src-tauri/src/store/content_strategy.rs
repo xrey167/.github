@@ -21,6 +21,11 @@ pub struct PlannedPost {
     /// ISO date (YYYY-MM-DD) the post is scheduled to be published.
     pub scheduled_for: Option<String>,
     pub notes: Option<String>,
+    /// Latest LLM-generated content brief (Markdown). Generated on demand
+    /// via the `content_brief_generate` command.
+    pub brief_md: Option<String>,
+    pub brief_model: Option<String>,
+    pub brief_generated_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
@@ -109,6 +114,88 @@ pub fn delete(conn: &mut Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
+/// Persist the latest LLM-generated brief on the post. Stamps the model
+/// and timestamp so the UI can show staleness.
+pub fn set_brief(
+    conn: &mut Connection,
+    id: i64,
+    brief_md: &str,
+    model: &str,
+) -> Result<()> {
+    conn.execute(
+        "UPDATE planned_posts
+            SET brief_md = $2,
+                brief_model = $3,
+                brief_generated_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = $1",
+        params![id, brief_md, model],
+    )?;
+    Ok(())
+}
+
+/// Read a post by id. Used by the brief generator to assemble context
+/// (title, target keyword, cluster_id, notes) before calling the LLM.
+pub fn get(conn: &mut Connection, id: i64) -> Result<Option<PlannedPost>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, project_id, cluster_id, title, target_keyword, status,
+                CAST(scheduled_for AS VARCHAR)        AS scheduled_for_s,
+                notes,
+                brief_md,
+                brief_model,
+                CAST(brief_generated_at AS VARCHAR)   AS brief_generated_at_s,
+                CAST(created_at AS VARCHAR)           AS created_at_s,
+                CAST(updated_at AS VARCHAR)           AS updated_at_s
+           FROM planned_posts
+          WHERE id = $1",
+    )?;
+    let mut rows = stmt.query(params![id])?;
+    if let Some(row) = rows.next()? {
+        Ok(Some(PlannedPost {
+            id: row.get("id")?,
+            project_id: row.get("project_id")?,
+            cluster_id: row.get("cluster_id")?,
+            title: row.get("title")?,
+            target_keyword: row.get("target_keyword")?,
+            status: row.get("status")?,
+            scheduled_for: row.get("scheduled_for_s")?,
+            notes: row.get("notes")?,
+            brief_md: row.get("brief_md")?,
+            brief_model: row.get("brief_model")?,
+            brief_generated_at: row.get("brief_generated_at_s")?,
+            created_at: row.get("created_at_s")?,
+            updated_at: row.get("updated_at_s")?,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn cluster_get(conn: &mut Connection, id: i64) -> Result<Option<TopicCluster>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, project_id, name, pillar_keyword, description, color,
+                CAST(created_at AS VARCHAR) AS created_at_s,
+                CAST(updated_at AS VARCHAR) AS updated_at_s
+           FROM topic_clusters
+          WHERE id = $1",
+    )?;
+    let mut rows = stmt.query(params![id])?;
+    if let Some(row) = rows.next()? {
+        Ok(Some(TopicCluster {
+            id: row.get("id")?,
+            project_id: row.get("project_id")?,
+            name: row.get("name")?,
+            pillar_keyword: row.get("pillar_keyword")?,
+            description: row.get("description")?,
+            color: row.get("color")?,
+            created_at: row.get("created_at_s")?,
+            updated_at: row.get("updated_at_s")?,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
 /// List planned posts for a project (or all if `project_id` is None).
 /// Newest scheduled date first, then by created_at.
 pub fn list(conn: &mut Connection, project_id: Option<i64>) -> Result<Vec<PlannedPost>> {
@@ -118,19 +205,25 @@ pub fn list(conn: &mut Connection, project_id: Option<i64>) -> Result<Vec<Planne
     // SELECT-list reorders.
     let sql = if project_id.is_some() {
         "SELECT id, project_id, cluster_id, title, target_keyword, status,
-                CAST(scheduled_for AS VARCHAR) AS scheduled_for_s,
+                CAST(scheduled_for AS VARCHAR)      AS scheduled_for_s,
                 notes,
-                CAST(created_at AS VARCHAR)    AS created_at_s,
-                CAST(updated_at AS VARCHAR)    AS updated_at_s
+                brief_md,
+                brief_model,
+                CAST(brief_generated_at AS VARCHAR) AS brief_generated_at_s,
+                CAST(created_at AS VARCHAR)         AS created_at_s,
+                CAST(updated_at AS VARCHAR)         AS updated_at_s
            FROM planned_posts
           WHERE project_id = $1
           ORDER BY scheduled_for DESC NULLS LAST, created_at DESC"
     } else {
         "SELECT id, project_id, cluster_id, title, target_keyword, status,
-                CAST(scheduled_for AS VARCHAR) AS scheduled_for_s,
+                CAST(scheduled_for AS VARCHAR)      AS scheduled_for_s,
                 notes,
-                CAST(created_at AS VARCHAR)    AS created_at_s,
-                CAST(updated_at AS VARCHAR)    AS updated_at_s
+                brief_md,
+                brief_model,
+                CAST(brief_generated_at AS VARCHAR) AS brief_generated_at_s,
+                CAST(created_at AS VARCHAR)         AS created_at_s,
+                CAST(updated_at AS VARCHAR)         AS updated_at_s
            FROM planned_posts
           ORDER BY scheduled_for DESC NULLS LAST, created_at DESC"
     };
@@ -153,6 +246,9 @@ pub fn list(conn: &mut Connection, project_id: Option<i64>) -> Result<Vec<Planne
             status: row.get("status")?,
             scheduled_for: row.get("scheduled_for_s")?,
             notes: row.get("notes")?,
+            brief_md: row.get("brief_md")?,
+            brief_model: row.get("brief_model")?,
+            brief_generated_at: row.get("brief_generated_at_s")?,
             created_at: row.get("created_at_s")?,
             updated_at: row.get("updated_at_s")?,
         });

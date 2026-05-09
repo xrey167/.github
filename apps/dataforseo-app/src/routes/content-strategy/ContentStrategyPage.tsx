@@ -11,6 +11,7 @@ import {
   type TopicClusterInput,
 } from "../../lib/tauri";
 
+import BriefView from "./BriefView";
 import CalendarTab from "./CalendarTab";
 import ClustersTab from "./ClustersTab";
 import GapTab from "./GapTab";
@@ -34,6 +35,7 @@ export default function ContentStrategyPage() {
   const [loadingClusters, setLoadingClusters] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editingPost, setEditingPost] = useState<PlannedPost | null>(null);
+  const [briefingPost, setBriefingPost] = useState<PlannedPost | null>(null);
 
   const refreshPosts = useCallback(async () => {
     setLoadingPosts(true);
@@ -182,6 +184,7 @@ export default function ContentStrategyPage() {
           defaultProjectId={project?.id ?? null}
           onSave={savePost}
           onDelete={deletePost}
+          onOpenBrief={(p) => setBriefingPost(p)}
         />
       )}
 
@@ -228,6 +231,25 @@ export default function ContentStrategyPage() {
               : undefined
           }
           onCancel={() => setEditingPost(null)}
+          onOpenBrief={
+            editingPost.id > 0
+              ? () => {
+                  const target = editingPost;
+                  setEditingPost(null);
+                  setBriefingPost(target);
+                }
+              : undefined
+          }
+        />
+      )}
+
+      {briefingPost && (
+        <BriefView
+          // Re-resolve from the latest list so a regenerate completion
+          // re-renders with the persisted timestamp + model.
+          post={posts.find((p) => p.id === briefingPost.id) ?? briefingPost}
+          onClose={() => setBriefingPost(null)}
+          onGenerated={refreshPosts}
         />
       )}
     </section>

@@ -30,6 +30,9 @@ interface Props {
   onSave: (input: PlannedPostInput) => void | Promise<void>;
   onDelete?: () => void;
   onCancel: () => void;
+  /// Opens the LLM brief modal. Only meaningful for existing posts
+  /// (id > 0); the host hides the button on the create-new flow.
+  onOpenBrief?: () => void;
 }
 
 export default function PostForm({
@@ -39,6 +42,7 @@ export default function PostForm({
   onSave,
   onDelete,
   onCancel,
+  onOpenBrief,
 }: Props) {
   const [title, setTitle] = useState(post.title);
   const [targetKeyword, setTargetKeyword] = useState(post.target_keyword ?? "");
@@ -170,6 +174,21 @@ export default function PostForm({
             <span />
           )}
           <div className="flex gap-2">
+            {post.id > 0 && onOpenBrief && (
+              <button
+                type="button"
+                onClick={onOpenBrief}
+                disabled={busy}
+                className="rounded border border-violet-200 px-3 py-1.5 text-sm text-violet-700 hover:bg-violet-50 disabled:opacity-60"
+                title={
+                  post.brief_md
+                    ? "View / regenerate brief"
+                    : "Generate an AI content brief"
+                }
+              >
+                {post.brief_md ? "Brief ✓" : "Brief"}
+              </button>
+            )}
             <button
               type="button"
               onClick={onCancel}
