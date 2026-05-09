@@ -12,7 +12,7 @@ import BacklinksPage from "./routes/BacklinksPage";
 import BrandPage from "./routes/BrandPage";
 import ChatPage from "./routes/ChatPage";
 import ComparePage from "./routes/ComparePage";
-import ContentStrategyPage from "./routes/ContentStrategyPage";
+import ContentStrategyPage from "./routes/content-strategy/ContentStrategyPage";
 import DomainAnalyticsPage from "./routes/DomainAnalyticsPage";
 import KeywordClusteringPage from "./routes/KeywordClusteringPage";
 import KeywordsPage from "./routes/KeywordsPage";
