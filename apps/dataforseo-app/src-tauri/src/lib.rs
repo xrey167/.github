@@ -216,6 +216,7 @@ pub fn run() {
             commands::content_strategy::topic_clusters_create,
             commands::content_strategy::topic_clusters_update,
             commands::content_strategy::topic_clusters_delete,
+            commands::content_strategy::content_brief_generate,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

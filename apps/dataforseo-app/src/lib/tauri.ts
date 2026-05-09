@@ -426,6 +426,9 @@ export const tauriApi = {
 
   topicClustersDelete: (args: { id: number }) =>
     invoke<void>("topic_clusters_delete", args),
+
+  contentBriefGenerate: (args: { postId: number }) =>
+    invoke<ContentBrief>("content_brief_generate", args),
 };
 
 export interface AiProviderStatus {
@@ -1210,8 +1213,18 @@ export interface PlannedPost {
   /** ISO YYYY-MM-DD */
   scheduled_for: string | null;
   notes: string | null;
+  brief_md: string | null;
+  brief_model: string | null;
+  brief_generated_at: string | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+export interface ContentBrief {
+  post_id: number;
+  brief_md: string;
+  model: string;
+  cost_usd: number;
 }
 
 export interface PlannedPostInput {

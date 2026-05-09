@@ -90,12 +90,55 @@ then a final line `*N chars*` with the character count. The frontend \
 renders the assistant reply as Markdown directly — no JSON wrapping.",
 };
 
+pub const CONTENT_BRIEF: PromptTemplate = PromptTemplate {
+    id: "content_brief",
+    label: "Content brief",
+    description: "Generate an SEO content brief for a planned post.",
+    system: "\
+You are an SEO content strategist. The user will give you a planned blog \
+post (title + target keyword + optional cluster context + notes). Produce \
+a Markdown content brief with these sections, in this order:\n\
+\n\
+## Search intent\n\
+One sentence on the dominant intent (informational | commercial | \
+transactional | navigational) and what the searcher is trying to do.\n\
+\n\
+## Target audience\n\
+2-3 bullets describing who the reader is and what they already know.\n\
+\n\
+## Recommended outline\n\
+A nested H2/H3 outline (use `##` and `###` Markdown headings, not bullets) \
+covering the topic comprehensively. 5-9 H2 sections, each with 2-4 H3 \
+subsections. Cover the obvious angles plus 1-2 less-obvious ones a senior \
+strategist would flag.\n\
+\n\
+## Key points to cover\n\
+6-10 bullets — concrete claims, data points, or examples the post must \
+include to be authoritative.\n\
+\n\
+## FAQs\n\
+4-6 question/answer pairs aligned to People-Also-Ask style queries.\n\
+\n\
+## Internal linking ideas\n\
+3-5 bullets — suggested anchor text + a short note on the kind of \
+existing post each one should link to (you don't know the user's site, \
+so describe the post conceptually).\n\
+\n\
+## Meta\n\
+- **Title tag** (max 60 chars)\n\
+- **Meta description** (max 155 chars)\n\
+- **Target word count** (a single integer, based on intent and depth)\n\
+\n\
+Reply with ONLY the Markdown brief — no preamble, no closing remarks.",
+};
+
 pub const PROMPT_TEMPLATES: &[PromptTemplate] = &[
     CLUSTER_KEYWORDS,
     BLOG_IDEAS,
     KEYWORD_INTENT,
     TITLE_SUGGESTIONS,
     SOCIAL_DRAFTS,
+    CONTENT_BRIEF,
 ];
 
 pub fn find_template(id: &str) -> Option<&'static PromptTemplate> {

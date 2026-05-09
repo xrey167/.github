@@ -44,6 +44,7 @@ interface Props {
     input: PlannedPostInput,
   ) => void | Promise<void>;
   onDelete: (post: PlannedPost) => void | Promise<void>;
+  onOpenBrief: (post: PlannedPost) => void;
 }
 
 export default function CalendarTab({
@@ -54,6 +55,7 @@ export default function CalendarTab({
   defaultProjectId,
   onSave,
   onDelete,
+  onOpenBrief,
 }: Props) {
   const [editing, setEditing] = useState<PlannedPost | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -101,6 +103,9 @@ export default function CalendarTab({
       status: "idea",
       scheduled_for: scheduledFor ?? null,
       notes: null,
+      brief_md: null,
+      brief_model: null,
+      brief_generated_at: null,
       created_at: null,
       updated_at: null,
     });
@@ -284,6 +289,18 @@ export default function CalendarTab({
             setShowForm(false);
             setEditing(null);
           }}
+          onOpenBrief={
+            editing.id > 0
+              ? () => {
+                  // Hand off to the host's BriefView. Close the form so the
+                  // user isn't stacking modals.
+                  const target = editing;
+                  setShowForm(false);
+                  setEditing(null);
+                  onOpenBrief(target);
+                }
+              : undefined
+          }
         />
       )}
     </div>
