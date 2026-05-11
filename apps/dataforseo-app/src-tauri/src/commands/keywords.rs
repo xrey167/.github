@@ -1037,6 +1037,94 @@ pub async fn labs_bulk_search_volume(
     Ok(view)
 }
 
+// ---------- Clickstream Bulk Search Volume ----------
+//
+// Same input/output shape as `labs_bulk_search_volume` so the Bulk Volume
+// tab can switch between Labs (Google-Ads-derived, 0.0001/kw) and
+// Clickstream (panel-based, 0.0006/kw) without forking the UI. Clickstream
+// only returns keyword + volume, so competition/competition_level/cpc on
+// the view will be None for clickstream rows.
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn clickstream_bulk_search_volume(
+    state: State<'_, AppState>,
+    keywords: Vec<String>,
+    location_code: u32,
+    language_code: String,
+    use_cache: bool,
+) -> Result<BulkVolumeView> {
+    let mut seen = HashSet::new();
+    let mut cleaned: Vec<String> = keywords
+        .into_iter()
+        .map(|k| k.trim().to_owned())
+        .filter(|k| !k.is_empty() && seen.insert(k.clone()))
+        .collect();
+    if cleaned.is_empty() {
+        return Err(AppError::Validation("at least one keyword required".into()));
+    }
+    if cleaned.len() > BULK_VOLUME_MAX {
+        cleaned.truncate(BULK_VOLUME_MAX);
+    }
+    let estimated_usd = cost::estimate(&CostAction::ClickstreamBulkSearchVolume {
+        count: cleaned.len() as u32,
+    });
+    let endpoint = endpoints::KEYWORDS_CLICKSTREAM_BULK_SEARCH_VOLUME;
+    let mut sorted_keywords = cleaned.clone();
+    sorted_keywords.sort();
+    let cache_params = serde_json::json!({
+        "keywords": sorted_keywords,
+        "location_code": location_code,
+        "language_code": &language_code,
+    });
+    if let CachedOutcome::Hit { mut view, fetched_at } = cached::lookup::<BulkVolumeView>(
+        state.store.clone(), endpoint, &cache_params, cache::ttl_long(), use_cache,
+    ).await? {
+        view.from_cache = true;
+        view.fetched_at = Some(fetched_at);
+        view.cost_usd = 0.0;
+        view.estimated_usd = estimated_usd;
+        return Ok(view);
+    }
+    let api = state.api.clone();
+    let cleaned_for_call = cleaned.clone();
+    let request_size = cleaned.len() as i64;
+    let resp = run_with_ledger(
+        state.store.clone(),
+        endpoint,
+        Mode::Live,
+        estimated_usd,
+        request_size,
+        move || async move {
+            let r = api
+                .clickstream_bulk_search_volume_live(&cleaned_for_call, location_code, &language_code)
+                .await?;
+            let cost = r.cost;
+            Ok((r, cost))
+        },
+    )
+    .await?;
+    let view = BulkVolumeView {
+        items: resp
+            .items
+            .into_iter()
+            .map(|it| BulkVolumeItem {
+                keyword: it.keyword,
+                search_volume: it.search_volume,
+                competition: None,
+                competition_level: None,
+                cpc: None,
+            })
+            .collect(),
+        cost_usd: resp.cost,
+        estimated_usd,
+        from_cache: false,
+        fetched_at: None,
+    };
+    cached::store_view(state.store.clone(), endpoint, &cache_params, &view, resp.cost).await?;
+    Ok(view)
+}
+
 // ---------- True Keyword Gap ----------
 //
 // Orchestration on top of labs_ranked_keywords. Runs the call for both

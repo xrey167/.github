@@ -14,14 +14,20 @@ import { tauriApi, type BulkVolumeItem, type BulkVolumeView } from "../../lib/ta
 
 const MAX_KEYWORDS = 1000;
 
-/// Cheapest per-keyword volume in the catalogue: 0.0001 USD/kw via the
-/// Labs Bulk Search Volume endpoint. ~750x cheaper than Google Ads at
-/// bulk (1000 keywords for 0.10 USD vs 75 USD), trades some long-tail
-/// accuracy. Cached for 30 days like the other Bulk endpoints.
+type VolumeSource = "labs" | "clickstream";
+
+/// Bulk per-keyword volume with a Labs (0.0001/kw, Google-Ads-derived) /
+/// Clickstream (0.0006/kw, panel-derived) source toggle. Labs is the
+/// default — ~750× cheaper than Google Ads at bulk and good enough for
+/// head terms. Clickstream is more accurate on long-tail at 6× the
+/// per-kw cost. Both responses share the same view shape so the table
+/// renders identically; clickstream rows have null competition / CPC
+/// because the panel source doesn't carry ad-auction signals.
 export default function BulkVolumeTab() {
   const { t } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [source, setSource] = useState<VolumeSource>("labs");
   const [view, setView] = useState<BulkVolumeView | null>(null);
 
   const keywords = useMemo(() => {
@@ -41,7 +47,11 @@ export default function BulkVolumeTab() {
     if (keywords.length === 0) return;
     setBusy(true);
     try {
-      const result = await tauriApi.labsBulkSearchVolume({
+      const call =
+        source === "clickstream"
+          ? tauriApi.clickstreamBulkSearchVolume
+          : tauriApi.labsBulkSearchVolume;
+      const result = await call({
         keywords,
         locationCode: DEFAULT_LOCATION,
         languageCode: DEFAULT_LANGUAGE,
@@ -108,14 +118,49 @@ export default function BulkVolumeTab() {
           />
         </label>
         <div className="flex flex-col gap-3">
+          <fieldset className="flex flex-col gap-1 text-xs">
+            <legend className="font-medium text-slate-700">
+              {t("keywords.bulkVolume.sourceLabel")}
+            </legend>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="bulk-volume-source"
+                  value="labs"
+                  checked={source === "labs"}
+                  onChange={() => setSource("labs")}
+                  disabled={busy}
+                />
+                <span>{t("keywords.bulkVolume.sourceLabs")}</span>
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="bulk-volume-source"
+                  value="clickstream"
+                  checked={source === "clickstream"}
+                  onChange={() => setSource("clickstream")}
+                  disabled={busy}
+                />
+                <span>{t("keywords.bulkVolume.sourceClickstream")}</span>
+              </label>
+            </div>
+          </fieldset>
           <CostPreview
-            action={{ kind: "LabsBulkSearchVolume", count: keywords.length }}
+            action={
+              source === "clickstream"
+                ? { kind: "ClickstreamBulkSearchVolume", count: keywords.length }
+                : { kind: "LabsBulkSearchVolume", count: keywords.length }
+            }
             details={[
               t("keywords.bulkVolume.keywordsLabel", {
                 count: keywords.length,
                 max: MAX_KEYWORDS,
               }),
-              t("keywords.bulkVolume.perKeyword"),
+              source === "clickstream"
+                ? t("keywords.bulkVolume.perKeywordClickstream")
+                : t("keywords.bulkVolume.perKeyword"),
               t("keywords.bulkVolume.cached30d"),
             ]}
             disabled={busy || keywords.length === 0}

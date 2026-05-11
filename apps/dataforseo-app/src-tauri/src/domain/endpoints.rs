@@ -93,3 +93,6 @@ pub const APP_DATA_GOOGLE_PLAY_SEARCHES: &str = "app_data.google.app_searches";
 pub const APP_DATA_GOOGLE_PLAY_REVIEWS: &str = "app_data.google.app_reviews";
 pub const APP_DATA_APPLE_SEARCHES: &str = "app_data.apple.app_searches";
 pub const APP_DATA_APPLE_REVIEWS: &str = "app_data.apple.app_reviews";
+
+pub const KEYWORDS_CLICKSTREAM_BULK_SEARCH_VOLUME: &str =
+    "keywords_data.clickstream.bulk_search_volume";

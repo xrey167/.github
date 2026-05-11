@@ -108,6 +108,9 @@ export const tauriApi = {
   labsBulkSearchVolume: (args: { keywords: string[]; locationCode: number; languageCode: string; useCache: boolean }) =>
     invoke<BulkVolumeView>("labs_bulk_search_volume", args),
 
+  clickstreamBulkSearchVolume: (args: { keywords: string[]; locationCode: number; languageCode: string; useCache: boolean }) =>
+    invoke<BulkVolumeView>("clickstream_bulk_search_volume", args),
+
   keywordGap: (args: { yours: string; competitor: string; locationCode: number; languageCode: string; limit: number; useCache: boolean }) =>
     invoke<KeywordGapView>("keyword_gap", args),
 

@@ -97,10 +97,14 @@
       "description": "Cheap bulk volume lookup via DataForSEO Labs — 0.0001 USD per keyword (≈ 0.10 USD for 1000 kw, vs ~7.50 USD via Google Ads). Up to {{max}} keywords per request.",
       "keywordsLabel": "Keywords ({{count}}/{{max}})",
       "perKeyword": "0.0001 USD per keyword",
+      "perKeywordClickstream": "0.0006 USD per keyword",
       "cached30d": "Cached for 30 days",
       "loadedCached": "Loaded {{count}} keywords (cached, $0.00)",
       "loaded": "Loaded {{count}} keywords ({{cost}})",
-      "empty": "Paste keywords above and click Lookup."
+      "empty": "Paste keywords above and click Lookup.",
+      "sourceLabel": "Volume source",
+      "sourceLabs": "Labs (cheap)",
+      "sourceClickstream": "Clickstream (long-tail accurate)"
     },
     "overview": {
       "description": "Comprehensive single-call keyword lookup — volume, KD, CPC, search intent, and SERP feature signals all at once. Replaces 4-5 separate Labs calls. 0.0125 USD per lookup, cached for 7 days.",

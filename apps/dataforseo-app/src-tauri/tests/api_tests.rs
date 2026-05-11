@@ -205,6 +205,32 @@ async fn keywords_search_volume_parses_items() {
 }
 
 #[tokio::test]
+async fn clickstream_bulk_search_volume_parses_items() {
+    let server = MockServer::start().await;
+    let body = dfs_response_items(0.0006, serde_json::json!([
+        { "keyword": "seo tools", "search_volume": 18400 },
+        { "keyword": "rank tracker", "search_volume": 3300 }
+    ]));
+    Mock::given(method("POST"))
+        .and(path("/v3/keywords_data/clickstream_data/bulk_search_volume/live"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(&body))
+        .mount(&server)
+        .await;
+
+    let api = client(server.uri());
+    let keywords = vec!["seo tools".to_string(), "rank tracker".to_string()];
+    let resp = api
+        .clickstream_bulk_search_volume_live(&keywords, 2840, "en")
+        .await
+        .expect("clickstream call should succeed");
+
+    assert_eq!(resp.items.len(), 2);
+    assert_eq!(resp.items[0].keyword, "seo tools");
+    assert_eq!(resp.items[0].search_volume, Some(18400));
+    assert!((resp.cost - 0.0006).abs() < 1e-9, "cost mismatch");
+}
+
+#[tokio::test]
 async fn keywords_search_volume_empty_keywords_returns_empty() {
     let api = client("http://localhost:9999".into()); // never reached
     let resp = api
