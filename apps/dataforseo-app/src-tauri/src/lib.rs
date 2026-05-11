@@ -106,6 +106,7 @@ pub fn run() {
             commands::keywords::labs_competitors_domain,
             commands::keywords::labs_domain_intersection,
             commands::keywords::labs_bulk_search_volume,
+            commands::keywords::clickstream_bulk_search_volume,
             commands::keywords::keyword_gap,
             commands::serp::serp_live,
             commands::serp::serp_ads_live,

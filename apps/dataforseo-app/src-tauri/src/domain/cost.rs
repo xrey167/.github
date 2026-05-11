@@ -129,6 +129,11 @@ pub enum CostAction {
     /// App Data — Google Play / App Store searches and reviews. 0.002 USD
     /// per request regardless of result count.
     AppData,
+    /// Clickstream Bulk Search Volume · 0.0006 USD per keyword. Six times
+    /// the price of Labs Bulk Search Volume but sourced from DataForSEO's
+    /// clickstream panel, which tends to be more accurate on long-tail
+    /// terms than Google Ads estimates.
+    ClickstreamBulkSearchVolume { count: u32 },
 }
 
 pub fn estimate(action: &CostAction) -> f64 {
@@ -214,6 +219,7 @@ pub fn estimate(action: &CostAction) -> f64 {
         DomainAnalyticsAggregationTechnologies => 0.001,
         AppendixFree => 0.0,
         AppData => 0.002,
+        ClickstreamBulkSearchVolume { count } => (*count as f64).max(1.0) * 0.0006,
     }
 }
 
@@ -337,6 +343,19 @@ mod tests {
         // .max(1.0) keeps the cost preview from going to 0 before the
         // user has typed anything.
         assert!((cost - 0.0001).abs() < 1e-9);
+    }
+
+    #[test]
+    fn clickstream_bulk_volume_charges_per_keyword() {
+        let cost = estimate(&CostAction::ClickstreamBulkSearchVolume { count: 1000 });
+        assert!((cost - 0.6).abs() < 1e-9);
+    }
+
+    #[test]
+    fn clickstream_is_six_times_labs_bulk_volume() {
+        let labs = estimate(&CostAction::LabsBulkSearchVolume { count: 500 });
+        let cs = estimate(&CostAction::ClickstreamBulkSearchVolume { count: 500 });
+        assert!((cs / labs - 6.0).abs() < 1e-9);
     }
 
     #[test]

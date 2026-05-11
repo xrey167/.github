@@ -172,6 +172,54 @@ impl ApiClient {
         Ok(SearchVolumeResponse { items, cost })
     }
 
+    /// Clickstream Bulk Search Volume.
+    ///
+    /// 0.0006 USD per keyword (one third the per-kw cost of Google Ads
+    /// Search Volume, six times the price of Labs Bulk Search Volume).
+    /// Source is DataForSEO's clickstream panel rather than Google Ads
+    /// estimates — typically more accurate on long-tail terms but won't
+    /// match Google Ads numbers head-to-head. The response is intentionally
+    /// minimal: `keyword`, `search_volume`, and `monthly_searches`
+    /// (no competition / CPC, since clickstream isn't an ad-auction source).
+    pub async fn clickstream_bulk_search_volume_live(
+        &self,
+        keywords: &[String],
+        location_code: u32,
+        language_code: &str,
+    ) -> Result<SearchVolumeResponse> {
+        if keywords.is_empty() {
+            return Ok(SearchVolumeResponse { items: Vec::new(), cost: 0.0 });
+        }
+        if keywords.len() > 1000 {
+            return Err(AppError::Validation(
+                "clickstream_bulk_search_volume accepts at most 1000 keywords per request".into(),
+            ));
+        }
+        let body = serde_json::json!([{
+            "keywords": keywords,
+            "location_code": location_code,
+            "language_code": language_code,
+        }]);
+        let raw = self
+            .post_json(
+                Family::KeywordsData,
+                "/v3/keywords_data/clickstream_data/bulk_search_volume/live",
+                &body,
+            )
+            .await?;
+        let cost = ensure_api_success(&raw)?;
+        let items = raw
+            .pointer("/tasks/0/result")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|i| serde_json::from_value::<SearchVolumeItem>(i.clone()).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(SearchVolumeResponse { items, cost })
+    }
+
     /// Keyword expansion from a seed keyword set.
     pub async fn google_ads_keywords_for_keywords_live(
         &self,

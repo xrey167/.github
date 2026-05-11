@@ -40,7 +40,7 @@ Google Ads search-volume data and clickstream-derived stats.
 | Bing · Keyword Performance | `/v3/keywords_data/bing/keyword_performance/live` | 0.05 | — | 🟦 plan |
 | Bing · Search Volume | `/v3/keywords_data/bing/search_volume/live` | 0.05 | — | 🟦 plan |
 | Bing · Locations | `/v3/keywords_data/bing/locations` | free | — | n/a |
-| Clickstream · Bulk Search Volume | `/v3/keywords_data/clickstream_data/bulk_search_volume/live` | 0.0006 / kw | — | 🟡 next |
+| Clickstream · Bulk Search Volume | `/v3/keywords_data/clickstream_data/bulk_search_volume/live` | 0.0006 / kw | — | ✅ done |
 | Clickstream · Dataforseo Search Volume | `/v3/keywords_data/dataforseo_trends/explore/live` | 0.05 | — | 🟦 plan |
 
 ## DataForSEO Labs API

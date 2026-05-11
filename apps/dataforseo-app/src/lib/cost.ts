@@ -53,7 +53,8 @@ export type CostAction =
   | { kind: "DomainAnalyticsDomainsByTechnology" }
   | { kind: "DomainAnalyticsAggregationTechnologies" }
   | { kind: "AppendixFree" }
-  | { kind: "AppData" };
+  | { kind: "AppData" }
+  | { kind: "ClickstreamBulkSearchVolume"; count: number };
 
 export function estimate(action: CostAction): number {
   switch (action.kind) {
@@ -160,5 +161,7 @@ export function estimate(action: CostAction): number {
       return 0.001;
     case "AppData":
       return 0.002;
+    case "ClickstreamBulkSearchVolume":
+      return Math.max(1, action.count) * 0.0006;
   }
 }

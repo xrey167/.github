@@ -97,10 +97,14 @@
       "description": "Günstige Bulk-Volumenabfrage via DataForSEO Labs — 0,0001 USD pro Keyword (≈ 0,10 USD für 1000 Keywords vs. ~7,50 USD via Google Ads). Bis zu {{max}} Keywords pro Anfrage.",
       "keywordsLabel": "Keywords ({{count}}/{{max}})",
       "perKeyword": "0,0001 USD pro Keyword",
+      "perKeywordClickstream": "0,0006 USD pro Keyword",
       "cached30d": "30 Tage gecacht",
       "loadedCached": "{{count}} Keywords geladen (gecacht, 0,00 $)",
       "loaded": "{{count}} Keywords geladen ({{cost}})",
-      "empty": "Keywords oben einfügen und auf Abfragen klicken."
+      "empty": "Keywords oben einfügen und auf Abfragen klicken.",
+      "sourceLabel": "Volumen-Quelle",
+      "sourceLabs": "Labs (günstig)",
+      "sourceClickstream": "Clickstream (Long-Tail-genau)"
     },
     "overview": {
       "description": "Umfassende Single-Call-Abfrage — Volumen, KD, CPC, Suchintention und SERP-Features auf einmal. Ersetzt 4–5 einzelne Labs-Aufrufe. 0,0125 USD pro Abfrage, 7 Tage gecacht.",
