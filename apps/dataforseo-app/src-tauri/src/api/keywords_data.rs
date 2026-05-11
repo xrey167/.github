@@ -211,12 +211,14 @@ impl ApiClient {
         let items = raw
             .pointer("/tasks/0/result")
             .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|i| serde_json::from_value::<SearchVolumeItem>(i.clone()).ok())
-                    .collect()
-            })
-            .unwrap_or_default();
+            .ok_or_else(|| {
+                AppError::Parse(
+                    "clickstream_bulk_search_volume response missing tasks[0].result".into(),
+                )
+            })?
+            .iter()
+            .filter_map(|i| serde_json::from_value::<SearchVolumeItem>(i.clone()).ok())
+            .collect();
         Ok(SearchVolumeResponse { items, cost })
     }
 
